@@ -1,0 +1,3 @@
+[workspace]
+members = ["rusl", "tiny-std"]
+exclude = ["test-runners/small-main", "test-runners/alloc-main"]

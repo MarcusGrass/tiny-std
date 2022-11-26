@@ -1,0 +1,23 @@
+# Can't use mold on aarch64 out of the box with aarch64 containers
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    "-C", "link-arg=-fuse-ld=mold",
+]
+
+[target.'cfg(all())']
+rustflags = [
+    "-Wclippy::all",
+    "-Wclippy::pedantic",
+    "-Aclippy::cast_lossless",
+    "-Aclippy::cast_possible_truncation",
+    "-Aclippy::cast_sign_loss",
+    "-Aclippy::cast_possible_wrap",
+    "-Aclippy::cast_precision_loss",
+    "-Aclippy::unreadable_literal",
+    "-Aclippy::needless_pass_by_value",
+    "-Aclippy::module_name_repetitions",
+    "-Aclippy::struct-excessive-bools",
+    "-Aclippy::explicit_deref_methods",
+    "-Aclippy::transmute_ptr_to_ptr",
+    "-Aclippy::similar_names",
+]

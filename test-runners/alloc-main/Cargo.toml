@@ -1,0 +1,12 @@
+[package]
+name = "alloc-main"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+compiler_builtins = { version = "0.1.84", features = ["mem"] }
+dlmalloc = { git = "https://github.com/MarcusGrass/dlmalloc-rs.git", rev = "a8e9fc0d2c03a06810530a48abd37fecc71e8109", default-features = false }
+tiny-std = { path = "../../tiny-std", features = ["start", "symbols", "aux", "vdso"] }
+unix-print = "0.1.0"

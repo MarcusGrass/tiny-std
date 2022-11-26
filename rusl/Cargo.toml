@@ -1,0 +1,17 @@
+[package]
+name = "rusl"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["alloc"]
+alloc = []
+
+[dependencies]
+sc = "0.2.7"
+unix-print = "0.1.0"
+
+[dev-dependencies]
+libc = "0.2.137"

@@ -1,0 +1,33 @@
+[package]
+name = "tiny-std"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["alloc"]
+# With an allocator, needs to be provided,
+alloc = ["rusl/alloc"]
+# Lib sections of things dependant of start files
+start = []
+# Symbols required for properly using start parts, becomes incompatible with stdlib if activated
+symbols = []
+# Pull in aux values in the program entrypoint
+aux = ["start"]
+# Try to pull in get_time through the VDSO in the program entrypoint
+vdso = ["aux"]
+
+[dependencies]
+rusl = { path = "../rusl", default-features = false }
+sc = "0.2.7"
+unix-print = "0.1.0"
+
+[dev-dependencies]
+tiny-bench = "0.2.0"
+libc = "0.2"
+
+[[bench]]
+name = "benchmark"
+harness = false
