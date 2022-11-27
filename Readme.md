@@ -2,8 +2,13 @@
 
 Like a bad, probably buggy, tiny standard library for Linux.
 
+## When it's appropriate
 If you are actually trying to do something solid,
-checkout [Rustix](https://github.com/bytecodealliance/rustix) or [Relibc](https://github.com/redox-os/relibc).
+checkout [Rustix](https://github.com/bytecodealliance/rustix) or [Relibc](https://github.com/redox-os/relibc).  
+
+The regular stdlib is probably going to be better for almost all use-cases, since the only supported os is Linux 
+you likely have an allocator present, although tiny-std will in my testing at least, produce a much smaller binary.  
+
 
 # Supported platforms
 
@@ -17,12 +22,15 @@ checkout [Rustix](https://github.com/bytecodealliance/rustix) or [Relibc](https:
 3. Minimal spawn coverage
 4. Minimal unix socket support
 
-# Wanted features
+# Wanted features (in no particular order)
 
 1. An allocator, currently [dl-malloc-rs](https://github.com/alexcrichton/dlmalloc-rs) can be rewritten no-libc
-   pretty [easily as is done here](https://github.com/marcusGrass/dlmalloc-rs)
+   pretty easily [as is done here](https://github.com/marcusGrass/dlmalloc-rs)
 2. An RwLock, lifting that from rust-std is possible but the code footprint is pretty large
 3. Signal handling by signalfd
+4. Threading would be nice, but reinventing that particular wheel will likely explode code footprint 
+and be hard to get right.
+5. io-uring fs operations
 
 ## License
 
