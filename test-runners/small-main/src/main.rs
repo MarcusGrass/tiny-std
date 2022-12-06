@@ -104,12 +104,15 @@ unsafe fn test_aux_values() {
         assert_eq!(1000, uid);
         assert_eq!(1000, gid);
     }
+    // Can only run this in a docker container at the moment
     #[cfg(target_arch = "aarch64")]
     {
         assert_eq!(0, uid);
         assert_eq!(0, gid);
     }
-    let _vdso = tiny_std::start::get_aux_value(AT_SYSINFO_EHDR).unwrap();
+    // TODO: Fix VDSO for aarch64
+    #[cfg(not(target_arch = "aarch64"))]
+    let _vdso = tiny_std::start::get_aux_value(rusl::platform::vdso::AT_SYSINFO_EHDR).unwrap();
 }
 
 fn test_time() {

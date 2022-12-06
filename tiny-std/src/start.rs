@@ -106,8 +106,9 @@ unsafe fn __proxy_main(stack_ptr: *const u8) {
     }
     #[cfg(feature = "vdso")]
     {
-        let elf_start = get_aux_value(rusl::platform::vdso::AT_SYSINFO_EHDR).unwrap();
-        VDSO_CLOCK_GET_TIME = crate::vdso::find_vdso_clock_get_time(elf_start as _);
+        if let Some(elf_start) = get_aux_value(rusl::platform::vdso::AT_SYSINFO_EHDR) {
+            VDSO_CLOCK_GET_TIME = crate::vdso::find_vdso_clock_get_time(elf_start as _);
+        }
     }
     let code = main();
     exit(code);
