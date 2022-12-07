@@ -36,7 +36,7 @@ transparent_bitflags! {
         const S_IRWXU = 0o0000700; // 00700 user read write exec
         const S_IRUSR = 0o0000400; // 00400 user Read
         const S_IWUSR = 0o0000200; // 00200 user write
-        const S_IXUSR = 0o0000200;  // 00100 user execute
+        const S_IXUSR = 0o0000100;  // 00100 user execute
         const S_IRWXG = 0o0000070;  // 00070 group read write exec
         const S_IRGRP = 0o0000040;  // 00040 group read
         const S_IWGRP = 0o0000020;  // 00020 group write

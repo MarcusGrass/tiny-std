@@ -14,7 +14,7 @@ pub fn stat(path: impl AsUnixStr) -> crate::Result<Stat> {
     statat(AT_FDCWD, path)
 }
 
-/// [fstat](https://man7.org/linux/man-pages/man2/statx.2.html)
+/// [fstat](https://man7.org/linux/man-pages/man2/stat.2.html)
 /// Gets file status at the file pointed to by `Fd`
 /// # Errors
 /// See above docs

@@ -1,0 +1,31 @@
+# Source from the kernel to be included and later generated into the library
+# Aux values
+aux = "include/uapi/linux/auxvec.h"
+# Just the dirent struct
+dirent = "include/linux/dirent.h"
+# Openflags etc
+fcntl = "include/uapi/asm-generic/fcntl.h"
+# Net, socket type etc.
+net = "include/linux/net.h"
+# PollFlags PollFd etc
+poll = "include/uapi/asm-generic/poll.h"
+# Clone and sched flags
+sched = "include/uapi/linux/sched.h"
+# SigsetT etc
+signal = "include/uapi/asm-generic/signal.h"
+# Sigkill etc
+signal_constants = "include/uapi/asm-generic/signal.h"
+# SA flags
+signal_flags = "include/uapi/asm-generic/signal-defs.h"
+# stat (https://man7.org/linux/man-pages/man2/stat.2.html)
+stat = "include/uapi/asm-generic/stat.h"
+# linux stat, permission (mode) constants etc
+linux_stat = "include/uapi/linux/stat.h"
+# Socket constants, AF, PF etc.
+socket = "include/linux/socket.h"
+# Timespec generic
+struct_timespec = "usr/include/bits/types/struct_timespec.h"
+# TimeSpec64
+time64 = "incude/linux/time64.h"
+# Utsname
+utsname = "include/uapi/linux/utsname.h"
