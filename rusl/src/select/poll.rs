@@ -6,18 +6,18 @@ use crate::platform::{Fd, TimeSpec};
 // https://man7.org/linux/man-pages/man2/poll.2.html
 transparent_bitflags! {
     pub struct PollEvents: i16 {
-        const POLLIN = 0x1;
-        const POLLPRI = 0x2;
-        const POLLOUT = 0x4;
-        const POLLERR = 0x8;
-        const POLLHUP = 0x10;
-        const POLLNVAL = 0x20;
-        const POLLRDNORM = 0x040;
-        const POLLRDBAND = 0x080;
-        const POLLWRNORM = 0x100;
-        const POLLWRBAND = 0x200;
-        const POLLMSG = 0x400;
-        const POLLRDHUP = 0x2000;
+        const POLLIN = linux_rust_bindings::POLLIN as i16;
+        const POLLPRI = linux_rust_bindings::POLLPRI as i16;
+        const POLLOUT = linux_rust_bindings::POLLOUT as i16;
+        const POLLERR = linux_rust_bindings::POLLERR as i16;
+        const POLLHUP = linux_rust_bindings::POLLHUP as i16;
+        const POLLNVAL = linux_rust_bindings::POLLNVAL as i16;
+        const POLLRDNORM = linux_rust_bindings::POLLRDNORM as i16;
+        const POLLRDBAND = linux_rust_bindings::POLLRDBAND as i16;
+        const POLLWRNORM = linux_rust_bindings::POLLWRNORM as i16;
+        const POLLWRBAND = linux_rust_bindings::POLLWRBAND as i16;
+        const POLLMSG = linux_rust_bindings::POLLMSG as i16;
+        const POLLRDHUP = linux_rust_bindings::POLLRDHUP as i16;
     }
 }
 

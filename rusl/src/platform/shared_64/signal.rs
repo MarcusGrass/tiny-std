@@ -64,10 +64,3 @@ pub const SA_ONSTACK: i32 = 0x08000000;
 pub const SA_SIGINFO: i32 = 0x00000004;
 pub const SA_NOCLDWAIT: i32 = 0x00000002;
 pub const SA_RESTORER: i32 = 0x04000000;
-
-pub const WNOHANG: i32 = 0x00000001;
-pub const WUNTRACED: i32 = 0x00000002;
-pub const WSTOPPED: i32 = WUNTRACED;
-pub const WEXITED: i32 = 0x00000004;
-pub const WCONTINUED: i32 = 0x00000008;
-pub const WNOWAIT: i32 = 0x01000000;

@@ -6,60 +6,60 @@ use crate::platform::{Fd, AT_FDCWD};
 /// Openflags accepted by the [open syscall](https://man7.org/linux/man-pages/man2/open.2.html)
 transparent_bitflags! {
     pub struct OpenFlags: i32 {
-        const O_RDONLY = 0;
-        const O_WRONLY = 1;
-        const O_RDWR = 2;
-        const O_APPEND = 1024;
+        const O_RDONLY = linux_rust_bindings::O_RDONLY;
+        const O_WRONLY = linux_rust_bindings::O_WRONLY;
+        const O_RDWR = linux_rust_bindings::O_RDWR;
+        const O_APPEND = linux_rust_bindings::O_APPEND;
         const O_ASYNC = 0x2000;
-        const O_CLOEXEC = 0x80000;
-        const O_CREAT = 64;
-        const O_DIRECT = 0x4000;
-        const O_DIRECTORY = 0x10000;
-        const O_DSYNC = 4096;
-        const O_EXCL = 128;
-        const O_LARGEFILE = 0;
-        const O_NOATIME = 0o1000000;
-        const O_NOCTTY = 256;
-        const O_NOFOLLOW = 0x20000;
-        const O_NONBLOCK = 2048;
-        const O_NDELAY = 0x800;
-        const O_PATH = 0o10000000;
-        const O_SYNC = 1052672;
-        const O_TMPFILE = 0o20000000 | 0x10000;
-        const O_TRUNC = 512;
+        const O_CLOEXEC = linux_rust_bindings::O_CLOEXEC;
+        const O_CREAT = linux_rust_bindings::O_CREAT;
+        const O_DIRECT = linux_rust_bindings::O_DIRECT;
+        const O_DIRECTORY = linux_rust_bindings::O_DIRECTORY;
+        const O_DSYNC = linux_rust_bindings::O_DSYNC;
+        const O_EXCL = linux_rust_bindings::O_EXCL;
+        const O_LARGEFILE = linux_rust_bindings::O_LARGEFILE;
+        const O_NOATIME = linux_rust_bindings::O_NOATIME;
+        const O_NOCTTY = linux_rust_bindings::O_NOCTTY;
+        const O_NOFOLLOW = linux_rust_bindings::O_NOFOLLOW;
+        const O_NONBLOCK = linux_rust_bindings::O_NONBLOCK;
+        const O_NDELAY = linux_rust_bindings::O_NDELAY;
+        const O_PATH = linux_rust_bindings::O_PATH;
+        const O_SYNC = linux_rust_bindings::O_SYNC;
+        const O_TMPFILE = linux_rust_bindings::O_TMPFILE;
+        const O_TRUNC = linux_rust_bindings::O_TRUNC;
     }
 }
 
 /// Mode accepted by the [open syscall](https://man7.org/linux/man-pages/man2/open.2.html)
 transparent_bitflags! {
-    pub struct Mode: u32 {
-        const S_IRWXU = 0o0000700; // 00700 user read write exec
-        const S_IRUSR = 0o0000400; // 00400 user Read
-        const S_IWUSR = 0o0000200; // 00200 user write
-        const S_IXUSR = 0o0000100;  // 00100 user execute
-        const S_IRWXG = 0o0000070;  // 00070 group read write exec
-        const S_IRGRP = 0o0000040;  // 00040 group read
-        const S_IWGRP = 0o0000020;  // 00020 group write
-        const S_IXGRP = 0o0000010;   // 00010 group exec
-        const S_IRWXO = 0o0000007;   // 00007 other read write exec
-        const S_IROTH = 0o0000004;   // 00004 other read
-        const S_IWOTH = 0o0000002;   // 00002 other write
-        const S_IXOTH = 0o0000001;   // 00001 other execute
+    pub struct Mode: i32 {
+        const S_IRWXU = linux_rust_bindings::S_IRWXU; // 00700 user read write exec
+        const S_IRUSR = linux_rust_bindings::S_IRUSR; // 00400 user Read
+        const S_IWUSR = linux_rust_bindings::S_IWUSR; // 00200 user write
+        const S_IXUSR = linux_rust_bindings::S_IXUSR;  // 00100 user execute
+        const S_IRWXG = linux_rust_bindings::S_IRWXG;  // 00070 group read write exec
+        const S_IRGRP = linux_rust_bindings::S_IRGRP;  // 00040 group read
+        const S_IWGRP = linux_rust_bindings::S_IWGRP;  // 00020 group write
+        const S_IXGRP = linux_rust_bindings::S_IXGRP;   // 00010 group exec
+        const S_IRWXO = linux_rust_bindings::S_IRWXO;   // 00007 other read write exec
+        const S_IROTH = linux_rust_bindings::S_IROTH;   // 00004 other read
+        const S_IWOTH = linux_rust_bindings::S_IWOTH;   // 00002 other write
+        const S_IXOTH = linux_rust_bindings::S_IXOTH;   // 00001 other execute
 
         // Linux specific bits
-        const S_ISUID = 0o0004000; // 0004000 set-user-ID bit
-        const S_ISGID = 0o0002000; // 0002000 set-group-ID bit
-        const S_ISVTX = 0o0001000; // 0001000 set-sticky bit
+        const S_ISUID = linux_rust_bindings::S_ISUID; // 0004000 set-user-ID bit
+        const S_ISGID = linux_rust_bindings::S_ISGID; // 0002000 set-group-ID bit
+        const S_ISVTX = linux_rust_bindings::S_ISVTX; // 0001000 set-sticky bit
 
         // File specific bits
-        const S_IFIFO  = 0o0010000;
-        const S_IFCHR  = 0o0020000;
-        const S_IFDIR  = 0o0040000;
-        const S_IFBLK  = 0o0060000;
-        const S_IFREG  = 0o0100000;
-        const S_IFLNK  = 0o0120000;
-        const S_IFSOCK = 0o0140000;
-        const S_IFMT   = 0o0170000;
+        const S_IFIFO  = linux_rust_bindings::S_IFIFO;
+        const S_IFCHR  = linux_rust_bindings::S_IFCHR;
+        const S_IFDIR  = linux_rust_bindings::S_IFDIR;
+        const S_IFBLK  = linux_rust_bindings::S_IFBLK;
+        const S_IFREG  = linux_rust_bindings::S_IFREG;
+        const S_IFLNK  = linux_rust_bindings::S_IFLNK;
+        const S_IFSOCK = linux_rust_bindings::S_IFSOCK;
+        const S_IFMT   = linux_rust_bindings::S_IFMT;
     }
 }
 

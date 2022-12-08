@@ -21,7 +21,7 @@ pub(crate) struct Env {
 #[cfg(feature = "aux")]
 pub(crate) struct AuxV {
     ptr: *const usize,
-    locations: [usize; rusl::platform::vdso::AUX_CNT / 2 + 1],
+    locations: [usize; rusl::platform::AUX_CNT / 2 + 1],
 }
 
 /// A vector of dynamic values supplied by the OS
@@ -106,7 +106,7 @@ unsafe fn __proxy_main(stack_ptr: *const u8) {
     }
     #[cfg(feature = "vdso")]
     {
-        if let Some(elf_start) = get_aux_value(rusl::platform::vdso::AT_SYSINFO_EHDR) {
+        if let Some(elf_start) = get_aux_value(rusl::platform::AT_SYSINFO_EHDR as usize) {
             VDSO_CLOCK_GET_TIME = crate::vdso::find_vdso_clock_get_time(elf_start as _);
         }
     }

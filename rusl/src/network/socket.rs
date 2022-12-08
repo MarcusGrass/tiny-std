@@ -40,8 +40,8 @@ transparent_bitflags!(
         const SOCK_SEQPACKET = 5;
         /// Deprecated
         const SOCK_PACKET = 10;
-        const SOCK_NONBLOCK = crate::platform::O_NONBLOCK;
-        const SOCK_CLOEXEC = crate::platform::O_CLOEXEC;
+        const SOCK_NONBLOCK = crate::platform::O_NONBLOCK as i32;
+        const SOCK_CLOEXEC = crate::platform::O_CLOEXEC as i32;
     }
 );
 

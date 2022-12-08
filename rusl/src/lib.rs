@@ -20,4 +20,3 @@ pub mod stat;
 pub mod string;
 pub mod time;
 pub mod unistd;
-mod vdso;
