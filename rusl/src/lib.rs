@@ -5,7 +5,6 @@
 extern crate alloc;
 
 pub use error::{Error, Result};
-pub use platform::error_codes::*;
 
 pub mod error;
 #[macro_use]

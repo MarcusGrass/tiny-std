@@ -43,10 +43,9 @@ impl From<core::str::Utf8Error> for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!(
-            "Error {{ msg: `{}`, code: {:?}, code_interpretation: {:?} }}",
+            "Error {{ msg: `{}`, code: {:?} }}",
             self.msg,
             self.code,
-            self.code.map(crate::platform::error_codes::as_str)
         ))
     }
 }

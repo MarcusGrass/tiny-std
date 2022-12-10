@@ -1,7 +1,4 @@
-pub use error_codes::*;
 pub use shared_64::*;
-
-pub mod error_codes;
 
 mod shared_64;
 pub use linux_rust_bindings::*;
@@ -18,5 +15,6 @@ pub const STDERR: Fd = 2;
 #[cfg(test)]
 mod tests {
     #[test]
-    fn dummy() {}
+    fn dummy() {
+    }
 }
