@@ -3,12 +3,11 @@ use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-use rusl::compat::unix_str::{AsMutUnixStr, AsUnixStr, UnixStr};
+use rusl::string::unix_str::{AsMutUnixStr, AsUnixStr, UnixStr};
 use rusl::linux::Dirent;
-use rusl::platform::{Stat, AT_REMOVEDIR, NULL_BYTE};
+use rusl::platform::{Stat, AT_REMOVEDIR, EEXIST, ENOENT, NULL_BYTE};
 use rusl::string::strlen::{buf_strlen, strlen};
 use rusl::unistd::{Mode, OpenFlags};
-use rusl::{EEXIST, ENOENT};
 
 use crate::error::Error;
 use crate::error::Result;
@@ -90,19 +89,19 @@ impl Metadata {
     #[inline]
     #[must_use]
     pub fn is_dir(&self) -> bool {
-        self.0.st_mode & Mode::S_IFMT == Mode::S_IFDIR
+        Mode::from(self.0.st_mode) & Mode::S_IFMT == Mode::S_IFDIR
     }
 
     #[inline]
     #[must_use]
     pub fn is_file(&self) -> bool {
-        self.0.st_mode & Mode::S_IFMT == Mode::S_IFREG
+        Mode::from(self.0.st_mode) & Mode::S_IFMT == Mode::S_IFREG
     }
 
     #[inline]
     #[must_use]
     pub fn is_symlink(&self) -> bool {
-        self.0.st_mode & Mode::S_IFMT == Mode::S_IFLNK
+        Mode::from(self.0.st_mode) & Mode::S_IFMT == Mode::S_IFLNK
     }
 
     #[inline]
@@ -157,6 +156,7 @@ pub fn create_dir_all<P: AsMutUnixStr>(mut path: P) -> Result<()> {
             if ind == 0 {
                 break;
             }
+            // Todo, actually make sure we restore
             let byte = buf[ind];
             if byte == b'/' {
                 // Swap slash for null termination to make a valid path
@@ -340,14 +340,14 @@ impl<'a> DirEntry<'a> {
 
     #[must_use]
     pub fn file_type(&self) -> FileType {
-        match self.inner.d_type {
-            rusl::platform::DT_FIFO => FileType::Fifo,
-            rusl::platform::DT_CHR => FileType::CharDevice,
-            rusl::platform::DT_DIR => FileType::Directory,
-            rusl::platform::DT_BLK => FileType::BlockDevice,
-            rusl::platform::DT_REG => FileType::RegularFile,
-            rusl::platform::DT_LNK => FileType::Symlink,
-            rusl::platform::DT_SOCK => FileType::Socket,
+        match rusl::platform::DirType::from(self.inner.d_type) {
+            rusl::platform::DirType::DT_FIFO => FileType::Fifo,
+            rusl::platform::DirType::DT_CHR => FileType::CharDevice,
+            rusl::platform::DirType::DT_DIR => FileType::Directory,
+            rusl::platform::DirType::DT_BLK => FileType::BlockDevice,
+            rusl::platform::DirType::DT_REG => FileType::RegularFile,
+            rusl::platform::DirType::DT_LNK => FileType::Symlink,
+            rusl::platform::DirType::DT_SOCK => FileType::Socket,
             _ => FileType::Unknown,
         }
     }

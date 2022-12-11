@@ -1,7 +1,6 @@
 use sc::syscall;
 
-use crate::network::{SocketArg, SocketType};
-use crate::platform::Fd;
+use crate::platform::{Fd, SocketArg, SocketType};
 use crate::Result;
 
 /// Accept a new connection and set flags on the new connection's `Fd`

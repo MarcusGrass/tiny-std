@@ -21,28 +21,24 @@ transparent_bitflags! {
     }
 }
 
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-pub struct PollFd {
-    fd: i32,
-    events: PollEvents,
-    revents: PollEvents,
-}
+pub struct PollFd(linux_rust_bindings::pollfd);
 
 impl PollFd {
     #[inline]
     #[must_use]
     pub fn new(fd: Fd, events: PollEvents) -> Self {
-        Self {
+        Self(linux_rust_bindings::pollfd {
             fd,
-            events,
-            revents: PollEvents::empty(),
-        }
+            events: events.bits(),
+            revents: 0,
+        })
     }
 
     #[must_use]
     pub fn received_events(&self) -> PollEvents {
-        self.revents
+        self.0.revents.into()
     }
 }
 
@@ -66,10 +62,10 @@ pub fn ppoll(
             poll_fds.len(),
             timespec.map_or_else(core::ptr::null, |ts| ts as *const TimeSpec),
             sigset.map_or_else(core::ptr::null, |ss_t| ss_t as *const SigSetT)
-        ) as isize
+        )
     };
     bail_on_below_zero!(res, "`PPOLL` syscall failed");
-    Ok(res as usize)
+    Ok(res)
 }
 
 #[cfg(test)]
@@ -86,8 +82,8 @@ mod tests {
         assert_eq!(1, num_rdy);
         // Should be pollout
         assert_ne!(
-            PollEvents::empty(),
-            poll_fds[0].revents & PollEvents::POLLOUT
+            PollEvents::empty().bits(),
+            poll_fds[0].0.revents & PollEvents::POLLOUT.bits()
         );
     }
 }

@@ -1,6 +1,6 @@
 use sc::syscall;
 
-use crate::compat::unix_str::AsUnixStr;
+use crate::string::unix_str::AsUnixStr;
 use crate::platform::{Fd, AT_FDCWD};
 use crate::unistd::Mode;
 use crate::Result;
@@ -20,7 +20,7 @@ pub fn mkdir(path: impl AsUnixStr, mode: Mode) -> Result<()> {
 /// See above
 pub fn mkdir_at(dir_fd: Fd, path: impl AsUnixStr, mode: Mode) -> Result<()> {
     path.exec_with_self_as_ptr(|ptr| {
-        let res = unsafe { syscall!(MKDIRAT, dir_fd, ptr, mode.bits()) } as isize;
+        let res = unsafe { syscall!(MKDIRAT, dir_fd, ptr, mode.bits()) };
         bail_on_below_zero!(res, "`MKDIRAT` syscall failed");
         Ok(())
     })

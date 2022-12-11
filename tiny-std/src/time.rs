@@ -5,14 +5,11 @@ use rusl::platform::TimeSpec;
 #[cfg(test)]
 mod test;
 
-pub const UNIX_TIME: SystemTime = SystemTime(TimeSpec {
-    tv_sec: 0,
-    tv_nsec: 0,
-});
+pub const UNIX_TIME: SystemTime = SystemTime(TimeSpec::new_zeroed());
 
 /// Some monotonic, ever increasing, instant in time. Cannot be manipulated and is only good
 /// for comparing elapsed time.
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct MonotonicInstant(TimeSpec);
 
 const NANOS_A_SECOND: i64 = 1_000_000_000;
@@ -42,7 +39,7 @@ impl MonotonicInstant {
 
 /// Some instant in time, ever increasing but able to be manipulated.
 /// The manipulations carries a risk of over/underflow,
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Instant(TimeSpec);
 
 impl Instant {
@@ -94,7 +91,7 @@ impl core::ops::Sub for Instant {
 
 /// Some instant in time since the unix epoch as seen by the system
 /// The passage of time may not be linear
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct SystemTime(TimeSpec);
 
 impl SystemTime {
@@ -149,23 +146,23 @@ impl core::ops::Sub for SystemTime {
 fn checked_add_dur(timespec: TimeSpec, duration: Duration) -> Option<TimeSpec> {
     // tv_nsec are < `NANOS_A_SECOND`, this cannot overflow
     let mut total_nanos = timespec
-        .tv_nsec
+        .nanoseconds()
         .checked_add(duration.subsec_nanos().into())?;
     let mut seconds = duration.as_secs();
     if total_nanos >= NANOS_A_SECOND {
         total_nanos -= NANOS_A_SECOND;
         seconds = seconds.checked_add(1)?;
     };
-    Some(TimeSpec {
-        tv_sec: timespec.tv_sec.checked_add(seconds.try_into().ok()?)?,
-        tv_nsec: total_nanos,
-    })
+    Some(TimeSpec::new(
+        timespec.seconds().checked_add(seconds.try_into().ok()?)?,
+        total_nanos,
+    ))
 }
 
 #[inline]
 fn checked_sub_dur(timespec: TimeSpec, duration: Duration) -> Option<TimeSpec> {
     let mut total_nanos = timespec
-        .tv_nsec
+        .nanoseconds()
         .checked_sub(duration.subsec_nanos().into())?;
     let mut seconds = duration.as_secs();
     if total_nanos < 0 {
@@ -173,17 +170,14 @@ fn checked_sub_dur(timespec: TimeSpec, duration: Duration) -> Option<TimeSpec> {
         total_nanos += NANOS_A_SECOND;
         seconds = seconds.checked_sub(1)?;
     }
-    let tv_sec = timespec.tv_sec.checked_sub(seconds.try_into().ok()?)?;
+    let tv_sec = timespec.seconds().checked_sub(seconds.try_into().ok()?)?;
 
-    Some(TimeSpec {
-        tv_sec: tv_sec.gt(&0).then_some(tv_sec)?,
-        tv_nsec: total_nanos,
-    })
+    Some(TimeSpec::new(tv_sec.gt(&0).then_some(tv_sec)?, total_nanos))
 }
 
 #[inline]
 fn sub_ts_dur(lhs: TimeSpec, rhs: TimeSpec) -> Duration {
-    let mut total_nanos = lhs.tv_nsec - rhs.tv_nsec;
+    let mut total_nanos = lhs.nanoseconds() - rhs.nanoseconds();
     let sub_sec = if total_nanos < 0 {
         // tv_nsec are < `NANOS_A_SECOND`, so this won't get wonky
         total_nanos += NANOS_A_SECOND;
@@ -191,14 +185,14 @@ fn sub_ts_dur(lhs: TimeSpec, rhs: TimeSpec) -> Duration {
     } else {
         0
     };
-    let secs = (lhs.tv_sec - rhs.tv_sec - sub_sec) as u64;
+    let secs = (lhs.seconds() - rhs.seconds() - sub_sec) as u64;
     let nanos = total_nanos as u32;
     Duration::new(secs, nanos)
 }
 
 #[inline]
 fn sub_ts_checked_dur(lhs: TimeSpec, rhs: TimeSpec) -> Option<Duration> {
-    let mut total_nanos = lhs.tv_nsec.checked_sub(rhs.tv_nsec)?;
+    let mut total_nanos = lhs.nanoseconds().checked_sub(rhs.nanoseconds())?;
     let sub_sec = if total_nanos < 0 {
         // tv_nsec are < `NANOS_A_SECOND`, so this won't get wonky
         total_nanos += NANOS_A_SECOND;
@@ -206,7 +200,12 @@ fn sub_ts_checked_dur(lhs: TimeSpec, rhs: TimeSpec) -> Option<Duration> {
     } else {
         0
     };
-    let secs = u64::try_from(lhs.tv_sec.checked_sub(rhs.tv_sec)?.checked_sub(sub_sec)?).ok()?;
+    let secs = u64::try_from(
+        lhs.seconds()
+            .checked_sub(rhs.seconds())?
+            .checked_sub(sub_sec)?,
+    )
+    .ok()?;
     let nanos = u32::try_from(total_nanos).ok()?;
     Some(Duration::new(secs, nanos))
 }

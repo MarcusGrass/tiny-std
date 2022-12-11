@@ -11,9 +11,9 @@ use crate::platform::PidT;
 /// Extremely unsafe, reading the documentation thoroughly is recommended for proper usage
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn fork() -> crate::Result<PidT> {
-    let res = syscall!(FORK) as i32;
+    let res = syscall!(FORK);
     bail_on_below_zero!(res, "`FORK` syscall failed");
-    Ok(res)
+    Ok(res as PidT)
 }
 
 /// Fork isn't implemented for aarch64, we're substituting with a clone call here
@@ -24,8 +24,8 @@ pub unsafe fn fork() -> crate::Result<PidT> {
 #[cfg(target_arch = "aarch64")]
 pub unsafe fn fork() -> crate::Result<PidT> {
     // `SIGCHLD` is mandatory on aarch64 if mimicking fork it seems
-    let cflgs = crate::platform::signal::SIGCHLD;
-    let res = syscall!(CLONE, cflgs, 0, 0, 0, 0) as i32;
+    let cflgs = crate::platform::SIGCHLD;
+    let res = syscall!(CLONE, cflgs, 0, 0, 0, 0);
     bail_on_below_zero!(res, "`CLONE` syscall failed");
-    Ok(res)
+    Ok(res as i32)
 }

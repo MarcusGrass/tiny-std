@@ -2,9 +2,9 @@
 use core::str::Utf8Error;
 
 #[cfg(feature = "start")]
-use rusl::compat::unix_str::AsUnixStr;
+use rusl::string::unix_str::AsUnixStr;
 #[cfg(feature = "start")]
-use rusl::compat::unix_str::UnixStr;
+use rusl::string::unix_str::UnixStr;
 #[cfg(any(feature = "start", feature = "alloc"))]
 use rusl::string::strlen::strlen;
 

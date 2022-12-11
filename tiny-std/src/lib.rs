@@ -3,7 +3,7 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub use rusl::compat::*;
+pub use rusl::string::unix_str::*;
 
 pub mod env;
 pub mod error;

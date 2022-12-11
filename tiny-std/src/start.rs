@@ -3,6 +3,8 @@
 //! a `Rust` application this way.
 #[cfg(all(feature = "symbols", feature = "start"))]
 use crate::process::exit;
+use rusl::platform::AuxValue;
+use unix_print::unix_eprintln;
 
 /// We have to mimic libc globals here sadly, we rip the environment off the first pointer of the stack
 /// in the start method. Should never be modified ever, just set on start
@@ -39,10 +41,10 @@ pub(crate) static mut VDSO_CLOCK_GET_TIME: Option<
 
 /// Attempts to find the specified aux value from the OS supplied aux vector
 #[cfg(feature = "aux")]
-pub fn get_aux_value(val: usize) -> Option<usize> {
+pub fn get_aux_value(val: AuxValue) -> Option<usize> {
     unsafe {
         for i in 0..AUX_V.locations.len() {
-            if AUX_V.locations[i] == val {
+            if AUX_V.locations[i] == val.bits() {
                 return Some(AUX_V.ptr.add(2 * i + 1).read());
             }
         }
@@ -106,9 +108,11 @@ unsafe fn __proxy_main(stack_ptr: *const u8) {
     }
     #[cfg(feature = "vdso")]
     {
-        if let Some(elf_start) = get_aux_value(rusl::platform::AT_SYSINFO_EHDR as usize) {
-            VDSO_CLOCK_GET_TIME = crate::vdso::find_vdso_clock_get_time(elf_start as _);
+        if let Some(elf_start) = get_aux_value(AuxValue::AT_SYSINFO_EHDR) {
+            let get_time = crate::vdso::find_vdso_clock_get_time(elf_start as _);
+            VDSO_CLOCK_GET_TIME = get_time;
         }
+        unix_eprintln!("Got vdso get time: {}", VDSO_CLOCK_GET_TIME.is_some());
     }
     let code = main();
     exit(code);

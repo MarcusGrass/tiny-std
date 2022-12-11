@@ -1,8 +1,9 @@
 #[macro_export]
 macro_rules! bail_on_below_zero {
     ($res: expr, $out_line: expr) => {
-        if ($res as isize) < 0 {
-            return Err($crate::Error::with_code($out_line, $res as i32));
+        if $res > usize::MAX - 256 {
+            // Flip the errno
+            return Err($crate::Error::with_code($out_line, 0 - $res as i32));
         }
     };
 }

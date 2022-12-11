@@ -7,7 +7,7 @@ use crate::process::CloneFlags;
 /// # Errors
 /// See above
 pub fn unshare(flags: CloneFlags) -> crate::Result<()> {
-    let res = unsafe { syscall!(UNSHARE, flags.bits()) } as i32;
+    let res = unsafe { syscall!(UNSHARE, flags.bits()) };
     bail_on_below_zero!(res, "`UNSHARE` syscall failed");
     Ok(())
 }

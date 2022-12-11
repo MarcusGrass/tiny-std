@@ -1,6 +1,6 @@
 use sc::syscall;
 
-use crate::compat::unix_str::AsUnixStr;
+use crate::string::unix_str::AsUnixStr;
 use crate::Result;
 
 /// Changes the working directory of the current process

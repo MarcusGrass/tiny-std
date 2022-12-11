@@ -6,8 +6,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::{Deref, DerefMut};
 use core::str::Utf8Error;
+use crate::Error;
 
-use crate::platform::{NULL_BYTE, NULL_CHAR};
+use crate::platform::{NULL_BYTE};
 use crate::string::null_term_ptr_cmp_up_to;
 use crate::string::strlen::strlen;
 
@@ -56,14 +57,18 @@ pub trait AsMutUnixStr: AsUnixStr {
 
 #[cfg(feature = "alloc")]
 pub trait ToUnixString {
-    fn to_unix_string(&self) -> UnixString;
+    /// Turn this into a `UnixString`
+    /// # Errors
+    /// If this string can't be converted this will throw an error
+    /// The only real reasons are if you have multiple null bytes or no access to an allocator
+    fn to_unix_string(&self) -> crate::Result<UnixString>;
 }
 
 #[cfg(feature = "alloc")]
 impl ToUnixString for () {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
-        UnixString(vec![b'\0'])
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
+        Ok(UnixString(vec![b'\0']))
     }
 }
 
@@ -98,7 +103,7 @@ where
     T: ToUnixString,
 {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
         self.deref().to_unix_string()
     }
 }
@@ -109,7 +114,7 @@ where
     T: ToUnixString,
 {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
         self.deref().to_unix_string()
     }
 }
@@ -181,8 +186,8 @@ impl UnixString {
 impl From<String> for UnixString {
     #[inline]
     fn from(mut s: String) -> Self {
-        if !s.ends_with(NULL_CHAR) {
-            s.push(NULL_CHAR);
+        if !s.ends_with(crate::platform::NULL_CHAR) {
+            s.push(crate::platform::NULL_CHAR);
         }
         Self(s.into_bytes())
     }
@@ -200,9 +205,8 @@ impl From<&str> for UnixString {
 #[cfg(feature = "alloc")]
 impl ToUnixString for &str {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
-        let owned = (*self).to_string();
-        owned.to_unix_string()
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
+        self.as_bytes().to_unix_string()
     }
 }
 
@@ -226,27 +230,19 @@ impl From<Vec<u8>> for UnixString {
 #[cfg(feature = "alloc")]
 impl ToUnixString for Vec<u8> {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
         self.as_slice().to_unix_string()
     }
 }
 
 #[cfg(feature = "alloc")]
 impl AsUnixStr for Vec<u8> {
+    #[inline]
     fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
     where
         F: FnOnce(*const u8) -> crate::Result<T>,
     {
-        let len = self.len();
-        if len == 0 {
-            func([NULL_BYTE].as_ptr())
-        } else if unsafe { *self.get_unchecked(len - 1) == NULL_BYTE } {
-            func(self.as_ptr())
-        } else {
-            let mut buf = self.clone();
-            buf.push(NULL_BYTE);
-            func(self.as_ptr())
-        }
+        self.as_slice().exec_with_self_as_ptr(func)
     }
 
     #[inline]
@@ -257,20 +253,12 @@ impl AsUnixStr for Vec<u8> {
 
 #[cfg(feature = "alloc")]
 impl AsMutUnixStr for Vec<u8> {
+    #[inline]
     fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
     where
         F: FnOnce(*mut u8) -> crate::Result<T>,
     {
-        let len = self.len();
-        if len == 0 {
-            func([NULL_BYTE].as_mut_ptr())
-        } else if unsafe { *self.get_unchecked(len - 1) == NULL_BYTE } {
-            func(self.as_mut_ptr())
-        } else {
-            let mut buf = self.clone();
-            buf.push(NULL_BYTE);
-            func(self.as_mut_ptr())
-        }
+        self.as_mut_slice().exec_with_self_as_mut_ptr(func)
     }
 }
 
@@ -279,20 +267,22 @@ impl AsUnixStr for &[u8] {
     where
         F: FnOnce(*const u8) -> crate::Result<T>,
     {
-        let len = self.len();
-        if len == 0 {
-            func([NULL_BYTE].as_ptr())
-        } else if unsafe { *self.get_unchecked(len - 1) == NULL_BYTE } {
-            func(self.as_ptr())
-        } else {
-            #[cfg(feature = "alloc")]
-            {
-                let mut buf = self.to_vec();
-                buf.push(NULL_BYTE);
-                func(self.as_ptr())
+        match null_terminated_ok(self) {
+            NullTermCheckResult::NullTerminated => func(self.as_ptr()),
+            NullTermCheckResult::NullByteOutOfPlace => null_byte_out_of_place(),
+            NullTermCheckResult::NotNullTerminated => {
+                if self.is_empty() {
+                    return func([NULL_BYTE].as_ptr());
+                }
+                #[cfg(feature = "alloc")]
+                {
+                    let mut buf = self.to_vec();
+                    buf.push(NULL_BYTE);
+                    func(buf.as_ptr())
+                }
+                #[cfg(not(feature = "alloc"))]
+                Err(crate::Error::not_null_terminated())
             }
-            #[cfg(not(feature = "alloc"))]
-            Err(crate::Error::not_null_terminated())
         }
     }
 
@@ -312,7 +302,7 @@ impl AsUnixStr for &[u8] {
 #[cfg(feature = "alloc")]
 impl ToUnixString for &mut [u8] {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
         self.deref().to_unix_string()
     }
 }
@@ -337,20 +327,19 @@ impl AsMutUnixStr for &mut [u8] {
     where
         F: FnOnce(*mut u8) -> crate::Result<T>,
     {
-        let len = self.len();
-        if len == 0 {
-            func([NULL_BYTE].as_mut_ptr())
-        } else if unsafe { *self.get_unchecked(len - 1) == NULL_BYTE } {
-            func(self.as_mut_ptr())
-        } else {
-            #[cfg(feature = "alloc")]
-            {
-                let mut buf = self.to_vec();
-                buf.push(NULL_BYTE);
-                func(self.as_mut_ptr())
+        match null_terminated_ok(self) {
+            NullTermCheckResult::NullTerminated => func(self.as_mut_ptr()),
+            NullTermCheckResult::NullByteOutOfPlace => null_byte_out_of_place(),
+            NullTermCheckResult::NotNullTerminated => {
+                #[cfg(feature = "alloc")]
+                {
+                    let mut buf = self.to_vec();
+                    buf.push(NULL_BYTE);
+                    func(buf.as_mut_ptr())
+                }
+                #[cfg(not(feature = "alloc"))]
+                Err(crate::Error::not_null_terminated())
             }
-            #[cfg(not(feature = "alloc"))]
-            Err(crate::Error::not_null_terminated())
         }
     }
 }
@@ -366,13 +355,15 @@ impl From<&[u8]> for UnixString {
 #[cfg(feature = "alloc")]
 impl ToUnixString for &[u8] {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
-        let mut v = self.to_vec();
-        if v.ends_with(&[NULL_BYTE]) {
-            UnixString(v)
-        } else {
-            v.push(NULL_BYTE);
-            UnixString(v)
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
+        match null_terminated_ok(self) {
+            NullTermCheckResult::NullTerminated => Ok(UnixString(self.to_vec())),
+            NullTermCheckResult::NullByteOutOfPlace => null_byte_out_of_place(),
+            NullTermCheckResult::NotNullTerminated => {
+                let mut v = self.to_vec();
+                v.push(NULL_BYTE);
+                Ok(UnixString(v))
+            }
         }
     }
 }
@@ -441,8 +432,8 @@ impl From<&UnixStr> for UnixString {
 #[cfg(feature = "alloc")]
 impl ToUnixString for &UnixStr {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
-        UnixString(self.0.to_vec())
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
+        Ok(UnixString(self.0.to_vec()))
     }
 }
 
@@ -488,7 +479,7 @@ impl AsMutUnixStr for &mut UnixStr {
 #[cfg(feature = "alloc")]
 impl ToUnixString for &mut UnixStr {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
         self.deref().to_unix_string()
     }
 }
@@ -523,33 +514,18 @@ impl AsMutUnixStr for UnixString {
 #[cfg(feature = "alloc")]
 impl ToUnixString for UnixString {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
-        self.clone()
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
+        Ok(self.clone())
     }
 }
 
 impl AsUnixStr for &str {
+    #[inline]
     fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
     where
         F: FnOnce(*const u8) -> crate::Result<T>,
     {
-        if self.ends_with(NULL_CHAR) {
-            return func(self.as_ptr());
-        }
-        #[cfg(feature = "alloc")]
-        {
-            let mut owned = (*self).to_string();
-            owned.push(NULL_CHAR);
-            func(owned.as_ptr())
-        }
-
-        #[cfg(not(feature = "alloc"))]
-        {
-            if self.is_empty() {
-                return func(b"\0".as_ptr());
-            }
-            Err(crate::Error::no_code("str not null terminated"))
-        }
+        self.as_bytes().exec_with_self_as_ptr(func)
     }
 
     #[inline]
@@ -576,32 +552,19 @@ impl AsUnixStr for &mut str {
 #[cfg(feature = "alloc")]
 impl ToUnixString for &mut str {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
         self.deref().to_unix_string()
     }
 }
 
 impl AsMutUnixStr for &mut str {
+    #[inline]
     fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
     where
         F: FnOnce(*mut u8) -> crate::Result<T>,
     {
-        if self.ends_with(NULL_CHAR) {
-            return func(self.as_mut_ptr());
-        }
-        #[cfg(feature = "alloc")]
-        {
-            let mut owned = (*(*self)).to_string();
-            owned.push(NULL_CHAR);
-            func(owned.as_mut_ptr())
-        }
-
-        #[cfg(not(feature = "alloc"))]
-        {
-            if self.is_empty() {
-                return func([NULL_BYTE].as_mut_ptr());
-            }
-            Err(crate::Error::no_code("str not null terminated"))
+        unsafe {
+            self.as_bytes_mut().exec_with_self_as_mut_ptr(func)
         }
     }
 }
@@ -613,13 +576,7 @@ impl AsUnixStr for String {
     where
         F: FnOnce(*const u8) -> crate::Result<T>,
     {
-        if self.ends_with(NULL_CHAR) {
-            func(self.as_ptr())
-        } else {
-            let mut clone = self.clone();
-            clone.push(NULL_CHAR);
-            func(clone.as_ptr())
-        }
+        self.as_bytes().exec_with_self_as_ptr(func)
     }
 
     #[inline]
@@ -631,23 +588,46 @@ impl AsUnixStr for String {
 #[cfg(feature = "alloc")]
 impl ToUnixString for String {
     #[inline]
-    fn to_unix_string(&self) -> UnixString {
+    fn to_unix_string(&self) -> crate::Result<UnixString> {
         self.as_bytes().to_unix_string()
     }
 }
 
 #[cfg(feature = "alloc")]
 impl AsMutUnixStr for String {
+    #[inline]
     fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
     where
         F: FnOnce(*mut u8) -> crate::Result<T>,
     {
-        if self.ends_with(NULL_CHAR) {
-            func(self.as_mut_ptr())
-        } else {
-            let mut clone = self.clone();
-            clone.push(NULL_CHAR);
-            func(self.as_mut_ptr())
+        unsafe {
+            self.as_bytes_mut().exec_with_self_as_mut_ptr(func)
         }
     }
+}
+
+const fn null_byte_out_of_place<T>() -> crate::Result<T> {
+    Err(Error::no_code("Null byte out of place"))
+}
+
+#[derive(Debug, Copy, Clone)]
+enum NullTermCheckResult {
+    NullTerminated,
+    NullByteOutOfPlace,
+    NotNullTerminated,
+}
+
+#[inline]
+fn null_terminated_ok(s: &[u8]) -> NullTermCheckResult {
+    let len = s.len();
+    for (ind, byte) in s.iter().enumerate() {
+        if *byte == NULL_BYTE {
+            return if ind == len - 1 {
+                NullTermCheckResult::NullTerminated
+            } else {
+                NullTermCheckResult::NullByteOutOfPlace
+            }
+        }
+    }
+    NullTermCheckResult::NotNullTerminated
 }

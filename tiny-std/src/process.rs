@@ -5,13 +5,13 @@ use alloc::vec::Vec;
 use core::hint::unreachable_unchecked;
 
 #[cfg(feature = "alloc")]
-use rusl::compat::unix_str::UnixString;
-use rusl::compat::unix_str::{AsUnixStr, UnixStr};
-use rusl::platform::signal::WNOHANG;
+use rusl::string::unix_str::UnixString;
+use rusl::string::unix_str::{AsUnixStr, UnixStr};
+use rusl::platform::EINTR;
+use rusl::platform::WNOHANG;
 use rusl::platform::{GidT, PidT, UidT};
 use rusl::platform::{STDERR, STDIN, STDOUT};
 use rusl::unistd::OpenFlags;
-use rusl::EINTR;
 
 use crate::error::{Error, Result};
 use crate::fs::OpenOptions;
@@ -68,10 +68,10 @@ unsafe impl Sync for Envp {}
 #[cfg(feature = "alloc")]
 impl Command {
     /// Constructs a new command, setting the first argument as the binary's name
-    pub fn new<A: AsUnixStr>(bin: A) -> Self {
-        let bin = bin.to_unix_string();
+    pub fn new<A: AsUnixStr>(bin: A) -> Result<Self> {
+        let bin = bin.to_unix_string()?;
         let bin_ptr = bin.as_ptr();
-        Self {
+        Ok(Self {
             bin: bin.clone(),
             args: vec![bin],
             argv: Argv(vec![bin_ptr, core::ptr::null()]),
@@ -83,10 +83,10 @@ impl Command {
             stdout: None,
             stderr: None,
             pgroup: None,
-        }
+        })
     }
 
-    pub fn env<A: AsUnixStr>(&mut self, env: A) -> &mut Self {
+    pub fn env<A: AsUnixStr>(&mut self, env: A) -> Result<&mut Self> {
         #[cfg(feature = "start")]
         if !matches!(self.env, Environment::Inherit | Environment::None) {
             self.env = Environment::Provided(ProvidedEnvironment {
@@ -102,41 +102,41 @@ impl Command {
             });
         };
         if let Environment::Provided(pe) = &mut self.env {
-            let s = env.to_unix_string();
+            let s = env.to_unix_string()?;
             pe.envp.0[pe.vars.len()] = s.as_ptr();
             pe.envp.0.push(core::ptr::null());
             pe.vars.push(s);
         }
-        self
+        Ok(self)
     }
 
-    pub fn envs<A: AsUnixStr>(&mut self, envs: Vec<A>) -> &mut Self {
+    pub fn envs<A: AsUnixStr>(&mut self, envs: Vec<A>) -> Result<&mut Self> {
         for env in envs {
-            self.env(env);
+            self.env(env)?;
         }
-        self
+        Ok(self)
     }
 
-    pub fn arg<A: AsUnixStr>(&mut self, arg: A) -> &mut Self {
-        let unix_string = arg.to_unix_string();
+    pub fn arg<A: AsUnixStr>(&mut self, arg: A) -> Result<&mut Self> {
+        let unix_string = arg.to_unix_string()?;
         self.argv.0[self.args.len()] = unix_string.as_ptr();
         self.argv.0.push(core::ptr::null());
         self.args.push(unix_string);
-        self
+        Ok(self)
     }
 
-    pub fn args<A: AsUnixStr>(&mut self, args: &[A]) -> &mut Self {
+    pub fn args<A: AsUnixStr>(&mut self, args: &[A]) -> Result<&mut Self> {
         self.args.reserve(args.len());
         self.argv.0.reserve(args.len());
         for arg in args {
-            self.arg(arg);
+            self.arg(arg)?;
         }
-        self
+        Ok(self)
     }
 
-    pub fn cwd<A: AsUnixStr>(&mut self, dir: A) -> &mut Self {
-        self.cwd = Some(dir.to_unix_string());
-        self
+    pub fn cwd<A: AsUnixStr>(&mut self, dir: A) -> Result<&mut Self> {
+        self.cwd = Some(dir.to_unix_string()?);
+        Ok(self)
     }
 
     pub fn uid(&mut self, id: UidT) -> &mut Self {

@@ -2,9 +2,10 @@
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+use unix_print::unix_eprintln;
 
-use rusl::compat::unix_str::UnixStr;
-use rusl::{EEXIST, ENOENT};
+use rusl::string::unix_str::UnixStr;
+use rusl::platform::{EEXIST, ENOENT};
 
 use crate::fs::{metadata, File, FileType, OpenOptions};
 use crate::io::{Read, Write};
@@ -105,6 +106,7 @@ fn can_create_and_delete_file() {
     match metadata(tgt) {
         Ok(_) => panic!("Found deleted file!"),
         Err(e) => {
+            unix_eprintln!("Errno {e} expected {}", ENOENT);
             assert!(e.matches_errno(ENOENT));
         }
     }

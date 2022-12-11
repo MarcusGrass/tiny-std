@@ -10,7 +10,7 @@ default = ["alloc"]
 alloc = []
 
 [dependencies]
-linux-rust-bindings = {path = "../../linux-rust-bindings/linux-rust-bindings"}
+linux-rust-bindings = { path = "../../linux-rust-bindings/linux-rust-bindings" }
 sc = "0.2.7"
 unix-print = "0.1.0"
 

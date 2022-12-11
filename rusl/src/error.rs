@@ -44,8 +44,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!(
             "Error {{ msg: `{}`, code: {:?} }}",
-            self.msg,
-            self.code,
+            self.msg, self.code,
         ))
     }
 }

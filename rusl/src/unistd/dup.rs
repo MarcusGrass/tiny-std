@@ -18,8 +18,8 @@ pub fn dup2(old: Fd, new: Fd) -> crate::Result<()> {
 /// See above
 pub fn dup3(old: Fd, new: Fd, flags: OpenFlags) -> crate::Result<()> {
     loop {
-        let res = unsafe { syscall!(DUP3, old, new, flags.bits()) } as i32;
-        if res == EBUSY {
+        let res = unsafe { syscall!(DUP3, old, new, flags.bits()) };
+        if res as i32 == EBUSY {
             continue;
         }
         bail_on_below_zero!(res, "`DUP3` syscall failed");

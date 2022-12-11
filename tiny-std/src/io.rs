@@ -3,7 +3,7 @@ use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use core::{fmt, str};
-use rusl::EINTR;
+use rusl::platform::EINTR;
 
 use crate::error::{Error, Result};
 use crate::io::read_buf::ReadBuf;

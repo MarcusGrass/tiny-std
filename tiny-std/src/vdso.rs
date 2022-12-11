@@ -1,113 +1,7 @@
-use core::fmt::{Debug, Formatter};
 use core::mem::MaybeUninit;
 
-use rusl::compat::unix_str::UnixStr;
-use rusl::platform::TimeSpec;
-
-#[repr(C)]
-#[derive(Debug)]
-pub(crate) struct ElfHeader {
-    // Identity
-    e_ident: EIdent,
-    // Executable
-    e_type: u16,
-    // Processor
-    e_machine: u16,
-    e_version: u32,
-    // Execution start addr
-    e_entry: usize,
-    // Prog header offset
-    e_phoff: usize,
-    // Section header table offset
-    e_shoff: usize,
-    // Arch dependent interpretation
-    e_flags: u32,
-    // Elf header size
-    e_hsize: u16,
-    // Size of a program header
-    e_phentsize: u16,
-    // Num program headers
-    e_phnum: u16,
-    // Size of a section header
-    e_shentsize: u16,
-    // Num section headers
-    e_shnum: u16,
-    // Index of the names section
-    e_shstrndx: u16,
-}
-
-#[repr(C)]
-#[derive(Debug)]
-pub(crate) struct EIdent {
-    // Signature
-    ei_mag: u32,
-    ei_class: u8,
-    ei_data: u8,
-    ei_version: u8,
-    ei_osabi: u8,
-    ei_abiversion: u8,
-    // On linux we just pad 8 here and skip the rest
-    ei_pad: [u8; 7],
-}
-
-#[repr(C)]
-#[derive(Debug)]
-pub(crate) struct SectionHeader {
-    // .shstrtab offset to name
-    sh_name: u32,
-    // Section type
-    sh_type: u32,
-    // Section attributes
-    sh_flags: usize,
-    // Virtual address section of the memory
-    sh_addr: usize,
-    // Offset of this section in the file image
-    sh_offset: usize,
-    // Size in bytes of this section
-    sh_size: usize,
-    sh_link: u32,
-    sh_info: u32,
-    // Required alignment for this section
-    sh_addralign: usize,
-    // Size in bytes for each fixed size entry if any contained
-    sh_entsize: usize,
-}
-
-#[repr(C)]
-#[derive(Debug)]
-struct ElfDynamicSection {
-    d_tag: u64,
-    d_un: ElfDynUnion,
-}
-
-#[repr(C)]
-union ElfDynUnion {
-    // Some integer with implementation defined meaning
-    d_val: u64,
-    // A pointer to some virtual address
-    addr: u64,
-}
-
-impl Debug for ElfDynUnion {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        unsafe {
-            f.debug_struct("ElfDynUnion")
-                .field("union", &self.d_val)
-                .finish()
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug)]
-struct ElfSymbol {
-    st_name: u32,
-    st_info: u8,
-    st_other: u8,
-    st_shndx: u16,
-    st_value: usize,
-    st_size: u64,
-}
+use rusl::string::unix_str::UnixStr;
+use rusl::platform::{ElfHeader, ElfSymbol, SectionHeader, TimeSpec};
 
 const DYNSTR_NAME: &[u8] = b".dynstr\0";
 const DYNSYM_NAME: &[u8] = b".dynsym\0";
@@ -138,10 +32,10 @@ pub(crate) unsafe fn find_vdso_clock_get_time(
     let header = elf_ptr.assume_init();
     let mut dyn_syms = None;
     // Pointer to the start of the section header
-    let section_start = vdso.add(header.e_shoff) as *const SectionHeader;
+    let section_start = vdso.add(header.0.e_shoff as usize) as *const SectionHeader;
     // Should always be defined, otherwise bail
-    let name_section = if header.e_shstrndx != 0 {
-        section_start.add(header.e_shstrndx as usize).read()
+    let name_section = if header.0.e_shstrndx != 0 {
+        section_start.add(header.0.e_shstrndx as usize).read()
     } else {
         return None;
     };
@@ -149,7 +43,7 @@ pub(crate) unsafe fn find_vdso_clock_get_time(
     // Name offset/"alias"
     let mut clock_gettime_st_name_offset: Option<u32> = None;
     // Stop when we've found both `DYNSTR` and `DYNSYM`
-    for i in 0..header.e_shnum as usize {
+    for i in 0..header.0.e_shnum as usize {
         let sect = section_start.add(i).read();
         if match_name(DYNSTR_NAME, &sect, &name_section, vdso) {
             clock_gettime_st_name_offset =
@@ -168,7 +62,7 @@ pub(crate) unsafe fn find_vdso_clock_get_time(
     let function_pointer_info = find_dynsym_ptr_of_name_offset(clock_alias, &dyn_syms, vdso)?;
     // Should be some instruction section, alignment can vary, have found 16
     let containing_section = section_start.add(function_pointer_info.section).read();
-    let fptr_align = containing_section.sh_addralign;
+    let fptr_align = containing_section.0.sh_addralign as usize;
     let fn_addr = vdso.add(align(function_pointer_info.addr_offset, fptr_align));
     let func: extern "C" fn(i32, *mut TimeSpec) -> i32 = core::mem::transmute(fn_addr);
     Some(func)
@@ -181,10 +75,10 @@ unsafe fn match_name(
     name_section: &SectionHeader,
     vdso: *const u8,
 ) -> bool {
-    let name_start = candidate_section.sh_name as usize;
-    let ns_start = name_section.sh_offset;
+    let name_start = candidate_section.0.sh_name as usize;
+    let ns_start = name_section.0.sh_offset as usize;
     let ns_ptr = vdso.add(ns_start);
-    let start_at = ns_ptr.add(align(name_start, name_section.sh_addralign));
+    let start_at = ns_ptr.add(align(name_start, name_section.0.sh_addralign as usize));
     let name = UnixStr::from_ptr(start_at);
     search_for == name.as_slice()
 }
@@ -197,10 +91,10 @@ unsafe fn find_dynstr_st_name_offset_of(
 ) -> Option<u32> {
     // Dynstr starts with a null byte
     let mut offset = 1;
-    while offset < dyn_str_section.sh_size {
+    while offset < dyn_str_section.0.sh_size as usize {
         let start = vdso.add(align(
-            dyn_str_section.sh_offset + offset,
-            dyn_str_section.sh_addralign,
+            dyn_str_section.0.sh_offset as usize + offset,
+            dyn_str_section.0.sh_addralign as usize,
         ));
         let first_sym = UnixStr::from_ptr(start);
         if search_for == first_sym.as_slice() {
@@ -223,18 +117,21 @@ unsafe fn find_dynsym_ptr_of_name_offset(
     vdso: *const u8,
 ) -> Option<FnPtrInfo> {
     let mut offset = 0;
-    while offset < dynsym.sh_size {
-        let search_addr = align(dynsym.sh_offset + offset, dynsym.sh_addralign);
+    while offset < dynsym.0.sh_size as usize {
+        let search_addr = align(
+            dynsym.0.sh_offset as usize + offset,
+            dynsym.0.sh_addralign as usize,
+        );
         let start = vdso.add(search_addr);
         let mut sym_h = MaybeUninit::<ElfSymbol>::uninit();
         start.copy_to(sym_h.as_mut_ptr() as _, core::mem::size_of::<ElfSymbol>());
         let sym = sym_h.assume_init();
-        if sym.st_name == st_name {
+        if sym.0.st_name == st_name {
             // Maybe bail if the type is incorrect, should be `STT_FUNC`, can be found by inspecting
             // `info_to_type` on `st_type`
             return Some(FnPtrInfo {
-                addr_offset: sym.st_value,
-                section: sym.st_shndx as usize,
+                addr_offset: sym.0.st_value as usize,
+                section: sym.0.st_shndx as usize,
             });
         }
         offset += core::mem::size_of::<ElfSymbol>();
