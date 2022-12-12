@@ -68,6 +68,8 @@ unsafe impl Sync for Envp {}
 #[cfg(feature = "alloc")]
 impl Command {
     /// Constructs a new command, setting the first argument as the binary's name
+    /// # Errors
+    /// If the string is not `C string compatible`
     pub fn new<A: AsUnixStr>(bin: A) -> Result<Self> {
         let bin = bin.to_unix_string()?;
         let bin_ptr = bin.as_ptr();
@@ -86,6 +88,8 @@ impl Command {
         })
     }
 
+    /// # Errors
+    /// If the string is not `C string compatible`
     pub fn env<A: AsUnixStr>(&mut self, env: A) -> Result<&mut Self> {
         #[cfg(feature = "start")]
         if !matches!(self.env, Environment::Inherit | Environment::None) {
@@ -110,6 +114,8 @@ impl Command {
         Ok(self)
     }
 
+    /// # Errors
+    /// If the string is not `C string compatible`
     pub fn envs<A: AsUnixStr>(&mut self, envs: Vec<A>) -> Result<&mut Self> {
         for env in envs {
             self.env(env)?;
@@ -117,6 +123,8 @@ impl Command {
         Ok(self)
     }
 
+    /// # Errors
+    /// If the string is not `C string compatible`
     pub fn arg<A: AsUnixStr>(&mut self, arg: A) -> Result<&mut Self> {
         let unix_string = arg.to_unix_string()?;
         self.argv.0[self.args.len()] = unix_string.as_ptr();
@@ -125,6 +133,8 @@ impl Command {
         Ok(self)
     }
 
+    /// # Errors
+    /// If the string is not `C string compatible`
     pub fn args<A: AsUnixStr>(&mut self, args: &[A]) -> Result<&mut Self> {
         self.args.reserve(args.len());
         self.argv.0.reserve(args.len());
@@ -134,6 +144,8 @@ impl Command {
         Ok(self)
     }
 
+    /// # Errors
+    /// If the string is not `C string compatible`
     pub fn cwd<A: AsUnixStr>(&mut self, dir: A) -> Result<&mut Self> {
         self.cwd = Some(dir.to_unix_string()?);
         Ok(self)
