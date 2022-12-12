@@ -1,5 +1,5 @@
 #[cfg(feature = "alloc")]
-use alloc::string::{String, ToString};
+use alloc::string::{String};
 #[cfg(feature = "alloc")]
 use alloc::vec;
 #[cfg(feature = "alloc")]
@@ -170,7 +170,7 @@ where
 
 #[cfg(feature = "alloc")]
 #[repr(transparent)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct UnixString(pub(crate) Vec<u8>);
 
 #[cfg(feature = "alloc")]
@@ -183,22 +183,22 @@ impl UnixString {
 }
 
 #[cfg(feature = "alloc")]
-impl From<String> for UnixString {
+impl TryFrom<String> for UnixString {
+    type Error = crate::Error;
+
     #[inline]
-    fn from(mut s: String) -> Self {
-        if !s.ends_with(crate::platform::NULL_CHAR) {
-            s.push(crate::platform::NULL_CHAR);
-        }
-        Self(s.into_bytes())
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.into_bytes().try_into()
     }
 }
 
 #[cfg(feature = "alloc")]
-impl From<&str> for UnixString {
+impl TryFrom<&str> for UnixString {
+    type Error = crate::Error;
+
     #[inline]
-    fn from(s: &str) -> Self {
-        let owned: String = s.to_string();
-        owned.into()
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        value.as_bytes().to_vec().try_into()
     }
 }
 
@@ -211,18 +211,16 @@ impl ToUnixString for &str {
 }
 
 #[cfg(feature = "alloc")]
-impl From<Vec<u8>> for UnixString {
-    #[inline]
-    fn from(mut buf: Vec<u8>) -> Self {
-        let len = buf.len();
-        if len == 0 {
-            buf.push(NULL_BYTE);
-            UnixString(buf)
-        } else if unsafe { *buf.get_unchecked(len - 1) == NULL_BYTE } {
-            unsafe { core::mem::transmute(buf) }
-        } else {
-            buf.push(NULL_BYTE);
-            UnixString(buf)
+impl TryFrom<Vec<u8>> for UnixString {
+    type Error = crate::Error;
+    fn try_from(mut value: Vec<u8>) -> Result<Self, Self::Error> {
+        match null_terminated_ok(&value) {
+            NullTermCheckResult::NullTerminated => Ok(Self(value)),
+            NullTermCheckResult::NullByteOutOfPlace => null_byte_out_of_place(),
+            NullTermCheckResult::NotNullTerminated => {
+                value.push(NULL_BYTE);
+                Ok(Self(value))
+            }
         }
     }
 }
@@ -291,7 +289,7 @@ impl AsUnixStr for &[u8] {
         let this_len = self.len();
         for i in 0..this_len {
             let other_byte = null_terminated_pointer.add(i).read();
-            if self[i] != other_byte {
+            if self[i] != other_byte || other_byte == NULL_BYTE {
                 return i;
             }
         }
@@ -345,10 +343,12 @@ impl AsMutUnixStr for &mut [u8] {
 }
 
 #[cfg(feature = "alloc")]
-impl From<&[u8]> for UnixString {
+impl TryFrom<&[u8]> for UnixString {
+    type Error = crate::Error;
+
     #[inline]
-    fn from(buf: &[u8]) -> Self {
-        buf.to_vec().into()
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        value.to_vec().try_into()
     }
 }
 
@@ -424,8 +424,10 @@ impl UnixStr {
 
 #[cfg(feature = "alloc")]
 impl From<&UnixStr> for UnixString {
+
+    #[inline]
     fn from(s: &UnixStr) -> Self {
-        s.0.to_vec().into()
+        UnixString(s.0.to_vec())
     }
 }
 
