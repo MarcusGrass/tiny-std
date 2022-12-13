@@ -70,14 +70,14 @@ pub fn ppoll(
 
 #[cfg(test)]
 mod tests {
-    use crate::platform::STDOUT;
+    use crate::platform::{STDOUT, TimeSpec};
     use crate::select::{ppoll, PollEvents, PollFd};
 
     #[test]
-    fn dummy() {
+    fn poll_stdout_ready() {
         // Stdout should essentially always be ready for output
         let mut poll_fds = [PollFd::new(STDOUT, PollEvents::POLLOUT)];
-        let num_rdy = ppoll(&mut poll_fds, None, None).unwrap();
+        let num_rdy = ppoll(&mut poll_fds, Some(&TimeSpec::new(1, 0)), None).unwrap();
         // Get one changed revents
         assert_eq!(1, num_rdy);
         // Should be pollout

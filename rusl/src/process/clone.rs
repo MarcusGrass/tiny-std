@@ -1,67 +1,136 @@
 use sc::syscall;
+use crate::platform::{Fd, TidT};
 
 use crate::Result;
 
 transparent_bitflags!(
     pub struct CloneFlags: u64 {
-        const CLONE_VM = 0x100;
-        const CLONE_FS = 0x200;
-        const CLONE_FILES = 0x400;
-        const CLONE_SIGHAND = 0x800;
-        const CLONE_PIDFD = 0x1000;
-        const CLONE_PTRACE = 0x2000;
-        const CLONE_VFORK = 0x4000;
-        const CLONE_PARENT = 0x8000;
-        const CLONE_THREAD = 0x10000;
-        const CLONE_NEWNS = 0x20000;
-        const CLONE_SYSVSEM = 0x40000;
-        const CLONE_SETTLS = 0x80000;
-        const CLONE_PARENT_SETTID = 0x100000;
-        const CLONE_CHILD_CLEARTID = 0x200000;
-        const CLONE_DETACHED = 0x400000;
-        const CLONE_UNTRACED = 0x800000;
-        const CLONE_CHILD_SETTID = 0x01000000;
-        const CLONE_NEWCGROUP = 0x02000000;
-        const CLONE_NEWUTS = 0x04000000;
-        const CLONE_NEWIPC = 0x08000000;
-        const CLONE_NEWUSER = 0x10000000;
-        const CLONE_NEWPID = 0x20000000;
-        const CLONE_NEWNET = 0x40000000;
-        const CLONE_IO = 0x80000000;
+        const CLONE_VM = linux_rust_bindings::CLONE_VM as u64;
+        const CLONE_FS = linux_rust_bindings::CLONE_FS as u64;
+        const CLONE_FILES = linux_rust_bindings::CLONE_FILES as u64;
+        const CLONE_SIGHAND = linux_rust_bindings::CLONE_SIGHAND as u64;
+        const CLONE_PIDFD = linux_rust_bindings::CLONE_PIDFD as u64;
+        const CLONE_PTRACE = linux_rust_bindings::CLONE_PTRACE as u64;
+        const CLONE_VFORK = linux_rust_bindings::CLONE_VFORK as u64;
+        const CLONE_PARENT = linux_rust_bindings::CLONE_PARENT as u64;
+        const CLONE_THREAD = linux_rust_bindings::CLONE_THREAD as u64;
+        const CLONE_NEWNS = linux_rust_bindings::CLONE_NEWNS as u64;
+        const CLONE_SYSVSEM = linux_rust_bindings::CLONE_SYSVSEM as u64;
+        const CLONE_SETTLS = linux_rust_bindings::CLONE_SETTLS as u64;
+        const CLONE_PARENT_SETTID = linux_rust_bindings::CLONE_PARENT_SETTID as u64;
+        const CLONE_CHILD_CLEARTID = linux_rust_bindings::CLONE_CHILD_CLEARTID as u64;
+        const CLONE_DETACHED = linux_rust_bindings::CLONE_DETACHED as u64;
+        const CLONE_UNTRACED = linux_rust_bindings::CLONE_UNTRACED as u64;
+        const CLONE_CHILD_SETTID = linux_rust_bindings::CLONE_CHILD_SETTID as u64;
+        const CLONE_NEWCGROUP = linux_rust_bindings::CLONE_NEWCGROUP as u64;
+        const CLONE_NEWUTS = linux_rust_bindings::CLONE_NEWUTS as u64;
+        const CLONE_NEWIPC = linux_rust_bindings::CLONE_NEWIPC as u64;
+        const CLONE_NEWUSER = linux_rust_bindings::CLONE_NEWUSER as u64;
+        const CLONE_NEWPID = linux_rust_bindings::CLONE_NEWPID as u64;
+        const CLONE_NEWNET = linux_rust_bindings::CLONE_NEWNET as u64;
+        const CLONE_IO = linux_rust_bindings::CLONE_IO as u64;
     }
 );
 
-#[repr(C)]
-pub struct CloneArgs {
-    /* Flags bit mask */
-    pub flags: CloneFlags,
-    /* Where to store PID file descriptor
-    (int *) */
-    pub pidfd: u64,
-    /* Where to store child TID,
-    in child's memory (pid_t *) */
-    pub child_tid: u64,
-    /* Where to store child TID,
-    in parent's memory (pid_t *) */
-    pub parent_tid: u64,
-    /* Signal to deliver to parent on
-    child termination */
-    pub exit_signal: u64,
-    /* Pointer to lowest byte of stack */
-    pub stack: u64,
-    /* Size of stack */
-    pub stack_size: u64,
-    /* Location of new TLS */
-    pub tls: u64,
-    /* Pointer to a pid_t array
-    (since Linux 5.5) */
-    pub set_tid: u64,
-    /* Number of elements in set_tid
-    (since Linux 5.5) */
-    pub set_tid_size: u64,
-    /* File descriptor for target cgroup
-    of child (since Linux 5.7) */
-    pub cgroup: u64,
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+pub struct CloneArgs(linux_rust_bindings::clone_args);
+
+impl CloneArgs {
+    /// Create a new instance of clone args, the minimum configuration for it to be valid is
+    /// a valid set of clone flags, please see the documentation for `clone3`.
+    #[must_use]
+    pub fn new(flags: CloneFlags) -> Self {
+        Self(
+            linux_rust_bindings::clone_args {
+                flags: flags.bits(),
+                pidfd: 0,
+                child_tid: 0,
+                parent_tid: 0,
+                exit_signal: 0,
+                stack: 0,
+                stack_size: 0,
+                tls: 0,
+                set_tid: 0,
+                set_tid_size: 0,
+                cgroup: 0,
+            }
+        )
+    }
+
+    /// Add additional flags
+    #[inline]
+    pub fn add_flags(&mut self, flags: CloneFlags) -> &mut Self {
+        self.0.flags |= flags.bits();
+        self
+    }
+
+    /// Remove current flags and replace with the provided ones
+    #[inline]
+    pub fn set_flags(&mut self, flags: CloneFlags) -> &mut Self {
+        self.0.flags = flags.bits();
+        self
+    }
+
+    /// Provide a pointer to which the OS will write an `fd` which can be awaited
+    /// for the spawned process' exit code
+    #[inline]
+    pub fn set_pid_fd(&mut self, pid_fd_ptr: *mut Fd) -> &mut Self {
+        self.0.pidfd = pid_fd_ptr as u64;
+        self
+    }
+
+    /// Where to store the child `Tid` in the child's memory, this should be passed to the child
+    #[inline]
+    pub fn set_child_tid(&mut self, child_tid_ptr: *mut TidT) -> &mut Self {
+        self.0.child_tid = child_tid_ptr as u64;
+        self
+    }
+
+    /// Where to store the child `Tid` in the parent's memory, this should be passed to the parent
+    #[inline]
+    pub fn set_parent_tid(&mut self, parent_tid: *mut TidT) -> &mut Self {
+        self.0.parent_tid = parent_tid as u64;
+        self
+    }
+
+    #[inline]
+    pub fn set_exit_signal(&mut self, exit_signal: u64) -> &mut Self {
+        self.0.exit_signal = exit_signal;
+        self
+    }
+
+    /// Set the allocated thread stack area, take care of how that memory is handled
+    #[inline]
+    pub fn set_stack(&mut self, stack: &mut [u8]) -> &mut Self {
+        self.0.stack_size = stack.len() as u64;
+        self.0.stack = stack.as_mut_ptr() as u64;
+        self
+    }
+
+    #[inline]
+    pub fn set_tls(&mut self, tls: u64) -> &mut Self {
+        self.0.tls = tls;
+        self
+    }
+
+    #[inline]
+    pub fn set_set_tid(&mut self, set_tid: u64) -> &mut Self {
+        self.0.set_tid = set_tid;
+        self
+    }
+
+    #[inline]
+    pub fn set_set_tid_size(&mut self, set_tid_size: u64) -> &mut Self {
+        self.0.set_tid_size = set_tid_size;
+        self
+    }
+
+    #[inline]
+    pub fn set_cgroup(&mut self, cgroup: u64) -> &mut Self {
+        self.0.cgroup = cgroup;
+        self
+    }
 }
 
 /// Clone this process using the specified arguments.

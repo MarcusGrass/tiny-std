@@ -10,3 +10,5 @@ mod exit;
 mod clone;
 mod fork;
 mod wait;
+#[cfg(test)]
+mod test;

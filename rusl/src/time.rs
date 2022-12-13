@@ -4,16 +4,16 @@ mod clock_get_time;
 
 transparent_bitflags!(
     pub struct ClockId: i32 {
-        const CLOCK_REALTIME = 0;
-        const CLOCK_MONOTONIC = 1;
-        const CLOCK_PROCESS_CPUTIME_ID = 2;
-        const CLOCK_THREAD_CPUTIME_ID = 3;
-        const CLOCK_MONOTONIC_RAW = 4;
-        const CLOCK_REALTIME_COARSE = 5;
-        const CLOCK_MONOTONIC_COARSE = 6;
-        const CLOCK_BOOTTIME = 7;
-        const CLOCK_REALTIME_ALARM = 8;
-        const CLOCK_BOOTTIME_ALARM = 9;
-        const CLOCK_TAI = 11;
+        const CLOCK_REALTIME = linux_rust_bindings::CLOCK_REALTIME;
+        const CLOCK_MONOTONIC = linux_rust_bindings::CLOCK_MONOTONIC;
+        const CLOCK_PROCESS_CPUTIME_ID = linux_rust_bindings::CLOCK_PROCESS_CPUTIME_ID;
+        const CLOCK_THREAD_CPUTIME_ID = linux_rust_bindings::CLOCK_THREAD_CPUTIME_ID;
+        const CLOCK_MONOTONIC_RAW = linux_rust_bindings::CLOCK_MONOTONIC_RAW;
+        const CLOCK_REALTIME_COARSE = linux_rust_bindings::CLOCK_REALTIME_COARSE;
+        const CLOCK_MONOTONIC_COARSE = linux_rust_bindings::CLOCK_MONOTONIC_COARSE;
+        const CLOCK_BOOTTIME = linux_rust_bindings::CLOCK_BOOTTIME;
+        const CLOCK_REALTIME_ALARM = linux_rust_bindings::CLOCK_REALTIME_ALARM;
+        const CLOCK_BOOTTIME_ALARM = linux_rust_bindings::CLOCK_BOOTTIME_ALARM;
+        const CLOCK_TAI = linux_rust_bindings::CLOCK_TAI;
     }
 );

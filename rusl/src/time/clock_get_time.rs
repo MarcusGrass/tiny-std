@@ -51,3 +51,38 @@ pub fn clock_get_time(clock_id: ClockId) -> Result<TimeSpec> {
     bail_on_below_zero!(res, "`CLOCK_GETTIME` syscall failed");
     Ok(unsafe { ts.assume_init() })
 }
+
+#[cfg(test)]
+mod tests {
+    use linux_rust_bindings::EINVAL;
+    use crate::time::{clock_get_monotonic_time, clock_get_real_time, clock_get_time, ClockId};
+
+    #[test]
+    fn get_monotonic() {
+        let t1 = clock_get_monotonic_time();
+        let t2 = clock_get_monotonic_time();
+        assert!(t1 < t2);
+    }
+
+    #[test]
+    fn get_real() {
+        let t1 = clock_get_real_time();
+        let t2 = clock_get_real_time();
+        assert!(t1 < t2);
+    }
+
+    #[test]
+    fn get_clock_specified() {
+        let t1_mono = clock_get_monotonic_time();
+        let t2_mono = clock_get_time(ClockId::CLOCK_MONOTONIC).unwrap();
+        assert!(t2_mono > t1_mono);
+        // Same clock type, if the time between these two calls takes more than one second
+        // something is way off
+        assert!(t2_mono.seconds() - t2_mono.seconds() <= 1);
+        let t1_real = clock_get_real_time();
+        let t2_real = clock_get_time(ClockId::CLOCK_REALTIME).unwrap();
+        assert!(t2_real > t1_real);
+        assert!(t2_real.seconds() - t2_real.seconds() <= 1);
+        expect_errno!(EINVAL, clock_get_time(ClockId::from(99999)));
+    }
+}
