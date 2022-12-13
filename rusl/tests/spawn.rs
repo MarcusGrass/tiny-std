@@ -1,4 +1,5 @@
 use std::mem::MaybeUninit;
+use linux_rust_bindings::{EINVAL, ENOSYS};
 use rusl::platform::Fd;
 use rusl::process::{clone3, CloneArgs, CloneFlags, exit};
 use rusl::select::{PollEvents, PollFd, ppoll};
@@ -11,7 +12,13 @@ fn test_clone3_vfork() {
         let mut pidfd: MaybeUninit<Fd> = MaybeUninit::uninit();
         let mut args = CloneArgs::new(CloneFlags::CLONE_VFORK);
         args.set_pid_fd(pidfd.as_mut_ptr());
-        let child = clone3(&mut args).unwrap() as i32;
+        let child = match clone3(&mut args) {
+            Ok(pid) => pid as i32,
+            Err(ref e) if e.code == Some(ENOSYS) => {
+                return;
+            }
+            Err(e) => panic!("Test failure {e}"),
+        };
         if child != 0 {
             let pidfd = pidfd.assume_init();
             // Pidfd is ready to read on complete
@@ -34,7 +41,15 @@ fn test_clone3_new_thread() {
         args.set_pid_fd(pidfd.as_mut_ptr())
             .set_stack(&mut child_stack);
 
-        let child = clone3(&mut args).unwrap() as i32;
+        // In my container, clone3 gives an `ENOSYS` seems to be fairly common container behaviour
+        // to keep the sandbox under management
+        let child = match clone3(&mut args) {
+            Ok(pid) => pid as i32,
+            Err(ref e) if e.code == Some(ENOSYS) => {
+                return;
+            }
+            Err(e) => panic!("Test failure {e}"),
+        };
         if child != 0 {
             let pidfd = pidfd.assume_init();
             // Pidfd is ready to read on complete
