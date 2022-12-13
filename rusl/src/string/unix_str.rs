@@ -4,7 +4,7 @@ use alloc::string::{String};
 use alloc::vec;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-use core::ops::{Deref, DerefMut};
+use core::ops::{Deref};
 use core::str::Utf8Error;
 use crate::Error;
 
@@ -45,16 +45,6 @@ pub trait AsUnixStr {
     unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize;
 }
 
-pub trait AsMutUnixStr: AsUnixStr {
-    /// Executes a function with this null terminated entity
-    /// converts it to a string and pushes a null byte if not already null terminated
-    /// # Errors
-    /// Propagates the function's errors
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>;
-}
-
 #[cfg(feature = "alloc")]
 pub trait ToUnixString {
     /// Turn this into a `UnixString`
@@ -78,22 +68,12 @@ impl AsUnixStr for () {
     where
         F: FnOnce(*const u8) -> crate::Result<T>,
     {
-        func("\0".as_ptr())
+        func([NULL_BYTE].as_ptr())
     }
 
     #[inline]
     unsafe fn match_up_to(&self, _null_terminated_pointer: *const u8) -> usize {
         0
-    }
-}
-
-impl AsMutUnixStr for () {
-    #[inline]
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>,
-    {
-        func([NULL_BYTE].as_mut_ptr())
     }
 }
 
@@ -152,19 +132,6 @@ where
     #[inline]
     unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
         self.deref().match_up_to(null_terminated_pointer)
-    }
-}
-
-impl<A> AsMutUnixStr for &mut A
-where
-    A: AsMutUnixStr,
-{
-    #[inline]
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>,
-    {
-        self.deref_mut().exec_with_self_as_mut_ptr(func)
     }
 }
 
@@ -249,17 +216,6 @@ impl AsUnixStr for Vec<u8> {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl AsMutUnixStr for Vec<u8> {
-    #[inline]
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>,
-    {
-        self.as_mut_slice().exec_with_self_as_mut_ptr(func)
-    }
-}
-
 impl AsUnixStr for &[u8] {
     fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
     where
@@ -317,28 +273,6 @@ impl AsUnixStr for &mut [u8] {
     #[inline]
     unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
         (&self).match_up_to(null_terminated_pointer)
-    }
-}
-
-impl AsMutUnixStr for &mut [u8] {
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>,
-    {
-        match null_terminated_ok(self) {
-            NullTermCheckResult::NullTerminated => func(self.as_mut_ptr()),
-            NullTermCheckResult::NullByteOutOfPlace => null_byte_out_of_place(),
-            NullTermCheckResult::NotNullTerminated => {
-                #[cfg(feature = "alloc")]
-                {
-                    let mut buf = self.to_vec();
-                    buf.push(NULL_BYTE);
-                    func(buf.as_mut_ptr())
-                }
-                #[cfg(not(feature = "alloc"))]
-                Err(crate::Error::not_null_terminated())
-            }
-        }
     }
 }
 
@@ -469,15 +403,6 @@ impl AsUnixStr for &mut UnixStr {
     }
 }
 
-impl AsMutUnixStr for &mut UnixStr {
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>,
-    {
-        func(self.0.as_mut_ptr())
-    }
-}
-
 #[cfg(feature = "alloc")]
 impl ToUnixString for &mut UnixStr {
     #[inline]
@@ -499,17 +424,6 @@ impl AsUnixStr for UnixString {
     #[inline]
     unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
         self.deref().match_up_to(null_terminated_pointer)
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl AsMutUnixStr for UnixString {
-    #[inline]
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>,
-    {
-        func(self.0.as_mut_ptr())
     }
 }
 
@@ -559,18 +473,6 @@ impl ToUnixString for &mut str {
     }
 }
 
-impl AsMutUnixStr for &mut str {
-    #[inline]
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>,
-    {
-        unsafe {
-            self.as_bytes_mut().exec_with_self_as_mut_ptr(func)
-        }
-    }
-}
-
 #[cfg(feature = "alloc")]
 impl AsUnixStr for String {
     #[inline]
@@ -592,19 +494,6 @@ impl ToUnixString for String {
     #[inline]
     fn to_unix_string(&self) -> crate::Result<UnixString> {
         self.as_bytes().to_unix_string()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl AsMutUnixStr for String {
-    #[inline]
-    fn exec_with_self_as_mut_ptr<F, T>(&mut self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*mut u8) -> crate::Result<T>,
-    {
-        unsafe {
-            self.as_bytes_mut().exec_with_self_as_mut_ptr(func)
-        }
     }
 }
 

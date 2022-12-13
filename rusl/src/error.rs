@@ -17,7 +17,8 @@ impl Error {
         }
     }
 
-    pub(crate) const fn no_code(msg: &'static str) -> Self {
+    #[must_use]
+    pub const fn no_code(msg: &'static str) -> Self {
         Self { msg, code: None }
     }
 

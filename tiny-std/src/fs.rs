@@ -2,8 +2,9 @@
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+use core::mem::MaybeUninit;
 
-use rusl::string::unix_str::{AsMutUnixStr, AsUnixStr, UnixStr};
+use rusl::string::unix_str::{AsUnixStr, UnixStr};
 use rusl::linux::Dirent;
 use rusl::platform::{Stat, AT_REMOVEDIR, EEXIST, ENOENT, NULL_BYTE};
 use rusl::string::strlen::{buf_strlen, strlen};
@@ -142,67 +143,92 @@ pub fn create_dir<P: AsUnixStr>(path: P) -> Result<()> {
 /// Tries to create a directory at the specified path
 /// # Errors
 /// OS errors relating to file access/permissions
+/// If working without an allocator, the maximum path length is 512 bytes
 #[inline]
-pub fn create_dir_all<P: AsMutUnixStr>(mut path: P) -> Result<()> {
+pub fn create_dir_all<P: AsUnixStr>(path: P) -> Result<()> {
+    // To make it simple we'll just stack alloc an uninit 512 array for the path.
     // Kind of a travesty, but needs to be like this to work without an allocator
-    path.exec_with_self_as_mut_ptr(|ptr| unsafe {
-        let len = strlen(ptr as _);
-        // Make into slice, we know the actual slice-length is len + 1
-        let buf = core::slice::from_raw_parts_mut(ptr, len);
-        let mut it = 1;
-        loop {
-            // Iterate down
-            let ind = len - it;
-            if ind == 0 {
-                break;
-            }
-            // Todo, actually make sure we restore
-            let byte = buf[ind];
-            if byte == b'/' {
-                // Swap slash for null termination to make a valid path
-                buf[ind] = NULL_BYTE;
-                return match rusl::unistd::mkdir(&buf[..=ind], Mode::from(0o755)) {
-                    // Successfully wrote, traverse down
-                    Ok(_) => {
-                        // Replace the null byte to make a valid path concatenation
-                        buf[ind] = b'/';
-                        for i in ind + 1..buf.len() {
-                            // Found next
-                            if buf[i] == b'/' {
-                                // Swap slash for null termination to make a valid path
-                                buf[i] = NULL_BYTE;
-                                rusl::unistd::mkdir(&buf[..=i], Mode::from(0o755))?;
-                                // Swap back to continue down
-                                buf[i] = b'/';
-                            }
-                        }
-                        // We know the actual length is len + 1 and null terminated, try write full
-                        rusl::unistd::mkdir(
-                            core::slice::from_raw_parts_mut(ptr, len + 1),
-                            Mode::from(0o755),
-                        )?;
-                        Ok(())
-                    }
-                    Err(e) => {
-                        if let Some(code) = e.code {
-                            if code == ENOENT {
-                                it += 1;
-                                // Put slash back, only way we end up here is if we tried to write
-                                // previously replacing the slash with a null-byte
-                                buf[ind] = b'/';
-                                continue;
-                            } else if code == EEXIST {
-                                return Ok(());
-                            }
-                        }
-                        Err(e)
-                    }
-                };
-            }
-            it += 1;
+    const NO_ALLOC_MAX_LEN: usize = 512;
+    const EMPTY: [MaybeUninit<u8>; NO_ALLOC_MAX_LEN] = [MaybeUninit::uninit(); NO_ALLOC_MAX_LEN];
+    path.exec_with_self_as_ptr(|ptr| unsafe {
+        // Could check if we haven't got any slashes at all and just run the pointer straight through
+        // without possibly having to add an extra indirection buffer here.
+        let len = strlen(ptr);
+        #[cfg(feature = "alloc")]
+        if len > NO_ALLOC_MAX_LEN {
+            let mut owned: Vec<u8> = Vec::with_capacity(len);
+            ptr.copy_to(owned.as_mut_ptr(), len);
+            return write_all_sub_paths(owned.as_mut_slice(), ptr);
         }
-        Ok(())
+        #[cfg(not(feature = "alloc"))]
+        if len > NO_ALLOC_MAX_LEN {
+            return Err(rusl::Error::no_code("Supplied path larger than 512 without an allocator present"));
+        }
+        let mut copied = EMPTY;
+        ptr.copy_to(copied.as_mut_ptr().cast(), len);
+        // Make into slice, we know the actual slice-length is len + 1
+        let initialized_section = copied[..len].as_mut_ptr().cast();
+        let buf: &mut [u8] = core::slice::from_raw_parts_mut(initialized_section, len);
+        write_all_sub_paths(buf, ptr)
     })?;
+    Ok(())
+}
+
+#[inline]
+fn write_all_sub_paths(buf: &mut [u8], raw: *const u8) -> core::result::Result<(), rusl::Error> {
+    let len = buf.len();
+    let mut it = 1;
+    loop {
+        // Iterate down
+        let ind = len - it;
+        if ind == 0 {
+            break;
+        }
+        // Todo, actually make sure we restore
+        let byte = buf[ind];
+        if byte == b'/' {
+            // Swap slash for null termination to make a valid path
+            buf[ind] = NULL_BYTE;
+            return match rusl::unistd::mkdir(&buf[..=ind], Mode::from(0o755)) {
+                // Successfully wrote, traverse down
+                Ok(_) => {
+                    // Replace the null byte to make a valid path concatenation
+                    buf[ind] = b'/';
+                    for i in ind + 1..len {
+                        // Found next
+                        if buf[i] == b'/' {
+                            // Swap slash for null termination to make a valid path
+                            buf[i] = NULL_BYTE;
+                            rusl::unistd::mkdir(&buf[..=i], Mode::from(0o755))?;
+                            // Swap back to continue down
+                            buf[i] = b'/';
+                        }
+                    }
+                    // We know the actual length is len + 1 and null terminated, try write full
+                    rusl::unistd::mkdir(
+                        unsafe {core::slice::from_raw_parts(raw, len + 1)},
+                        Mode::from(0o755),
+                    )?;
+                    Ok(())
+                }
+                Err(e) => {
+                    if let Some(code) = e.code {
+                        if code == ENOENT {
+                            it += 1;
+                            // Put slash back, only way we end up here is if we tried to write
+                            // previously replacing the slash with a null-byte
+                            buf[ind] = b'/';
+                            continue;
+                        } else if code == EEXIST {
+                            return Ok(());
+                        }
+                    }
+                    Err(e)
+                }
+            };
+        }
+        it += 1;
+    }
     Ok(())
 }
 
