@@ -1,5 +1,6 @@
 use sc::syscall;
-use crate::platform::{Fd, TidT};
+use unix_print::unix_eprintln;
+use crate::platform::{Fd, PidT, TidT};
 
 use crate::Result;
 
@@ -32,11 +33,89 @@ transparent_bitflags!(
     }
 );
 
-#[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-pub struct CloneArgs(linux_rust_bindings::clone_args);
+pub struct CloneArgs {
+    /// Flags to apply
+    flags: CloneFlags,
+    /// Pointer to where the child tid should be stored in the child's memory
+    child_tid: *mut TidT,
+    /// Pointer to where the child tid should be stored in the parent's memory
+    parent_tid: *mut TidT,
+    /// Pointer to the start of the new thread's stack
+    stack: *mut u8,
+    /// No idea
+    tls: usize,
+}
 
 impl CloneArgs {
+    #[must_use]
+    pub fn new(flags: CloneFlags) -> Self {
+        Self {
+            flags,
+            child_tid: core::ptr::null_mut(),
+            parent_tid: core::ptr::null_mut(),
+            stack: core::ptr::null_mut(),
+            tls: 0,
+        }
+    }
+
+    /// Where to store the child `Tid` in the child's memory, this should be passed to the child
+    #[inline]
+    pub fn set_child_tid(&mut self, child_tid_ptr: *mut TidT) -> &mut Self {
+        self.child_tid = child_tid_ptr;
+        self
+    }
+
+    /// Where to store the child `Tid` in the parent's memory, this should be passed to the parent
+    #[inline]
+    pub fn set_parent_tid(&mut self, parent_tid: *mut TidT) -> &mut Self {
+        self.parent_tid = parent_tid;
+        self
+    }
+
+    /// Set the allocated thread stack area, take care of how that memory is handled
+    #[inline]
+    pub fn set_stack(&mut self, stack: &mut [u8]) -> &mut Self {
+        self.stack = stack.as_mut_ptr();
+        self
+    }
+
+    #[inline]
+    pub fn set_tls(&mut self, tls: usize) -> &mut Self {
+        self.tls = tls;
+        self
+    }
+
+}
+
+/// Invoke the clone syscall with the provided `CloneArgs`.
+/// This function is inherently unsafe as poor arguments will cause memory unsafety,
+/// for example specifying `CLONE_VM` with a null stack pointer.
+/// Please read the [Linux documentation for details](https://man7.org/linux/man-pages/man2/clone.2.html)
+/// # Errors
+/// See above
+/// # Safety
+/// See above
+pub unsafe fn clone(args: &CloneArgs) -> Result<PidT> {
+    unix_eprintln!("{args:?}");
+    // Argument order differs per architecture
+    #[cfg(any(target_arch = "x86_64"))]
+    let res = unsafe {
+        syscall!(CLONE, args.flags.bits(), args.stack, args.parent_tid, args.child_tid, args.tls)
+    };
+    #[cfg(any(target_arch = "aarch64", target_arch = "x86"))]
+    let res = {
+        syscall!(CLONE, args.flags.bits(), args.stack, args.parent_tid, args.tls, args.child_tid)
+    };
+    bail_on_below_zero!(res, "`CLONE` syscall failed");
+    Ok(res as PidT)
+}
+
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+pub struct Clone3Args(linux_rust_bindings::clone_args);
+
+impl Clone3Args {
     /// Create a new instance of clone args, the minimum configuration for it to be valid is
     /// a valid set of clone flags, please see the documentation for `clone3`.
     #[must_use]
@@ -141,9 +220,9 @@ impl CloneArgs {
 /// See above
 /// # Safety
 /// See above
-pub unsafe fn clone3(clone_args: &mut CloneArgs) -> Result<u64> {
-    const SIZE: usize = core::mem::size_of::<CloneArgs>();
-    let res = syscall!(CLONE3, clone_args as *mut CloneArgs, SIZE);
+pub unsafe fn clone3(clone_args: &mut Clone3Args) -> Result<u64> {
+    const SIZE: usize = core::mem::size_of::<Clone3Args>();
+    let res = syscall!(CLONE3, clone_args as *mut Clone3Args, SIZE);
     bail_on_below_zero!(res, "`CLONE3` syscall failed");
     Ok(res as u64)
 }

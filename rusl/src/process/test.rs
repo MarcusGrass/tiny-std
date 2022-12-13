@@ -6,7 +6,7 @@ fn fork_test() {
     unsafe {
         let res = fork().unwrap();
         if res == 0 {
-            panic!("I'm dead but it doesn't matter because I was forked!");
+            exit(0);
         }
     }
 }

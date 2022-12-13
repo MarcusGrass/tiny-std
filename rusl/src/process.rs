@@ -1,4 +1,4 @@
-pub use clone::{clone3, CloneArgs, CloneFlags};
+pub use clone::{clone, CloneArgs, clone3, Clone3Args, CloneFlags};
 pub use execve::execve;
 pub use exit::exit;
 pub use fork::fork;
