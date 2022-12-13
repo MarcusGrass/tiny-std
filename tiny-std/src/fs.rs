@@ -5,10 +5,9 @@ use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 
 use rusl::string::unix_str::{AsUnixStr, UnixStr};
-use rusl::linux::Dirent;
 use rusl::platform::{Stat, AT_REMOVEDIR, EEXIST, ENOENT, NULL_BYTE};
 use rusl::string::strlen::{buf_strlen, strlen};
-use rusl::unistd::{Mode, OpenFlags};
+use rusl::unistd::{Dirent, Mode, OpenFlags};
 
 use crate::error::Error;
 use crate::error::Result;
@@ -118,7 +117,7 @@ impl Metadata {
 /// Os errors relating to file access
 #[inline]
 pub fn metadata<P: AsUnixStr>(path: P) -> Result<Metadata> {
-    let res = rusl::stat::stat(path)?;
+    let res = rusl::unistd::stat(path)?;
     Ok(Metadata(res))
 }
 
@@ -307,7 +306,7 @@ impl<'a> Iterator for ReadDir<'a> {
             if self.eod {
                 return None;
             }
-            match rusl::linux::get_dents(self.fd.fd, &mut self.filled_buf) {
+            match rusl::unistd::get_dents(self.fd.fd, &mut self.filled_buf) {
                 Ok(read) => {
                     if read == 0 {
                         self.eod = true;
@@ -366,7 +365,7 @@ impl<'a> DirEntry<'a> {
 
     #[must_use]
     pub fn file_type(&self) -> FileType {
-        match rusl::platform::DirType::from(self.inner.d_type) {
+        match self.inner.d_type {
             rusl::platform::DirType::DT_FIFO => FileType::Fifo,
             rusl::platform::DirType::DT_CHR => FileType::CharDevice,
             rusl::platform::DirType::DT_DIR => FileType::Directory,

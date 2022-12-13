@@ -138,3 +138,22 @@ macro_rules! transparent_bitflags {
         }
     };
 }
+
+#[cfg(test)]
+#[macro_export]
+macro_rules! errno_or_throw {
+    ($res: expr) => {
+        match $res {
+            Ok(_) => panic!("Expected error, found success!"),
+            Err(e) => e.code.unwrap(),
+        }
+    };
+}
+
+#[cfg(test)]
+#[macro_export]
+macro_rules! expect_errno {
+    ($errno: expr, $res: expr) => {
+        assert_eq!($errno, crate::errno_or_throw!($res));
+    };
+}

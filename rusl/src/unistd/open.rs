@@ -119,25 +119,6 @@ pub fn open_at_mode(
 
 #[cfg(test)]
 mod tests {
-    use crate::unistd::open::{open, OpenFlags};
-
-    #[test]
-    fn try_open() {
-        // TODO: fix
-        #[cfg(feature = "alloc")]
-        let path = "test-files/can_open.txt";
-        #[cfg(not(feature = "alloc"))]
-        let path = "test-files/can_open.txt\0";
-        try_open_at_path(path).unwrap();
-    }
-
-    fn try_open_at_path(path: &str) -> crate::Result<()> {
-        let _fd = open(path, OpenFlags::O_RDONLY)?;
-        let _fd = open(path, OpenFlags::O_WRONLY)?;
-        let _fd = open(path, OpenFlags::O_RDWR)?;
-        Ok(())
-    }
-
     // Differences between tmp-file creating on `x86_64` and `aarch64`, pretty interesting
     // seems that we can't just name a dir on `aarch64` because it produces `EISDIR`
     #[test]
@@ -153,7 +134,7 @@ mod tests {
 
     #[cfg(target_arch = "x86_64")]
     fn try_open_temp_at_path(path: &str) -> crate::Result<()> {
-        use crate::unistd::open::{open_mode, Mode};
+        use super::*;
         let _fd = open_mode(
             path,
             OpenFlags::O_WRONLY | OpenFlags::O_TMPFILE,

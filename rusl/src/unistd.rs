@@ -1,16 +1,19 @@
 pub use chdir::chdir;
 pub use close::close;
 pub use dup::{dup2, dup3};
+pub use get_dents::{Dirent, get_dents};
 pub use getuid::get_uid;
 pub use mkdir::{mkdir, mkdir_at};
-pub use open::{open, open_at, open_at_mode, open_mode, Mode, OpenFlags};
+pub use open::{Mode, open, open_at, open_at_mode, open_mode, OpenFlags};
 pub use pipe::{pipe, pipe2};
 pub use read::read;
 pub use setgid::setgid;
 pub use setpgid::setpgid;
 pub use setuid::setuid;
+pub use stat::{stat, statat};
 pub use uname::uname;
 pub use unlink::{rmdir, unlink, unlink_at, unlink_flags};
+pub use unshare::unshare;
 pub use utsname::UtsName;
 pub use write::write;
 
@@ -29,3 +32,8 @@ mod uname;
 mod unlink;
 mod utsname;
 mod write;
+#[cfg(test)]
+mod test;
+mod unshare;
+mod get_dents;
+mod stat;

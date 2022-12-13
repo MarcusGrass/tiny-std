@@ -1,6 +1,6 @@
 use sc::syscall;
 
-use crate::platform::{Fd, InoT, OffT, NULL_BYTE};
+use crate::platform::{Fd, InoT, OffT, NULL_BYTE, DirType};
 
 /// Reads directory entities into the provided buffer and returns the number of bytes read
 /// See [Linux docs for details](https://man7.org/linux/man-pages/man2/getdents.2.html)
@@ -17,7 +17,7 @@ pub struct Dirent {
     pub d_ino: InoT,
     pub d_off: OffT,
     pub d_reclen: u16,
-    pub d_type: u8,
+    pub d_type: DirType,
     pub d_name: [u8; 256],
     // <- One padding byte here
 }
@@ -67,19 +67,17 @@ impl Dirent {
             ),
             d_reclen: len,
             d_name: name,
-            d_type,
+            d_type: DirType::from(d_type),
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use libc::{DT_DIR, DT_REG};
-
-    use crate::linux::get_dents::get_dents;
-    use crate::linux::Dirent;
+    use crate::platform::DirType;
     use crate::string::strlen::buf_strlen;
     use crate::unistd::{open, OpenFlags};
+    use super::*;
 
     struct DirentIterator<'a> {
         buf: &'a [u8],
@@ -118,10 +116,10 @@ mod tests {
             read: read_size,
         };
         let find = [
-            (24, "d1", DT_DIR),
-            (32, "f1.txt", DT_REG),
-            (24, ".", DT_DIR),
-            (24, "..", DT_DIR),
+            (24, "d1", DirType::DT_DIR),
+            (32, "f1.txt", DirType::DT_REG),
+            (24, ".", DirType::DT_DIR),
+            (24, "..", DirType::DT_DIR),
         ];
         let mut found = [0, 0, 0, 0];
         for (ind, ent) in it.enumerate() {
