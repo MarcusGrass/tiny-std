@@ -18,3 +18,4 @@ pub mod time;
 pub mod unix;
 #[cfg(feature = "vdso")]
 mod vdso;
+pub mod thread;
