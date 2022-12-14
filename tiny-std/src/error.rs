@@ -50,10 +50,8 @@ impl Display for Error {
         match self {
             Error::Uncategorized(msg) => f.write_fmt(format_args!("Error: {}", msg,)),
             Error::Os { msg, code } => f.write_fmt(format_args!(
-                "OsError {{ msg: `{}`, code: {:?}, code_interpretation: {:?} }}",
-                msg,
-                code,
-                rusl::platform::error_codes::as_str(*code)
+                "OsError {{ msg: `{}`, code: {:?} }}",
+                msg, code,
             )),
         }
     }

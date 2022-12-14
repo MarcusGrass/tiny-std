@@ -7,7 +7,7 @@ use crate::platform::UidT;
 /// # Errors
 /// See above
 pub fn get_uid() -> crate::Result<UidT> {
-    let res = unsafe { syscall!(GETUID) } as i32;
+    let res = unsafe { syscall!(GETUID) };
     bail_on_below_zero!(res, "`GETUID` failed");
     Ok(res as UidT)
 }

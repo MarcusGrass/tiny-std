@@ -17,7 +17,8 @@ impl Error {
         }
     }
 
-    pub(crate) const fn no_code(msg: &'static str) -> Self {
+    #[must_use]
+    pub const fn no_code(msg: &'static str) -> Self {
         Self { msg, code: None }
     }
 
@@ -43,10 +44,8 @@ impl From<core::str::Utf8Error> for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!(
-            "Error {{ msg: `{}`, code: {:?}, code_interpretation: {:?} }}",
-            self.msg,
-            self.code,
-            self.code.map(crate::platform::error_codes::as_str)
+            "Error {{ msg: `{}`, code: {:?} }}",
+            self.msg, self.code,
         ))
     }
 }

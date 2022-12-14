@@ -1,7 +1,6 @@
 use sc::syscall;
 
-use crate::network::SocketArg;
-use crate::platform::Fd;
+use crate::platform::{Fd, SocketArg};
 use crate::Result;
 
 /// Bind the socket with the fd `sock_fd` to the address `socket_address`

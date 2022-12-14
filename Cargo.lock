@@ -3,16 +3,15 @@
 version = 3
 
 [[package]]
-name = "libc"
-version = "0.2.137"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc7fcc620a3bff7cdd7a365be3376c97191aeaccc2a603e600951e452615bf89"
+name = "linux-rust-bindings"
+version = "0.1.0"
+source = "git+https://github.com/MarcusGrass/linux-rust-bindings?rev=deb6d95959c9d1d438336cf99dad3b370179a395#deb6d95959c9d1d438336cf99dad3b370179a395"
 
 [[package]]
 name = "rusl"
 version = "0.1.0"
 dependencies = [
- "libc",
+ "linux-rust-bindings",
  "sc",
  "unix-print",
 ]
@@ -33,7 +32,6 @@ checksum = "0b5d366a619c58cc621169d481d049b286553c87ba10c17f1ceef2274f9b8ab7"
 name = "tiny-std"
 version = "0.1.0"
 dependencies = [
- "libc",
  "rusl",
  "sc",
  "tiny-bench",

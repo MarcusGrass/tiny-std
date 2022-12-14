@@ -4,7 +4,8 @@ use core::mem::MaybeUninit;
 
 use sc::syscall;
 
-use rusl::platform::signal::{SigSetT, SA_RESTART, SA_RESTORER, SA_SIGINFO, SIG_DFL, SIG_IGN};
+use rusl::platform::signal::{SigSetT, SIG_DFL, SIG_IGN};
+use rusl::platform::{SA_RESTART, SA_RESTORER, SA_SIGINFO};
 
 use crate::error::Error;
 
@@ -76,11 +77,11 @@ pub enum CatchSignal {
 impl CatchSignal {
     fn into_raw(self) -> i32 {
         match self {
-            CatchSignal::SIGINT => rusl::platform::signal::SIGINT,
-            CatchSignal::SIGTERM => rusl::platform::signal::SIGTERM,
-            CatchSignal::SIGHUP => rusl::platform::signal::SIGHUP,
-            CatchSignal::SIGSEGV => rusl::platform::signal::SIGSEGV,
-            CatchSignal::SIGCHLD => rusl::platform::signal::SIGCHLD,
+            CatchSignal::SIGINT => rusl::platform::SIGINT,
+            CatchSignal::SIGTERM => rusl::platform::SIGTERM,
+            CatchSignal::SIGHUP => rusl::platform::SIGHUP,
+            CatchSignal::SIGSEGV => rusl::platform::SIGSEGV,
+            CatchSignal::SIGCHLD => rusl::platform::SIGCHLD,
         }
     }
 }

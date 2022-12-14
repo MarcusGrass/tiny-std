@@ -9,9 +9,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "989b2c1ca6e90ad06fdc69d1d1862fa28d27a977be6d92ae2fa762cf61fe0b10"
 
 [[package]]
+name = "linux-rust-bindings"
+version = "0.1.0"
+
+[[package]]
 name = "rusl"
 version = "0.1.0"
 dependencies = [
+ "linux-rust-bindings",
  "sc",
  "unix-print",
 ]

@@ -26,7 +26,6 @@ unix-print = "0.1.0"
 
 [dev-dependencies]
 tiny-bench = "0.2.0"
-libc = "0.2"
 
 [[bench]]
 name = "benchmark"

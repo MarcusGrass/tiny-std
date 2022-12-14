@@ -77,6 +77,7 @@ pub fn main() -> i32 {
 fn test_cmd_no_args() {
     unix_print::unix_eprintln!("Spwaning no args");
     let mut chld = tiny_std::process::Command::new("/usr/bin/uname")
+        .unwrap()
         .spawn()
         .unwrap();
     chld.wait().unwrap();

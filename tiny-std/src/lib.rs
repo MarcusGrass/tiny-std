@@ -3,7 +3,7 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub use rusl::compat::*;
+pub use rusl::string::unix_str::*;
 
 pub mod env;
 pub mod error;
@@ -18,3 +18,4 @@ pub mod time;
 pub mod unix;
 #[cfg(feature = "vdso")]
 mod vdso;
+pub mod thread;

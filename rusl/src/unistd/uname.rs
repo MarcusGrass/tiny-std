@@ -10,7 +10,7 @@ use crate::unistd::utsname::UtsName;
 /// See above
 pub fn uname() -> crate::Result<UtsName> {
     let mut uts_name = MaybeUninit::uninit();
-    let res = unsafe { syscall!(UNAME, uts_name.as_mut_ptr()) } as i32;
+    let res = unsafe { syscall!(UNAME, uts_name.as_mut_ptr()) };
     bail_on_below_zero!(res, "Failed `UNAME` syscall");
     unsafe { Ok(uts_name.assume_init()) }
 }

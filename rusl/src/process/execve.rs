@@ -1,6 +1,6 @@
 use sc::syscall;
 
-use crate::compat::unix_str::AsUnixStr;
+use crate::string::unix_str::AsUnixStr;
 use crate::Error;
 
 /// Executes provided binary `bin` with arguments `arg_v` and environment `env_p`.

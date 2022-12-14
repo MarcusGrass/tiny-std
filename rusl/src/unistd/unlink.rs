@@ -1,6 +1,6 @@
 use sc::syscall;
 
-use crate::compat::unix_str::AsUnixStr;
+use crate::string::unix_str::AsUnixStr;
 use crate::platform::{Fd, AT_FDCWD, AT_REMOVEDIR};
 
 /// Taking the liberty of using `unlinkat` for both implementations, effectively meaning

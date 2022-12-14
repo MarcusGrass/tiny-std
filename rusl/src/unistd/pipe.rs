@@ -15,7 +15,7 @@ pub struct Pipe {
 /// See above
 pub fn pipe() -> crate::Result<Pipe> {
     let mut fds = [-1, -1];
-    let res = unsafe { syscall!(PIPE2, fds.as_mut_ptr(), 0) } as i32;
+    let res = unsafe { syscall!(PIPE2, fds.as_mut_ptr(), 0) };
     bail_on_below_zero!(res, "`PIPE2` syscall failed creating new pipe");
     Ok(Pipe {
         in_pipe: fds[0],
@@ -29,7 +29,7 @@ pub fn pipe() -> crate::Result<Pipe> {
 /// See above
 pub fn pipe2(flags: OpenFlags) -> crate::Result<Pipe> {
     let mut fds = [-1, -1];
-    let res = unsafe { syscall!(PIPE2, fds.as_mut_ptr(), flags.bits()) } as i32;
+    let res = unsafe { syscall!(PIPE2, fds.as_mut_ptr(), flags.bits()) };
     bail_on_below_zero!(res, "`PIPE2` syscall failed creating new pipe");
     Ok(Pipe {
         in_pipe: fds[0],

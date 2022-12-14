@@ -1,5 +1,5 @@
-use rusl::compat::unix_str::AsUnixStr;
-use rusl::network::{Domain, SocketType};
+use rusl::string::unix_str::AsUnixStr;
+use rusl::platform::{AddressFamily, SocketAddress, SocketType};
 
 use crate::error::Result;
 use crate::io::{AsRawFd, Read, Write};
@@ -19,8 +19,8 @@ impl UnixStream {
         let block = blocking
             .then(SocketType::empty)
             .unwrap_or(SocketType::SOCK_NONBLOCK);
-        let fd = rusl::network::socket(Domain::AF_UNIX, SocketType::SOCK_STREAM | block, 0)?;
-        let addr = rusl::network::SocketAddress::try_from_unix(path, Domain::AF_UNIX)?;
+        let fd = rusl::network::socket(AddressFamily::AF_UNIX, SocketType::SOCK_STREAM | block, 0)?;
+        let addr = SocketAddress::try_from_unix(path)?;
 
         rusl::network::connect(fd, &addr)?;
         Ok(UnixStream(OwnedFd(fd)))
@@ -68,8 +68,8 @@ impl UnixListener {
         let block = blocking
             .then(SocketType::empty)
             .unwrap_or(SocketType::SOCK_NONBLOCK);
-        let fd = rusl::network::socket(Domain::AF_UNIX, SocketType::SOCK_STREAM | block, 0)?;
-        let addr = rusl::network::SocketAddress::try_from_unix(path, Domain::AF_UNIX)?;
+        let fd = rusl::network::socket(AddressFamily::AF_UNIX, SocketType::SOCK_STREAM | block, 0)?;
+        let addr = SocketAddress::try_from_unix(path)?;
         rusl::network::bind(fd, &addr)?;
         rusl::network::listen(fd, BACKLOG)?;
         Ok(Self(OwnedFd(fd)))

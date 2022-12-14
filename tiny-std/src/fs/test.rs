@@ -2,9 +2,10 @@
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+use unix_print::unix_eprintln;
 
-use rusl::compat::unix_str::UnixStr;
-use rusl::{EEXIST, ENOENT};
+use rusl::string::unix_str::UnixStr;
+use rusl::platform::{EEXIST, ENOENT};
 
 use crate::fs::{metadata, File, FileType, OpenOptions};
 use crate::io::{Read, Write};
@@ -105,6 +106,7 @@ fn can_create_and_delete_file() {
     match metadata(tgt) {
         Ok(_) => panic!("Found deleted file!"),
         Err(e) => {
+            unix_eprintln!("Errno {e} expected {}", ENOENT);
             assert!(e.matches_errno(ENOENT));
         }
     }
@@ -176,14 +178,14 @@ fn create_read_and_delete_dir_with_a_lot_of_files() {
 
     let create_files = 512;
     for i in 0..create_files {
-        let owned_path = format!("test-files/fs/dir-test2/test-file{}.txt\0", i);
+        let owned_path = std::format!("test-files/fs/dir-test2/test-file{}.txt\0", i);
         let path = owned_path.as_str();
         let mut f = OpenOptions::new()
             .create_new(true)
             .write(true)
             .open(path)
             .unwrap();
-        f.write(format!("Test write {i}").as_bytes()).unwrap();
+        f.write(std::format!("Test write {i}").as_bytes()).unwrap();
     }
     let dir = crate::fs::Directory::open(tgt).unwrap();
     let it = dir.read();
@@ -204,7 +206,7 @@ fn create_read_and_delete_dir_with_a_lot_of_files() {
             }
             let expect_num = num.parse::<i32>().unwrap();
             let mut buf = [0u8; 256];
-            let expect_write = format!("Test write {}", expect_num);
+            let expect_write = std::format!("Test write {}", expect_num);
             let expect_write_bytes = expect_write.as_bytes();
             let mut file = entry.open_file().unwrap();
             file.read(&mut buf).unwrap();
@@ -231,4 +233,20 @@ fn can_create_remove_dir_all() {
     assert!(metadata(sub_dirs.as_slice()).is_ok());
     crate::fs::remove_dir_all(base).unwrap();
     assert!(metadata(base).is_err());
+}
+
+#[test]
+fn read_after_write_needs_reseek() {
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open("test-files/test-read-after-write.txt\0")
+        .unwrap();
+    let content = b"My content goes here!";
+    let wrote_bytes = file.write(content).unwrap();
+    assert_eq!(wrote_bytes, content.len());
+    // Write advances file offset
+    let mut my_read_buf = [0u8; 21];
+    assert_eq!(0, file.read(&mut my_read_buf).unwrap());
 }
