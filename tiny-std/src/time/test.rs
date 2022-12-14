@@ -5,17 +5,21 @@ use crate::time::{Instant, MonotonicInstant, SystemTime};
 
 #[test]
 fn monotonic_ever_increasing() {
-    let last = MonotonicInstant::now();
+    let mut last = MonotonicInstant::now();
     for _ in 0..100 {
-        assert!(last.elapsed() > Duration::ZERO);
+        let cur = MonotonicInstant::now();
+        assert!(cur > last);
+        last = cur;
     }
 }
 
 #[test]
 fn instant_ever_increasing() {
-    let last = Instant::now();
+    let mut last = Instant::now();
     for _ in 0..100 {
-        assert!(last.elapsed().unwrap() > Duration::ZERO);
+        let cur = Instant::now();
+        assert!(cur > last);
+        last = cur;
     }
 }
 

@@ -9,7 +9,6 @@ use crate::error::{Error, Result};
 use crate::io::read_buf::ReadBuf;
 use crate::unix::fd::RawFd;
 
-pub mod read;
 pub mod read_buf;
 
 pub trait Read {

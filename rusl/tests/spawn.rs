@@ -1,6 +1,6 @@
 use std::mem::MaybeUninit;
-use linux_rust_bindings::{EINVAL, ENOSYS};
-use rusl::platform::Fd;
+use linux_rust_bindings::{ENOSYS, SIGCHLD};
+use rusl::platform::{Fd};
 use rusl::process::{clone, clone3, Clone3Args, CloneArgs, CloneFlags, exit, wait_pid};
 use rusl::select::{PollEvents, PollFd, ppoll};
 
@@ -63,20 +63,20 @@ fn test_clone3_new_thread() {
 }
 
 #[test]
-fn test_regular_clone_new_thread() {
+fn test_regular_clone_vfork() {
     unsafe {
-        // Same as above but we're spawning an LVP
-        let mut child_stack = [0u8; 4096];
-        let mut args = CloneArgs::new(CloneFlags::CLONE_VM);
-        args.set_stack(&mut child_stack);
-
-        // In my container, clone3 gives an `ENOSYS` seems to be fairly common container behaviour
-        // to keep the sandbox under management
+        let flags = CloneFlags::CLONE_VFORK;
+        let mut args = CloneArgs::new(flags);
+        args
+            // Needs to be explicitly set on aarch64 or we'll EINVAL
+            .set_exit(SIGCHLD);
         let child = clone(&args).unwrap();
-        if child != 0 {
+        if child == 0 {
+            exit(0);
+        } else {
             let res = wait_pid(child, 0).unwrap();
-            assert_eq!(child, res.pid);
             assert_eq!(0, res.status);
+            assert_eq!(child, res.pid);
         }
     }
 }

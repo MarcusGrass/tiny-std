@@ -1,8 +1,36 @@
 use sc::syscall;
-use unix_print::unix_eprintln;
 use crate::platform::{Fd, PidT, TidT};
 
 use crate::Result;
+
+/// Forks a process returning the pid of the spawned child to the parent,
+/// while the child gets 0 returned back.
+/// See the [Linux documentation for details](https://man7.org/linux/man-pages/man2/fork.2.html).
+/// # Errors
+/// See above
+/// # Safety
+/// Extremely unsafe, reading the documentation thoroughly is recommended for proper usage
+#[cfg(target_arch = "x86_64")]
+pub unsafe fn fork() -> Result<PidT> {
+    let res = syscall!(FORK);
+    bail_on_below_zero!(res, "`FORK` syscall failed");
+    Ok(res as PidT)
+}
+
+/// Fork isn't implemented for aarch64, we're substituting with a clone call here
+/// # Errors
+/// See above
+/// # Safety
+/// See above
+#[cfg(target_arch = "aarch64")]
+pub unsafe fn fork() -> Result<PidT> {
+    // `SIGCHLD` is mandatory on aarch64 if mimicking fork it seems
+    let cflgs = crate::platform::SIGCHLD;
+    let res = syscall!(CLONE, cflgs, 0, 0, 0, 0);
+    bail_on_below_zero!(res, "`CLONE` syscall failed");
+    Ok(res as i32)
+}
+
 
 transparent_bitflags!(
     pub struct CloneFlags: u64 {
@@ -45,6 +73,7 @@ pub struct CloneArgs {
     stack: *mut u8,
     /// No idea
     tls: usize,
+    exit_signal: i32,
 }
 
 impl CloneArgs {
@@ -56,6 +85,7 @@ impl CloneArgs {
             parent_tid: core::ptr::null_mut(),
             stack: core::ptr::null_mut(),
             tls: 0,
+            exit_signal: 0,
         }
     }
 
@@ -75,14 +105,21 @@ impl CloneArgs {
 
     /// Set the allocated thread stack area, take care of how that memory is handled
     #[inline]
-    pub fn set_stack(&mut self, stack: &mut [u8]) -> &mut Self {
-        self.stack = stack.as_mut_ptr();
+    pub fn set_stack(&mut self, stack: *mut u8) -> &mut Self {
+        self.stack = stack;
         self
     }
 
     #[inline]
     pub fn set_tls(&mut self, tls: usize) -> &mut Self {
         self.tls = tls;
+        self
+    }
+
+    /// Low byte is the exit signal on a clone call
+    #[inline]
+    pub fn set_exit(&mut self, exit_signal: i32) -> &mut Self {
+        self.exit_signal = exit_signal;
         self
     }
 
@@ -97,15 +134,15 @@ impl CloneArgs {
 /// # Safety
 /// See above
 pub unsafe fn clone(args: &CloneArgs) -> Result<PidT> {
-    unix_eprintln!("{args:?}");
     // Argument order differs per architecture
+    let flags = args.flags.bits() | args.exit_signal as u64;
     #[cfg(any(target_arch = "x86_64"))]
     let res = unsafe {
-        syscall!(CLONE, args.flags.bits(), args.stack, args.parent_tid, args.child_tid, args.tls)
+        syscall!(CLONE, flags, args.stack, args.parent_tid, args.child_tid, args.tls)
     };
     #[cfg(any(target_arch = "aarch64", target_arch = "x86"))]
     let res = {
-        syscall!(CLONE, args.flags.bits(), args.stack, args.parent_tid, args.tls, args.child_tid)
+        syscall!(CLONE, flags, args.stack, args.parent_tid, args.tls, args.child_tid)
     };
     bail_on_below_zero!(res, "`CLONE` syscall failed");
     Ok(res as PidT)
