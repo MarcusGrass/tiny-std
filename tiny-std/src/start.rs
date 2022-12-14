@@ -112,7 +112,6 @@ unsafe fn __proxy_main(stack_ptr: *const u8) {
             let get_time = crate::vdso::find_vdso_clock_get_time(elf_start as _);
             VDSO_CLOCK_GET_TIME = get_time;
         }
-        unix_eprintln!("Got vdso get time: {}", VDSO_CLOCK_GET_TIME.is_some());
     }
     let code = main();
     exit(code);

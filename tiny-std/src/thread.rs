@@ -1,6 +1,5 @@
-use core::mem::MaybeUninit;
 use core::time::Duration;
-use rusl::platform::{EINTR, TimeSpec};
+use rusl::platform::{EINTR};
 use crate::error::Result;
 
 /// Sleep the current thread for the provided `Duration`
@@ -9,11 +8,9 @@ use crate::error::Result;
 pub fn sleep(duration: Duration) -> Result<()> {
     let mut ts = duration.try_into()?;
     loop {
-        let mut rem: MaybeUninit<TimeSpec> = MaybeUninit::uninit();
-        match rusl::unistd::nanosleep(&ts, Some(rem.as_mut_ptr())) {
+        match rusl::unistd::nanosleep_same_ptr(&mut ts) {
             Ok(_) => return Ok(()),
             Err(ref e) if e.code == Some(EINTR) => {
-                ts = unsafe {rem.assume_init()};
                 continue
             }
             Err(e) => return Err(e.into()),

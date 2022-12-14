@@ -11,7 +11,7 @@ pub use read::read;
 pub use setgid::setgid;
 pub use setpgid::setpgid;
 pub use setuid::setuid;
-pub use sleep::nanosleep;
+pub use sleep::{nanosleep, nanosleep_same_ptr};
 pub use stat::{stat, statat};
 pub use uname::uname;
 pub use unlink::{rmdir, unlink, unlink_at, unlink_flags};
