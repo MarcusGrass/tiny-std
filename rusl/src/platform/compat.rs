@@ -1,6 +1,7 @@
 pub use auxvec::*;
 pub use clone::*;
 pub use dirent::*;
+pub use fcntl::*;
 pub use mman::*;
 pub use mode_flags::*;
 pub use open_flags::*;
@@ -17,6 +18,7 @@ pub use wait::*;
 mod auxvec;
 mod clone;
 mod dirent;
+mod fcntl;
 mod mman;
 mod mode_flags;
 mod open_flags;

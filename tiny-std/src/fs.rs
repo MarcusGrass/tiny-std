@@ -44,6 +44,15 @@ impl File {
         let fd = rusl::unistd::open_at_mode(dir_fd, path, flags, opts.mode)?;
         Ok(File(OwnedFd(fd)))
     }
+
+    pub const unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        Self(OwnedFd::from_raw(fd))
+    }
+
+    #[inline]
+    pub fn set_nonblocking(&self) -> Result<()> {
+        self.0.set_nonblocking()
+    }
 }
 
 impl File {

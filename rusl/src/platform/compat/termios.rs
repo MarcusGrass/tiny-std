@@ -1,3 +1,4 @@
+use linux_rust_bindings::termios::tcflag_t;
 transparent_bitflags! {
     pub struct TermioFlags: u64 {
         const TIOCEXCL = linux_rust_bindings::termios::TIOCEXCL as u64;
@@ -57,9 +58,38 @@ impl Default for WindowSize {
     }
 }
 
+transparent_bitflags! {
+    pub struct InputFlags: tcflag_t {
+        const IGNBRK = linux_rust_bindings::termios::IGNBRK as tcflag_t;
+        const BRKINT = linux_rust_bindings::termios::BRKINT as tcflag_t;
+        const IGNPAR = linux_rust_bindings::termios::IGNPAR as tcflag_t;
+        const PARMRK = linux_rust_bindings::termios::PARMRK as tcflag_t;
+        const INPCK = linux_rust_bindings::termios::INPCK as tcflag_t;
+        const ISTRIP = linux_rust_bindings::termios::ISTRIP as tcflag_t;
+        const INLCR = linux_rust_bindings::termios::INLCR as tcflag_t;
+        const IGNCR = linux_rust_bindings::termios::IGNCR as tcflag_t;
+        const ICRNL = linux_rust_bindings::termios::ICRNL as tcflag_t;
+        const IXON = linux_rust_bindings::termios::IXON as tcflag_t;
+        const IXOFF = linux_rust_bindings::termios::IXOFF as tcflag_t;
+        const IXANY = linux_rust_bindings::termios::IXANY as tcflag_t;
+        const IMAXBEL = linux_rust_bindings::termios::IMAXBEL as tcflag_t;
+        const IUTF8 = linux_rust_bindings::termios::IUTF8 as tcflag_t;
+    }
+}
+
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
 pub struct Termios(linux_rust_bindings::termios::termios2);
+
+impl Termios {
+    pub fn set_iflag(&mut self, flags: InputFlags, state: bool) {
+        if state {
+            self.0.c_iflag |= flags.bits();
+        } else {
+            self.0.c_iflag &= !flags.bits();
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum SetAction {

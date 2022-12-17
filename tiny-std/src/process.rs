@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use core::hint::unreachable_unchecked;
 
 use rusl::error::Errno;
-use rusl::platform::{GidT, OpenFlags, PidT, UidT, WaitFlags};
+use rusl::platform::{Fd, GidT, OpenFlags, PidT, UidT, WaitFlags};
 use rusl::platform::{STDERR, STDIN, STDOUT};
 #[cfg(feature = "alloc")]
 use rusl::string::unix_str::UnixString;
@@ -279,6 +279,7 @@ pub enum Stdio {
     Inherit,
     Null,
     MakePipe,
+    RawFd(Fd),
 }
 
 impl Stdio {
@@ -305,6 +306,10 @@ impl Stdio {
                 opts.write(!readable);
                 let fd = opts.open(DEV_NULL)?;
                 Ok((ChildStdio::Owned(fd.into_inner()), None))
+            }
+
+            Stdio::RawFd(fd) => {
+                Ok((ChildStdio::Owned(OwnedFd(fd)), None))
             }
         }
     }

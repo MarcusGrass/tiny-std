@@ -10,6 +10,6 @@ default = ["alloc"]
 alloc = []
 
 [dependencies]
-linux-rust-bindings = { git = "https://github.com/MarcusGrass/linux-rust-bindings", rev = "c22f9d8f47805a14612251aabd6e8b19baf2083f" }
+linux-rust-bindings = { path = "../../linux-rust-bindings/linux-rust-bindings" }
 sc = "0.2.7"
 unix-print = "0.1.0"

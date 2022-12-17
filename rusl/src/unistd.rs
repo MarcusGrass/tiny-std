@@ -1,6 +1,7 @@
 pub use chdir::chdir;
 pub use close::close;
 pub use dup::{dup2, dup3};
+pub use fcntl::{fcntl_get_file_status, fcntl_set_file_status};
 pub use get_dents::get_dents;
 pub use getuid::get_uid;
 pub use mkdir::{mkdir, mkdir_at};
@@ -21,6 +22,7 @@ pub use write::write;
 mod chdir;
 mod close;
 mod dup;
+mod fcntl;
 mod get_dents;
 mod getuid;
 mod mkdir;
