@@ -1,7 +1,7 @@
 use sc::syscall;
 
-use crate::string::unix_str::AsUnixStr;
 use crate::platform::{Fd, AT_FDCWD, AT_REMOVEDIR};
+use crate::string::unix_str::AsUnixStr;
 
 /// Taking the liberty of using `unlinkat` for both implementations, effectively meaning
 /// that `CWD` is the base if the path isn't absolute

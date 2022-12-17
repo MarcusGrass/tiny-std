@@ -1,10 +1,10 @@
 //! Support for starting a `Rust` program without libc dependencies
 //! for the time being it requires the nightly feature `naked_function` to start
 //! a `Rust` application this way.
+use rusl::platform::AuxValue;
+
 #[cfg(all(feature = "symbols", feature = "start"))]
 use crate::process::exit;
-use rusl::platform::AuxValue;
-use unix_print::unix_eprintln;
 
 /// We have to mimic libc globals here sadly, we rip the environment off the first pointer of the stack
 /// in the start method. Should never be modified ever, just set on start

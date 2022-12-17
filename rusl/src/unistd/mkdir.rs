@@ -1,8 +1,7 @@
 use sc::syscall;
 
+use crate::platform::{Fd, Mode, AT_FDCWD};
 use crate::string::unix_str::AsUnixStr;
-use crate::platform::{Fd, AT_FDCWD};
-use crate::unistd::Mode;
 use crate::Result;
 
 /// Create a directory named `path`

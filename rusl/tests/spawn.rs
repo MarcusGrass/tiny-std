@@ -1,8 +1,9 @@
 use std::mem::MaybeUninit;
-use linux_rust_bindings::{ENOSYS, SIGCHLD};
-use rusl::platform::{Fd};
-use rusl::process::{clone, clone3, Clone3Args, CloneArgs, CloneFlags, exit, wait_pid};
-use rusl::select::{PollEvents, PollFd, ppoll};
+
+use rusl::error::Errno;
+use rusl::platform::{Clone3Args, CloneArgs, CloneFlags, Fd, PollEvents, PollFd, SignalKind};
+use rusl::process::{clone, clone3, exit, wait_pid};
+use rusl::select::ppoll;
 
 #[test]
 fn test_clone3_vfork() {
@@ -14,7 +15,7 @@ fn test_clone3_vfork() {
         args.set_pid_fd(pidfd.as_mut_ptr());
         let child = match clone3(&mut args) {
             Ok(pid) => pid as i32,
-            Err(ref e) if e.code == Some(ENOSYS) => {
+            Err(ref e) if e.code == Some(Errno::ENOSYS) => {
                 return;
             }
             Err(e) => panic!("Test failure {e}"),
@@ -43,7 +44,7 @@ fn test_clone3_pidfd() {
         // to keep the sandbox under management
         let child = match clone3(&mut args) {
             Ok(pid) => pid as i32,
-            Err(ref e) if e.code == Some(ENOSYS) => {
+            Err(ref e) if e.code == Some(Errno::ENOSYS) => {
                 return;
             }
             Err(e) => panic!("Test failure {e}"),
@@ -67,7 +68,7 @@ fn test_regular_clone_vfork() {
         let mut args = CloneArgs::new(flags);
         args
             // Needs to be explicitly set on aarch64 or we'll EINVAL
-            .set_exit(SIGCHLD);
+            .set_exit(SignalKind::SIGCHLD);
         let child = clone(&args).unwrap();
         if child == 0 {
             exit(0);

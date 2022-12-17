@@ -3,7 +3,8 @@ use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use core::{fmt, str};
-use rusl::platform::EINTR;
+
+use rusl::error::Errno;
 
 use crate::error::{Error, Result};
 use crate::io::read_buf::ReadBuf;
@@ -55,7 +56,7 @@ pub trait Read {
             let prev_filled = buf.filled().len();
             match self.read_buf(buf) {
                 Ok(()) => {}
-                Err(e) if e.matches_errno(EINTR) => continue,
+                Err(e) if e.matches_errno(Errno::EINTR) => continue,
                 Err(e) => return Err(e),
             }
 
@@ -104,7 +105,7 @@ pub(crate) fn default_read_to_end<R: Read + ?Sized>(r: &mut R, buf: &mut Vec<u8>
 
         match r.read_buf(&mut read_buf) {
             Ok(()) => {}
-            Err(ref e) if e.matches_errno(EINTR) => continue,
+            Err(ref e) if e.matches_errno(Errno::EINTR) => continue,
             Err(e) => return Err(e),
         }
 
@@ -135,7 +136,7 @@ pub(crate) fn default_read_to_end<R: Read + ?Sized>(r: &mut R, buf: &mut Vec<u8>
                         buf.extend_from_slice(&probe[..n]);
                         break;
                     }
-                    Err(ref e) if e.matches_errno(EINTR) => continue,
+                    Err(ref e) if e.matches_errno(Errno::EINTR) => continue,
                     Err(e) => return Err(e),
                 }
             }
@@ -218,7 +219,7 @@ pub(crate) fn default_read_exact<R: Read + ?Sized>(this: &mut R, mut buf: &mut [
                 let tmp = buf;
                 buf = &mut tmp[n..];
             }
-            Err(ref e) if e.matches_errno(EINTR) => {}
+            Err(ref e) if e.matches_errno(Errno::EINTR) => {}
             Err(e) => return Err(e),
         }
     }
@@ -264,7 +265,7 @@ pub trait Write {
                     return Err(Error::no_code("failed to write whole buffer"));
                 }
                 Ok(n) => buf = &buf[n..],
-                Err(ref e) if e.matches_errno(EINTR) => {}
+                Err(ref e) if e.matches_errno(Errno::EINTR) => {}
                 Err(e) => return Err(e),
             }
         }

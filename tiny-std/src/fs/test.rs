@@ -2,10 +2,9 @@
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-use unix_print::unix_eprintln;
 
+use rusl::error::Errno;
 use rusl::string::unix_str::UnixStr;
-use rusl::platform::{EEXIST, ENOENT};
 
 use crate::fs::{metadata, File, FileType, OpenOptions};
 use crate::io::{Read, Write};
@@ -106,8 +105,7 @@ fn can_create_and_delete_file() {
     match metadata(tgt) {
         Ok(_) => panic!("Found deleted file!"),
         Err(e) => {
-            unix_eprintln!("Errno {e} expected {}", ENOENT);
-            assert!(e.matches_errno(ENOENT));
+            assert!(e.matches_errno(Errno::ENOENT));
         }
     }
 }
@@ -124,7 +122,7 @@ fn can_create_and_delete_dir() {
     match crate::fs::create_dir(tgt) {
         Ok(_) => panic!("Could create on already existing dir"),
         Err(e) => {
-            assert!(e.matches_errno(EEXIST));
+            assert!(e.matches_errno(Errno::EEXIST));
         }
     }
     crate::fs::remove_dir(tgt).unwrap();

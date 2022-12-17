@@ -9,24 +9,6 @@ macro_rules! bail_on_below_zero {
 }
 
 #[macro_export]
-macro_rules! const_errs {
-    ($($num: expr, $name:ident, $msg: expr,)*) => {
-        $(
-            pub const $name: i32 = -$num;
-        )*
-        #[must_use]
-        pub fn as_str(code: i32) -> &'static str {
-            match code {
-                $(
-                    -$num => $msg,
-                )*
-                _ => "Code not recognized as a Linux error code"
-            }
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! transparent_bitflags {
     (
         $(#[$outer:meta])*

@@ -1,6 +1,6 @@
 use sc::syscall;
 
-use crate::process::CloneFlags;
+use crate::platform::CloneFlags;
 
 /// Unshare the properties specified by `CloneFlags` with other processes.
 /// See the [Linux docs for details](https://man7.org/linux/man-pages/man2/unshare.2.html)

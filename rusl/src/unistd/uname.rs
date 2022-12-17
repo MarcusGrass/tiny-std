@@ -2,7 +2,7 @@ use core::mem::MaybeUninit;
 
 use sc::syscall;
 
-use crate::unistd::utsname::UtsName;
+use crate::platform::UtsName;
 
 /// Gets the `UtsName` struct
 /// See the [linux docs for details](https://man7.org/linux/man-pages/man2/uname.2.html)

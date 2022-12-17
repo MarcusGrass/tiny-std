@@ -1,8 +1,7 @@
 //! These are not defined in the uapi which is a bit hairy, if they change, that's obviously
-use linux_rust_bindings::sockaddr_un;
+/// a problem.
 use crate::string::unix_str::AsUnixStr;
 use crate::Error;
-/// a problem.
 
 transparent_bitflags! {
     pub struct AddressFamily: u16 {
@@ -73,8 +72,8 @@ transparent_bitflags!(
         const SOCK_SEQPACKET = 5;
         /// Deprecated
         const SOCK_PACKET = 10;
-        const SOCK_NONBLOCK = crate::platform::O_NONBLOCK as i32;
-        const SOCK_CLOEXEC = crate::platform::O_CLOEXEC as i32;
+        const SOCK_NONBLOCK = linux_rust_bindings::fcntl::O_NONBLOCK as i32;
+        const SOCK_CLOEXEC = linux_rust_bindings::fcntl::O_CLOEXEC as i32;
     }
 );
 
@@ -86,7 +85,7 @@ pub struct SocketArg {
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-pub struct SocketAddress(sockaddr_un);
+pub struct SocketAddress(linux_rust_bindings::socket::sockaddr_un);
 
 impl SocketAddress {
 
@@ -125,7 +124,7 @@ impl SocketAddress {
             }
             Ok(buf)
         })?;
-        let addr = Self(sockaddr_un {
+        let addr = Self(linux_rust_bindings::socket::sockaddr_un {
             sun_family: AddressFamily::AF_UNIX.bits(),
             sun_path: buf,
         });

@@ -1,5 +1,7 @@
 use core::time::Duration;
-use rusl::platform::{EINTR};
+
+use rusl::error::Errno;
+
 use crate::error::Result;
 
 /// Sleep the current thread for the provided `Duration`
@@ -10,8 +12,8 @@ pub fn sleep(duration: Duration) -> Result<()> {
     loop {
         match rusl::unistd::nanosleep_same_ptr(&mut ts) {
             Ok(_) => return Ok(()),
-            Err(ref e) if e.code == Some(EINTR) => {
-                continue
+            Err(ref e) if e.code == Some(Errno::EINTR) => {
+                continue;
             }
             Err(e) => return Err(e.into()),
         }
@@ -21,8 +23,9 @@ pub fn sleep(duration: Duration) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use core::time::Duration;
+
     use crate::thread::sleep;
-    use crate::time::{MonotonicInstant};
+    use crate::time::MonotonicInstant;
 
     #[test]
     fn try_sleep() {

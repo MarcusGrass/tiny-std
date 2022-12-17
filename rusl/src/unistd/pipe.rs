@@ -1,7 +1,6 @@
 use sc::syscall;
 
-use crate::platform::Fd;
-use crate::unistd::OpenFlags;
+use crate::platform::{Fd, OpenFlags};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Pipe {
