@@ -9,7 +9,7 @@ pub const UNIX_TIME: SystemTime = SystemTime(TimeSpec::new_zeroed());
 
 /// Some monotonic, ever increasing, instant in time. Cannot be manipulated and is only good
 /// for comparing elapsed time.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct MonotonicInstant(TimeSpec);
 
 const NANOS_A_SECOND: i64 = 1_000_000_000;
@@ -39,7 +39,7 @@ impl MonotonicInstant {
 
 /// Some instant in time, ever increasing but able to be manipulated.
 /// The manipulations carries a risk of over/underflow,
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Instant(TimeSpec);
 
 impl Instant {
@@ -91,7 +91,7 @@ impl core::ops::Sub for Instant {
 
 /// Some instant in time since the unix epoch as seen by the system
 /// The passage of time may not be linear
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SystemTime(TimeSpec);
 
 impl SystemTime {
