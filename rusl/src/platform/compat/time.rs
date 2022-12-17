@@ -1,4 +1,3 @@
-use core::cmp::Ordering;
 use core::time::Duration;
 
 use linux_rust_bindings::time::__kernel_timespec;
@@ -21,7 +20,7 @@ transparent_bitflags!(
 
 /// `__kernel_timespec` is the type going over the syscall layer
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TimeSpec(__kernel_timespec);
 
 impl TimeSpec {
@@ -60,36 +59,6 @@ impl Default for TimeSpec {
     #[inline]
     fn default() -> Self {
         Self::new_zeroed()
-    }
-}
-
-impl PartialEq for TimeSpec {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.0.tv_sec.eq(&other.0.tv_sec) && self.0.tv_nsec.eq(&other.0.tv_nsec)
-    }
-}
-
-impl Eq for TimeSpec {}
-
-impl PartialOrd for TimeSpec {
-    #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for TimeSpec {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.0.tv_sec.cmp(&other.0.tv_sec) {
-            Ordering::Less => Ordering::Less,
-            Ordering::Equal => match self.0.tv_nsec.cmp(&other.0.tv_nsec) {
-                Ordering::Less => Ordering::Less,
-                Ordering::Equal => Ordering::Equal,
-                Ordering::Greater => Ordering::Greater,
-            },
-            Ordering::Greater => Ordering::Greater,
-        }
     }
 }
 
