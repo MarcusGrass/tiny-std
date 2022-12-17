@@ -1,5 +1,6 @@
-use linux_rust_bindings::EBADF;
-use crate::unistd::{close, open, OpenFlags, read, write};
+use crate::error::Errno;
+use crate::platform::OpenFlags;
+use crate::unistd::{close, open, read, write};
 
 #[test]
 fn no_write_on_read_only() {
@@ -10,7 +11,7 @@ fn no_write_on_read_only() {
     assert!(read_bytes >= expect.len());
     assert_eq!(expect, &buf[..expect.len()]);
     // No write on read only
-    expect_errno!(EBADF, write(fd, &[]));
+    expect_errno!(Errno::EBADF, write(fd, &[]));
     close(fd).unwrap();
 }
 
@@ -19,11 +20,11 @@ fn no_read_on_wr_only() {
     let path = "test-files/can_open.txt\0";
     let fd = open(path, OpenFlags::O_WRONLY).unwrap();
     let mut buf = [0; 256];
-    expect_errno!(EBADF, read(fd, &mut buf));
+    expect_errno!(Errno::EBADF, read(fd, &mut buf));
     assert_eq!(0, write(fd, &[]).unwrap());
     close(fd).unwrap();
     // Write on closed should fail
-    expect_errno!(EBADF, write(fd, &[]));
+    expect_errno!(Errno::EBADF, write(fd, &[]));
 }
 
 #[test]
@@ -35,7 +36,7 @@ fn close_closes() {
     assert!(read_res > 0);
     close(fd).unwrap();
     // Read on closed should fail
-    expect_errno!(EBADF, read(fd, &mut buf));
+    expect_errno!(Errno::EBADF, read(fd, &mut buf));
     // Close on closed should also fail
-    expect_errno!(EBADF, close(fd));
+    expect_errno!(Errno::EBADF, close(fd));
 }

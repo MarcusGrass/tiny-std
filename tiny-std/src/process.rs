@@ -4,14 +4,12 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::hint::unreachable_unchecked;
 
+use rusl::error::Errno;
+use rusl::platform::{GidT, OpenFlags, PidT, UidT, WaitFlags};
+use rusl::platform::{STDERR, STDIN, STDOUT};
 #[cfg(feature = "alloc")]
 use rusl::string::unix_str::UnixString;
 use rusl::string::unix_str::{AsUnixStr, UnixStr};
-use rusl::platform::EINTR;
-use rusl::platform::WNOHANG;
-use rusl::platform::{GidT, PidT, UidT};
-use rusl::platform::{STDERR, STDIN, STDOUT};
-use rusl::unistd::OpenFlags;
 
 use crate::error::{Error, Result};
 use crate::fs::OpenOptions;
@@ -266,7 +264,7 @@ impl Process {
         if let Some(status) = self.status {
             return Ok(Some(status));
         }
-        let res = rusl::process::wait_pid(self.pid, WNOHANG)?;
+        let res = rusl::process::wait_pid(self.pid, WaitFlags::WNOHANG.bits())?;
         if res.pid == 0 {
             Ok(None)
         } else {
@@ -406,7 +404,7 @@ unsafe fn do_spawn(
             unreachable_unchecked();
         };
         let code: [u8; 4] = if let Some(code) = e.code {
-            code.to_be_bytes()
+            code.raw().to_be_bytes()
         } else {
             rusl::process::exit(1)
         };
@@ -446,11 +444,11 @@ unsafe fn do_spawn(
                     return Err(Error::no_code("Validation on the CLOEXEC pipe failed"));
                 }
 
-                let errno = i32::from_be_bytes(errno.try_into().unwrap_unchecked());
+                let errno = Errno::new(i32::from_be_bytes(errno.try_into().unwrap_unchecked()));
                 process.wait()?;
                 return Err(Error::os("Failed to wait for process", errno));
             }
-            Err(ref e) if matches!(e.code, Some(EINTR)) => {}
+            Err(ref e) if matches!(e.code, Some(Errno::EINTR)) => {}
             Err(_) => {
                 process.wait()?;
                 return Err(Error::no_code("The cloexec pipe failed"));

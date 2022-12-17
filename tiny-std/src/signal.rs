@@ -4,8 +4,8 @@ use core::mem::MaybeUninit;
 
 use sc::syscall;
 
-use rusl::platform::signal::{SigSetT, SIG_DFL, SIG_IGN};
-use rusl::platform::{SA_RESTART, SA_RESTORER, SA_SIGINFO};
+use rusl::error::Errno;
+use rusl::platform::{SaMask, SigSetT, SIG_DFL, SIG_IGN};
 
 use crate::error::Error;
 
@@ -77,11 +77,11 @@ pub enum CatchSignal {
 impl CatchSignal {
     fn into_raw(self) -> i32 {
         match self {
-            CatchSignal::SIGINT => rusl::platform::SIGINT,
-            CatchSignal::SIGTERM => rusl::platform::SIGTERM,
-            CatchSignal::SIGHUP => rusl::platform::SIGHUP,
-            CatchSignal::SIGSEGV => rusl::platform::SIGSEGV,
-            CatchSignal::SIGCHLD => rusl::platform::SIGCHLD,
+            CatchSignal::SIGINT => rusl::platform::SignalKind::SIGINT.bits(),
+            CatchSignal::SIGTERM => rusl::platform::SignalKind::SIGTERM.bits(),
+            CatchSignal::SIGHUP => rusl::platform::SignalKind::SIGHUP.bits(),
+            CatchSignal::SIGSEGV => rusl::platform::SignalKind::SIGSEGV.bits(),
+            CatchSignal::SIGCHLD => rusl::platform::SignalKind::SIGCHLD.bits(),
         }
     }
 }
@@ -99,7 +99,7 @@ pub unsafe fn add_signal_action(
     sigaction: SaSignalaction,
 ) -> crate::error::Result<()> {
     let mut constructed_action: MaybeUninit<Sigaction> = MaybeUninit::uninit();
-    let mut flags = SA_RESTART | SA_RESTORER;
+    let mut flags = SaMask::SA_RESTART | SaMask::SA_RESTORER;
     let s_ptr = constructed_action.as_mut_ptr();
     (*s_ptr).sa_mask = SigSetT::default();
     (*s_ptr).sa_restorer = restorer;
@@ -108,15 +108,15 @@ pub unsafe fn add_signal_action(
         SaSignalaction::Ign => SaSigaction { value: SIG_IGN },
         SaSignalaction::Handler(sa_handler) => {
             // TODO: Double check this
-            flags -= SA_SIGINFO;
+            flags = SaMask::from(flags.bits() - SaMask::SA_SIGINFO.bits());
             SaSigaction { sa_handler }
         }
         SaSignalaction::SigAction(sa_sigaction) => {
-            flags |= SA_SIGINFO;
+            flags |= SaMask::SA_SIGINFO;
             SaSigaction { sa_sigaction }
         }
     };
-    (*s_ptr).sa_flags = flags;
+    (*s_ptr).sa_flags = flags.bits() as i32;
     let res = syscall!(
         RT_SIGACTION,
         signal.into_raw(),
@@ -127,7 +127,7 @@ pub unsafe fn add_signal_action(
     if res < 0 {
         return Err(Error::Os {
             msg: "Setting sigaction failed",
-            code: res as i32,
+            code: Errno::new(res as i32),
         });
     }
 

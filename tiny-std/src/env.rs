@@ -2,11 +2,11 @@
 use core::str::Utf8Error;
 
 #[cfg(feature = "start")]
+use rusl::string::strlen::strlen;
+#[cfg(feature = "start")]
 use rusl::string::unix_str::AsUnixStr;
 #[cfg(feature = "start")]
 use rusl::string::unix_str::UnixStr;
-#[cfg(any(feature = "start", feature = "alloc"))]
-use rusl::string::strlen::strlen;
 
 #[cfg(feature = "start")]
 use crate::start::ENV;
@@ -23,11 +23,12 @@ pub enum VarError {
 /// Hostname is not utf8
 #[cfg(feature = "alloc")]
 pub fn host_name() -> Result<alloc::string::String, crate::error::Error> {
-    let raw = rusl::unistd::uname()?.nodename;
-    let strlen = unsafe { strlen(raw.as_ptr()) };
-
-    alloc::string::String::from_utf8(raw[..strlen].to_vec())
-        .map_err(|_| crate::error::Error::no_code("Failed to convert hostname to string"))
+    #[allow(unused_imports)]
+    use alloc::string::ToString;
+    unix_print::unix_eprintln!("Getting uname");
+    let raw = rusl::unistd::uname()?;
+    unix_print::unix_eprintln!("Got uname");
+    Ok(raw.nodename()?.to_string())
 }
 
 #[cfg(feature = "start")]

@@ -4,10 +4,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 
-use rusl::string::unix_str::{AsUnixStr, UnixStr};
-use rusl::platform::{Stat, AT_REMOVEDIR, EEXIST, ENOENT, NULL_BYTE};
+use rusl::error::Errno;
+use rusl::platform::{Dirent, Mode, OpenFlags, Stat, AT_REMOVEDIR, NULL_BYTE};
 use rusl::string::strlen::{buf_strlen, strlen};
-use rusl::unistd::{Dirent, Mode, OpenFlags};
+use rusl::string::unix_str::{AsUnixStr, UnixStr};
 
 use crate::error::Error;
 use crate::error::Result;
@@ -161,7 +161,9 @@ pub fn create_dir_all<P: AsUnixStr>(path: P) -> Result<()> {
         }
         #[cfg(not(feature = "alloc"))]
         if len > NO_ALLOC_MAX_LEN {
-            return Err(rusl::Error::no_code("Supplied path larger than 512 without an allocator present"));
+            return Err(rusl::Error::no_code(
+                "Supplied path larger than 512 without an allocator present",
+            ));
         }
         let mut copied = EMPTY;
         ptr.copy_to(copied.as_mut_ptr().cast(), len);
@@ -205,20 +207,20 @@ fn write_all_sub_paths(buf: &mut [u8], raw: *const u8) -> core::result::Result<(
                     }
                     // We know the actual length is len + 1 and null terminated, try write full
                     rusl::unistd::mkdir(
-                        unsafe {core::slice::from_raw_parts(raw, len + 1)},
+                        unsafe { core::slice::from_raw_parts(raw, len + 1) },
                         Mode::from(0o755),
                     )?;
                     Ok(())
                 }
                 Err(e) => {
                     if let Some(code) = e.code {
-                        if code == ENOENT {
+                        if code == Errno::ENOENT {
                             it += 1;
                             // Put slash back, only way we end up here is if we tried to write
                             // previously replacing the slash with a null-byte
                             buf[ind] = b'/';
                             continue;
-                        } else if code == EEXIST {
+                        } else if code == Errno::EEXIST {
                             return Ok(());
                         }
                     }

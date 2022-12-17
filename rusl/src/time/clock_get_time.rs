@@ -1,7 +1,6 @@
 use sc::syscall;
 
-use crate::platform::TimeSpec;
-use crate::time::ClockId;
+use crate::platform::{ClockId, TimeSpec};
 use crate::Result;
 
 /// Gets the system clock time. Epoch time in seconds and nanos as seen by the system.
@@ -54,8 +53,9 @@ pub fn clock_get_time(clock_id: ClockId) -> Result<TimeSpec> {
 
 #[cfg(test)]
 mod tests {
-    use linux_rust_bindings::EINVAL;
-    use crate::time::{clock_get_monotonic_time, clock_get_real_time, clock_get_time, ClockId};
+    use crate::error::Errno;
+    use crate::platform::ClockId;
+    use crate::time::{clock_get_monotonic_time, clock_get_real_time, clock_get_time};
 
     #[test]
     fn get_monotonic() {
@@ -83,6 +83,6 @@ mod tests {
         let t2_real = clock_get_time(ClockId::CLOCK_REALTIME).unwrap();
         assert!(t2_real > t1_real);
         assert!(t2_real.seconds() - t2_real.seconds() <= 1);
-        expect_errno!(EINVAL, clock_get_time(ClockId::from(99999)));
+        expect_errno!(Errno::EINVAL, clock_get_time(ClockId::from(99999)));
     }
 }

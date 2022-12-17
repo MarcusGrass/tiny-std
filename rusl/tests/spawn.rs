@@ -1,8 +1,9 @@
 use std::mem::MaybeUninit;
-use linux_rust_bindings::{ENOSYS, SIGCHLD};
-use rusl::platform::{Fd};
-use rusl::process::{clone, clone3, Clone3Args, CloneArgs, CloneFlags, exit, wait_pid};
-use rusl::select::{PollEvents, PollFd, ppoll};
+
+use rusl::error::Errno;
+use rusl::platform::{Clone3Args, CloneArgs, CloneFlags, Fd, PollEvents, PollFd, SignalKind};
+use rusl::process::{clone, clone3, exit, wait_pid};
+use rusl::select::ppoll;
 
 #[test]
 fn test_clone3_vfork() {
@@ -14,7 +15,7 @@ fn test_clone3_vfork() {
         args.set_pid_fd(pidfd.as_mut_ptr());
         let child = match clone3(&mut args) {
             Ok(pid) => pid as i32,
-            Err(ref e) if e.code == Some(ENOSYS) => {
+            Err(ref e) if e.code == Some(Errno::ENOSYS) => {
                 return;
             }
             Err(e) => panic!("Test failure {e}"),
@@ -32,20 +33,18 @@ fn test_clone3_vfork() {
 }
 
 #[test]
-fn test_clone3_new_thread() {
+fn test_clone3_pidfd() {
     unsafe {
         let mut pidfd: MaybeUninit<Fd> = MaybeUninit::uninit();
         // Same as above but we're spawning an LVP
-        let mut child_stack = [0u8; 1048];
-        let mut args = Clone3Args::new(CloneFlags::CLONE_VM & CloneFlags::CLONE_PIDFD);
-        args.set_pid_fd(pidfd.as_mut_ptr())
-            .set_stack(&mut child_stack);
+        let mut args = Clone3Args::new(CloneFlags::CLONE_PIDFD);
+        args.set_pid_fd(pidfd.as_mut_ptr());
 
         // In my container, clone3 gives an `ENOSYS` seems to be fairly common container behaviour
         // to keep the sandbox under management
         let child = match clone3(&mut args) {
             Ok(pid) => pid as i32,
-            Err(ref e) if e.code == Some(ENOSYS) => {
+            Err(ref e) if e.code == Some(Errno::ENOSYS) => {
                 return;
             }
             Err(e) => panic!("Test failure {e}"),
@@ -53,7 +52,7 @@ fn test_clone3_new_thread() {
         if child != 0 {
             let pidfd = pidfd.assume_init();
             // Pidfd is ready to read on complete
-            let done_when = PollFd::new(pidfd, PollEvents::POLLOUT);
+            let done_when = PollFd::new(pidfd, PollEvents::POLLOUT | PollEvents::POLLIN);
             let completed = ppoll(&mut [done_when], None, None).unwrap();
             assert_eq!(1, completed);
         } else {
@@ -69,7 +68,7 @@ fn test_regular_clone_vfork() {
         let mut args = CloneArgs::new(flags);
         args
             // Needs to be explicitly set on aarch64 or we'll EINVAL
-            .set_exit(SIGCHLD);
+            .set_exit(SignalKind::SIGCHLD);
         let child = clone(&args).unwrap();
         if child == 0 {
             exit(0);
