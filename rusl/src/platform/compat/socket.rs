@@ -88,7 +88,6 @@ pub struct SocketArg {
 pub struct SocketAddress(linux_rust_bindings::socket::sockaddr_un);
 
 impl SocketAddress {
-
     /// Get the `AddressFamily` of the socket address
     #[inline]
     #[must_use]

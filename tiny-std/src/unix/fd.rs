@@ -20,10 +20,16 @@ impl OwnedFd {
     /// Sets this owned FD as non-blocking
     /// # Errors
     /// This FD is invalid, through unsafe creation
+    #[inline]
     pub fn set_nonblocking(&self) -> crate::error::Result<()> {
-        let orig = rusl::unistd::fcntl_get_file_status(self.0)?;
-        fcntl_set_file_status(self.0, orig | OpenFlags::O_NONBLOCK)?;
-        Ok(())
+        set_fd_nonblocking(self.as_raw_fd())
+    }
+}
+
+impl AsRawFd for OwnedFd {
+    #[inline]
+    fn as_raw_fd(&self) -> RawFd {
+        self.0
     }
 }
 
@@ -48,4 +54,22 @@ impl<'a> BorrowedFd<'a> {
             _pd: PhantomData::default(),
         }
     }
+}
+
+impl<'a> AsRawFd for BorrowedFd<'a> {
+    #[inline]
+    fn as_raw_fd(&self) -> RawFd {
+        self.fd
+    }
+}
+
+pub trait AsRawFd {
+    fn as_raw_fd(&self) -> RawFd;
+}
+
+#[inline]
+pub(crate) fn set_fd_nonblocking(raw_fd: RawFd) -> crate::error::Result<()> {
+    let orig = rusl::unistd::fcntl_get_file_status(raw_fd)?;
+    fcntl_set_file_status(raw_fd, orig | OpenFlags::O_NONBLOCK)?;
+    Ok(())
 }

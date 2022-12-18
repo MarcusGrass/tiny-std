@@ -1,9 +1,9 @@
 use crate::platform::NULL_BYTE;
 
 pub mod strlen;
-pub mod unix_str;
 #[cfg(test)]
 mod test;
+pub mod unix_str;
 
 /// Basic compare two null terminated strings
 /// # Safety

@@ -14,8 +14,8 @@ pub mod process;
 pub mod signal;
 #[cfg(feature = "start")]
 pub mod start;
+pub mod thread;
 pub mod time;
 pub mod unix;
 #[cfg(feature = "vdso")]
 mod vdso;
-pub mod thread;

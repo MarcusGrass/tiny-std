@@ -308,9 +308,7 @@ impl Stdio {
                 Ok((ChildStdio::Owned(fd.into_inner()), None))
             }
 
-            Stdio::RawFd(fd) => {
-                Ok((ChildStdio::Owned(OwnedFd(fd)), None))
-            }
+            Stdio::RawFd(fd) => Ok((ChildStdio::Owned(OwnedFd(fd)), None)),
         }
     }
 }

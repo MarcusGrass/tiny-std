@@ -8,7 +8,6 @@ use rusl::error::Errno;
 
 use crate::error::{Error, Result};
 use crate::io::read_buf::ReadBuf;
-use crate::unix::fd::RawFd;
 
 pub mod read_buf;
 
@@ -237,10 +236,6 @@ where
     let n = read(buf.initialize_unfilled())?;
     buf.add_filled(n);
     Ok(())
-}
-
-pub trait AsRawFd {
-    fn as_raw_fd(&self) -> RawFd;
 }
 
 pub trait Write {

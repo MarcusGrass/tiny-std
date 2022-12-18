@@ -1,4 +1,3 @@
-
 // Got this from `musl` gotta see if I can find it in the kernel source
 pub const AUX_CNT: usize = 38;
 
