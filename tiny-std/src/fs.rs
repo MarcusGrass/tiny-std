@@ -45,10 +45,20 @@ impl File {
         Ok(File(OwnedFd(fd)))
     }
 
+    /// Create a File from a raw `fd`
+    /// # Safety
+    /// The fd is valid and is not duplicated.
+    /// Duplication is bad since the `fd` will be closed when this `File` is dropped
+    #[must_use]
     pub const unsafe fn from_raw_fd(fd: RawFd) -> Self {
         Self(OwnedFd::from_raw(fd))
     }
 
+    /// Set this `File` to be non-blocking.
+    /// This will result in for example read expecting a certain number of bytes
+    /// to fail with `EAGAIN` if that data isn't available.
+    /// # Errors
+    /// Errors making the underlying syscalls
     #[inline]
     pub fn set_nonblocking(&self) -> Result<()> {
         self.0.set_nonblocking()

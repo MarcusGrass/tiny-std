@@ -9,12 +9,19 @@ pub type RawFd = i32;
 pub struct OwnedFd(pub(crate) RawFd);
 
 impl OwnedFd {
+    /// Create an `OwnedFd` from a `RawFd`
+    /// # Safety
+    /// `fd` is valid and not used elsewhere, see `File::from_raw_fd`
+    #[must_use]
     pub const unsafe fn from_raw(raw: RawFd) -> Self {
         Self(raw)
     }
 
+    /// Sets this owned FD as non-blocking
+    /// # Errors
+    /// This FD is invalid, through unsafe creation
     pub fn set_nonblocking(&self) -> crate::error::Result<()> {
-        let orig = rusl::unistd::fcntl_get_file_status(self.0, OpenFlags::empty())?;
+        let orig = rusl::unistd::fcntl_get_file_status(self.0)?;
         fcntl_set_file_status(self.0, orig | OpenFlags::O_NONBLOCK)?;
         Ok(())
     }
