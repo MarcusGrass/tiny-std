@@ -42,13 +42,14 @@ pub fn main() -> i32 {
 #[no_mangle]
 fn test_spawn_no_args() {
     //
-    let mut proc = tiny_std::process::spawn::<0, &str, &str>(
+    let mut proc = tiny_std::process::spawn::<0, &str, &str, ()>(
         "/usr/bin/uname\0",
         [],
         Environment::Inherit,
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),
+        &mut [],
         None,
         None,
         None,
@@ -68,13 +69,14 @@ fn test_spawn_no_args() {
 
 #[no_mangle]
 fn test_spawn_with_args() {
-    let mut proc_with_arg = tiny_std::process::spawn(
+    let mut proc_with_arg = tiny_std::process::spawn::<3, _, _, ()>(
         "/usr/bin/uname\0",
         ["/usr/bin/uname\0", "-a\0", "\0"],
         Environment::Inherit,
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),
+        &mut [],
         None,
         None,
         None,

@@ -25,6 +25,7 @@ pub fn openpty<P: AsUnixStr>(
         let master = open("/dev/ptmx\0", use_flags)?;
         let mut pty_num = 0;
         let pty_num_addr = core::ptr::addr_of_mut!(pty_num);
+        // Todo: Maybe check if not zero and bail like musl does
         ioctl(
             master as usize,
             TermioFlags::TIOCSPTLCK.bits() as usize,
