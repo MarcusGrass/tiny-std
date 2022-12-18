@@ -3,7 +3,7 @@ use sc::syscall;
 use crate::string::unix_str::AsUnixStr;
 use crate::Result;
 
-/// Changes the working directory of the current process
+/// Changes the working directory of the current process.
 /// See the [Linux docs for details](https://man7.org/linux/man-pages/man2/chdir.2.html)
 /// # Errors
 /// See above docs
