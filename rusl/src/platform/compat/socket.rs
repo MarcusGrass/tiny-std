@@ -72,8 +72,8 @@ transparent_bitflags!(
         const SOCK_SEQPACKET = 5;
         /// Deprecated
         const SOCK_PACKET = 10;
-        const SOCK_NONBLOCK = linux_rust_bindings::fcntl::O_NONBLOCK as i32;
-        const SOCK_CLOEXEC = linux_rust_bindings::fcntl::O_CLOEXEC as i32;
+        const SOCK_NONBLOCK = linux_rust_bindings::fcntl::O_NONBLOCK;
+        const SOCK_CLOEXEC = linux_rust_bindings::fcntl::O_CLOEXEC;
     }
 );
 

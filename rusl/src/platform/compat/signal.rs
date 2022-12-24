@@ -51,9 +51,9 @@ transparent_bitflags! {
         const SA_ONSTACK = linux_rust_bindings::signal::SA_ONSTACK as i64;
         const SA_RESTART = linux_rust_bindings::signal::SA_RESTART as i64;
         const SA_NODEFER = linux_rust_bindings::signal::SA_NODEFER as i64;
-        const SA_RESETHAND = linux_rust_bindings::signal::SA_RESETHAND as i64;
+        const SA_RESETHAND = linux_rust_bindings::signal::SA_RESETHAND;
         const SA_NOMASK = linux_rust_bindings::signal::SA_NOMASK as i64;
-        const SA_ONESHOT = linux_rust_bindings::signal::SA_ONESHOT as i64;
+        const SA_ONESHOT = linux_rust_bindings::signal::SA_ONESHOT;
         const SA_RESTORER = linux_rust_bindings::signal::SA_RESTORER as i64;
     }
 }

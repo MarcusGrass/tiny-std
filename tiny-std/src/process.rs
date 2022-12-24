@@ -476,7 +476,7 @@ unsafe fn do_spawn<F: PreExec>(
     }
     let _ = rusl::unistd::close(write_pipe);
     let mut process = Process {
-        pid: child_pid as i32,
+        pid: child_pid,
         status: None,
     };
     let mut bytes = [0, 0, 0, 0, 0, 0, 0, 0];

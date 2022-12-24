@@ -10,5 +10,5 @@ use crate::platform::Fd;
 pub fn read(fd: Fd, buf: &mut [u8]) -> crate::Result<usize> {
     let res = unsafe { syscall!(READ, fd, buf.as_mut_ptr(), buf.len()) };
     bail_on_below_zero!(res, "`READ` syscall failed");
-    Ok(res as usize)
+    Ok(res)
 }
