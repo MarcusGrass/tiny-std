@@ -12,7 +12,7 @@ use rusl::string::unix_str::{AsUnixStr, UnixStr};
 use crate::error::Error;
 use crate::error::Result;
 use crate::io::{Read, Write};
-use crate::unix::fd::{BorrowedFd, OwnedFd, RawFd};
+use crate::unix::fd::{AsRawFd, BorrowedFd, OwnedFd, RawFd};
 
 #[cfg(test)]
 mod test;
@@ -69,6 +69,13 @@ impl File {
     #[inline]
     pub(crate) fn into_inner(self) -> OwnedFd {
         self.0
+    }
+}
+
+impl AsRawFd for File {
+    #[inline]
+    fn as_raw_fd(&self) -> RawFd {
+        self.0.as_raw_fd()
     }
 }
 
