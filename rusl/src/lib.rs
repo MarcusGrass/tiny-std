@@ -9,6 +9,7 @@ pub use error::{Error, Result};
 pub mod error;
 #[macro_use]
 pub(crate) mod macros;
+pub mod io_uring;
 pub mod ioctl;
 pub mod network;
 pub mod platform;

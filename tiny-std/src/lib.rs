@@ -9,6 +9,7 @@ pub mod env;
 pub mod error;
 pub mod fs;
 pub mod io;
+pub mod linux;
 pub mod net;
 pub mod process;
 pub mod signal;

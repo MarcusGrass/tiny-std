@@ -1,5 +1,6 @@
 use sc::syscall;
-use crate::platform::{Fd, EpollEvent, EpollOp};
+
+use crate::platform::{EpollEvent, EpollOp, Fd};
 use crate::Result;
 
 /// Create an epoll fd
@@ -13,7 +14,7 @@ pub fn epoll_create(cloexec: bool) -> Result<Fd> {
     } else {
         0
     };
-    let res = unsafe { syscall!(EPOLL_CREATE1, flags)};
+    let res = unsafe { syscall!(EPOLL_CREATE1, flags) };
     bail_on_below_zero!(res, "`EPOLL_CREATE1` syscall failed");
     Ok(res as Fd)
 }
@@ -25,7 +26,20 @@ pub fn epoll_create(cloexec: bool) -> Result<Fd> {
 #[inline]
 pub fn epoll_ctl(epoll_fd: Fd, epoll_op: EpollOp, fd: Fd, event: &EpollEvent) -> Result<()> {
     let evt_addr = core::ptr::addr_of!(event.0);
-    let res = unsafe { syscall!(EPOLL_CTL, epoll_fd, epoll_op.into_op(), fd, evt_addr)};
+    let res = unsafe { syscall!(EPOLL_CTL, epoll_fd, epoll_op.into_op(), fd, evt_addr) };
+    bail_on_below_zero!(res, "`EPOLL_CTL` syscall failed");
+    Ok(())
+}
+
+/// Remove an fd from the epoll interest list.
+/// Some duplication with above, the `event` argument isn't needed for delete since
+/// kernel 2.6.9, if targeting a kernel earlier than that, use the above function
+/// See [Linux documentation for details(https://man7.org/linux/man-pages/man2/epoll_ctl.2.html)
+/// # Errors
+/// See above
+#[inline]
+pub fn epoll_del(epoll_fd: Fd, fd: Fd) -> Result<()> {
+    let res = unsafe { syscall!(EPOLL_CTL, epoll_fd, EpollOp::Del.into_op(), fd, 0) };
     bail_on_below_zero!(res, "`EPOLL_CTL` syscall failed");
     Ok(())
 }
@@ -38,7 +52,17 @@ pub fn epoll_ctl(epoll_fd: Fd, epoll_op: EpollOp, fd: Fd, event: &EpollEvent) ->
 /// See above
 #[inline]
 pub fn epoll_wait(epoll_fd: Fd, events: &mut [EpollEvent], timeout_millis: i32) -> Result<usize> {
-    let res = unsafe { syscall!(EPOLL_PWAIT, epoll_fd, events.as_mut_ptr(), events.len(), timeout_millis, 0, 0)};
+    let res = unsafe {
+        syscall!(
+            EPOLL_PWAIT,
+            epoll_fd,
+            events.as_mut_ptr(),
+            events.len(),
+            timeout_millis,
+            0,
+            0
+        )
+    };
     bail_on_below_zero!(res, "`EPOLL_PWAIT` syscall failed");
     Ok(res)
 }
@@ -51,7 +75,13 @@ mod test {
     #[test]
     fn can_setup_wait() {
         let epoll_fd = epoll_create(true).unwrap();
-        epoll_ctl(epoll_fd, EpollOp::Add, STDIN, &EpollEvent::new(15, EpollEventMask::EPOLLIN | EpollEventMask::EPOLLOUT)).unwrap();
+        epoll_ctl(
+            epoll_fd,
+            EpollOp::Add,
+            STDIN,
+            &EpollEvent::new(15, EpollEventMask::EPOLLIN | EpollEventMask::EPOLLOUT),
+        )
+        .unwrap();
         let mut ret = [EpollEvent::new(0, EpollEventMask::empty())];
         let ready = epoll_wait(epoll_fd, &mut ret, 10).unwrap();
         assert_eq!(1, ready);

@@ -22,7 +22,8 @@ impl Error {
     }
 
     #[inline]
-    pub(crate) fn matches_errno(&self, errno: Errno) -> bool {
+    #[must_use]
+    pub fn matches_errno(&self, errno: Errno) -> bool {
         if let Self::Os { code, .. } = self {
             *code == errno
         } else {
