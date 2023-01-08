@@ -93,6 +93,8 @@ pub fn setup_io_uring(entries: u32, flags: IoUringParamFlags) -> Result<IoUring>
         let cq_ring_entries =
             *((cq_ring_ptr + params.0.cq_off.ring_entries as usize) as *const u32);
 
+        // Safety: All pointers are guaranteed to not be a null-pointer,
+        // we get them from a successful `mmap`
         Ok(IoUring {
             fd,
             sq: UringSubmissionQueue {
@@ -118,7 +120,7 @@ pub fn setup_io_uring(entries: u32, flags: IoUringParamFlags) -> Result<IoUring>
                 kernel_overflow: NonNull::new_unchecked(cq_koverflow as _),
                 ring_mask: cq_ring_mask,
                 ring_entries: cq_ring_entries,
-                entries: cq_cqes,
+                entries: NonNull::new_unchecked(cq_cqes as _),
             },
         })
     }

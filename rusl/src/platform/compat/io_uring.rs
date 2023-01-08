@@ -111,5 +111,5 @@ pub(crate) struct UringCompletionQueue {
     pub(crate) kernel_overflow: NonNull<AtomicU32>,
     pub(crate) ring_mask: u32,
     pub(crate) ring_entries: u32,
-    pub(crate) entries: usize,
+    pub(crate) entries: NonNull<IoUringCompletionQueueEntry>,
 }
