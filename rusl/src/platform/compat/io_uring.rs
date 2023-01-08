@@ -1,6 +1,11 @@
+use core::ptr::NonNull;
+use core::sync::atomic::AtomicU32;
+
 use linux_rust_bindings::io_uring::{
     io_cqring_offsets, io_sqring_offsets, io_uring_cqe, io_uring_params, io_uring_sqe,
 };
+
+use crate::platform::Fd;
 
 transparent_bitflags! {
     pub struct IoUringParamFlags: u32 {
@@ -68,4 +73,43 @@ impl IoUringParams {
             },
         })
     }
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct IoUring {
+    pub fd: Fd,
+    pub(crate) sq: UringSubmissionQueue,
+    pub(crate) cq: UringCompletionQueue,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub(crate) struct UringSubmissionQueue {
+    pub(crate) ring_size: usize,
+    pub(crate) ring_ptr: usize,
+    pub(crate) kernel_head: NonNull<AtomicU32>,
+    pub(crate) kernel_tail: NonNull<AtomicU32>,
+    pub(crate) kernel_flags: NonNull<AtomicU32>,
+    pub(crate) kernel_dropped: NonNull<AtomicU32>,
+    pub(crate) kernel_array: NonNull<AtomicU32>,
+    pub(crate) head: usize,
+    pub(crate) tail: usize,
+    pub(crate) ring_mask: u32,
+    pub(crate) ring_entries: u32,
+    pub(crate) entries: NonNull<IoUringSubmissionQueueEntry>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub(crate) struct UringCompletionQueue {
+    pub(crate) ring_size: usize,
+    pub(crate) ring_ptr: usize,
+    pub(crate) kernel_head: NonNull<AtomicU32>,
+    pub(crate) kernel_tail: NonNull<AtomicU32>,
+    pub(crate) kernel_flags: NonNull<AtomicU32>,
+    pub(crate) kernel_overflow: NonNull<AtomicU32>,
+    pub(crate) ring_mask: u32,
+    pub(crate) ring_entries: u32,
+    pub(crate) entries: usize,
 }
