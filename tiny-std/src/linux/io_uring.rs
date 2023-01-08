@@ -3,11 +3,14 @@ use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 use core::num::NonZeroUsize;
 
+use rusl::io_uring::io_uring_register_io_slices;
 use sc::syscall;
 use unix_print::unix_eprintln;
-use rusl::io_uring::io_uring_register_io_slices;
 
-use rusl::platform::{IoSliceMut, IoUringCompletionQueueEntry, IoUringParamFlags, IoUringParams, IoUringSubmissionQueueEntry, MapAdditionalFlags, MapRequiredFlag, MemoryProtection};
+use rusl::platform::{
+    IoSliceMut, IoUringCompletionQueueEntry, IoUringParamFlags, IoUringParams,
+    IoUringSubmissionQueueEntry, MapAdditionalFlags, MapRequiredFlag, MemoryProtection,
+};
 use rusl::unistd::mmap;
 
 use crate::error::Result;

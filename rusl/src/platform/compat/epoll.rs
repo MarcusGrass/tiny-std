@@ -26,7 +26,7 @@ transparent_bitflags! {
 pub enum EpollOp {
     Add,
     Mod,
-    Del
+    Del,
 }
 
 impl EpollOp {
@@ -41,7 +41,7 @@ impl EpollOp {
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-pub struct EpollEvent(pub(crate)linux_rust_bindings::epoll::epoll_event);
+pub struct EpollEvent(pub(crate) linux_rust_bindings::epoll::epoll_event);
 
 impl EpollEvent {
     #[inline]

@@ -30,12 +30,12 @@ pub fn io_uring_setup(entries: u32, io_uring_params: &mut IoUringParams) -> Resu
 pub fn io_uring_register_files(uring_fd: Fd, fds: &[Fd]) -> Result<()> {
     let res = unsafe {
         syscall!(
-                    IO_URING_REGISTER,
-                    uring_fd,
-                    IORING_REGISTER_FILES,
-                    fds.as_ptr(),
-                    fds.len()
-                )
+            IO_URING_REGISTER,
+            uring_fd,
+            IORING_REGISTER_FILES,
+            fds.as_ptr(),
+            fds.len()
+        )
     };
     bail_on_below_zero!(res, "`IO_URING_REGISTER` Syscall failed registering files");
     Ok(())
@@ -48,14 +48,18 @@ pub fn io_uring_register_files(uring_fd: Fd, fds: &[Fd]) -> Result<()> {
 #[inline]
 pub fn io_uring_register_io_slices(uring_fd: Fd, buffers: &[IoSliceMut]) -> Result<()> {
     let res = unsafe {
-        syscall!(IO_URING_REGISTER,
+        syscall!(
+            IO_URING_REGISTER,
             uring_fd,
             IORING_REGISTER_BUFFERS,
             buffers.as_ptr(),
             buffers.len()
         )
     };
-    bail_on_below_zero!(res, "`IO_URING_REGISTER` Syscall failed registering io slices");
+    bail_on_below_zero!(
+        res,
+        "`IO_URING_REGISTER` Syscall failed registering io slices"
+    );
     Ok(())
 }
 
@@ -66,7 +70,8 @@ pub fn io_uring_register_io_slices(uring_fd: Fd, buffers: &[IoSliceMut]) -> Resu
 #[inline]
 pub fn io_uring_register_buf(uring_fd: Fd, buffer: &[u8]) -> Result<()> {
     let res = unsafe {
-        syscall!(IO_URING_REGISTER,
+        syscall!(
+            IO_URING_REGISTER,
             uring_fd,
             IORING_REGISTER_BUFFERS,
             buffer.as_ptr(),
@@ -80,7 +85,9 @@ pub fn io_uring_register_buf(uring_fd: Fd, buffer: &[u8]) -> Result<()> {
 #[cfg(test)]
 mod test {
     use crate::error::Errno;
-    use crate::io_uring::{io_uring_register_buf, io_uring_register_files, io_uring_register_io_slices, io_uring_setup};
+    use crate::io_uring::{
+        io_uring_register_buf, io_uring_register_files, io_uring_register_io_slices, io_uring_setup,
+    };
     use crate::platform::{Fd, IoSliceMut, IoUringParamFlags, IoUringParams, OpenFlags};
     use crate::unistd::open;
 
@@ -92,10 +99,10 @@ mod test {
     fn setup_io_poll_uring() -> Option<Fd> {
         let mut params = IoUringParams::new(IoUringParamFlags::IORING_SETUP_IOPOLL);
         let uring_fd = match io_uring_setup(1, &mut params) {
-            Ok(uring_fd) =>  {
+            Ok(uring_fd) => {
                 assert_ne!(0, uring_fd);
                 uring_fd
-            },
+            }
             Err(e) => {
                 if e.code.unwrap() != Errno::ENOSYS {
                     panic!("{}", e);
