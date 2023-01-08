@@ -1,7 +1,7 @@
 use core::mem::MaybeUninit;
 
-use rusl::string::unix_str::UnixStr;
 use rusl::platform::{ElfHeader, ElfSymbol, SectionHeader, TimeSpec};
+use rusl::string::unix_str::UnixStr;
 
 const DYNSTR_NAME: &[u8] = b".dynstr\0";
 const DYNSYM_NAME: &[u8] = b".dynsym\0";

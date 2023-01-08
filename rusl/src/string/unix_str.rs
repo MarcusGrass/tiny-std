@@ -1,14 +1,14 @@
+use crate::Error;
 #[cfg(feature = "alloc")]
-use alloc::string::{String};
+use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-use core::ops::{Deref};
+use core::ops::Deref;
 use core::str::Utf8Error;
-use crate::Error;
 
-use crate::platform::{NULL_BYTE};
+use crate::platform::NULL_BYTE;
 use crate::string::null_term_ptr_cmp_up_to;
 use crate::string::strlen::strlen;
 
@@ -358,7 +358,6 @@ impl UnixStr {
 
 #[cfg(feature = "alloc")]
 impl From<&UnixStr> for UnixString {
-
     #[inline]
     fn from(s: &UnixStr) -> Self {
         UnixString(s.0.to_vec())
@@ -517,7 +516,7 @@ fn null_terminated_ok(s: &[u8]) -> NullTermCheckResult {
                 NullTermCheckResult::NullTerminated
             } else {
                 NullTermCheckResult::NullByteOutOfPlace
-            }
+            };
         }
     }
     NullTermCheckResult::NotNullTerminated

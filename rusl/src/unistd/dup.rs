@@ -3,7 +3,7 @@ use sc::syscall;
 use crate::error::Errno;
 use crate::platform::{Fd, OpenFlags};
 
-/// Duplicates `old` into `new` overwriting `new` if exists
+/// Duplicates `old` into `new` overwriting `new` if exists.
 /// See the [Linux docs for details](https://man7.org/linux/man-pages/man2/dup.2.html)
 /// # Errors
 /// See above

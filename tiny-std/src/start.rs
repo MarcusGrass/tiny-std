@@ -1,7 +1,6 @@
 //! Support for starting a `Rust` program without libc dependencies
 //! for the time being it requires the nightly feature `naked_function` to start
 //! a `Rust` application this way.
-use rusl::platform::AuxValue;
 
 #[cfg(all(feature = "symbols", feature = "start"))]
 use crate::process::exit;
@@ -41,7 +40,7 @@ pub(crate) static mut VDSO_CLOCK_GET_TIME: Option<
 
 /// Attempts to find the specified aux value from the OS supplied aux vector
 #[cfg(feature = "aux")]
-pub fn get_aux_value(val: AuxValue) -> Option<usize> {
+pub fn get_aux_value(val: rusl::platform::AuxValue) -> Option<usize> {
     unsafe {
         for i in 0..AUX_V.locations.len() {
             if AUX_V.locations[i] == val.bits() {
@@ -108,7 +107,7 @@ unsafe fn __proxy_main(stack_ptr: *const u8) {
     }
     #[cfg(feature = "vdso")]
     {
-        if let Some(elf_start) = get_aux_value(AuxValue::AT_SYSINFO_EHDR) {
+        if let Some(elf_start) = get_aux_value(rusl::platform::AuxValue::AT_SYSINFO_EHDR) {
             let get_time = crate::vdso::find_vdso_clock_get_time(elf_start as _);
             VDSO_CLOCK_GET_TIME = get_time;
         }

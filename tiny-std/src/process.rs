@@ -1,11 +1,13 @@
 #[cfg(feature = "alloc")]
+use alloc::boxed::Box;
+#[cfg(feature = "alloc")]
 use alloc::vec;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use core::hint::unreachable_unchecked;
 
 use rusl::error::Errno;
-use rusl::platform::{GidT, OpenFlags, PidT, UidT, WaitFlags};
+use rusl::platform::{Fd, GidT, OpenFlags, PidT, UidT, WaitFlags};
 use rusl::platform::{STDERR, STDIN, STDOUT};
 #[cfg(feature = "alloc")]
 use rusl::string::unix_str::UnixString;
@@ -29,6 +31,7 @@ pub struct Command {
     bin: UnixString,
     args: Vec<UnixString>,
     argv: Argv,
+    closures: Vec<Box<dyn FnMut() -> crate::error::Result<()> + Send + Sync>>,
     env: Environment,
     cwd: Option<UnixString>,
     uid: Option<UidT>,
@@ -75,6 +78,7 @@ impl Command {
             bin: bin.clone(),
             args: vec![bin],
             argv: Argv(vec![bin_ptr, core::ptr::null()]),
+            closures: vec![],
             env: Environment::default(),
             cwd: None,
             uid: None,
@@ -90,7 +94,7 @@ impl Command {
     /// If the string is not `C string compatible`
     pub fn env<A: AsUnixStr>(&mut self, env: A) -> Result<&mut Self> {
         #[cfg(feature = "start")]
-        if !matches!(self.env, Environment::Inherit | Environment::None) {
+        if matches!(self.env, Environment::Inherit | Environment::None) {
             self.env = Environment::Provided(ProvidedEnvironment {
                 vars: vec![],
                 envp: Envp(vec![core::ptr::null()]),
@@ -142,6 +146,18 @@ impl Command {
         Ok(self)
     }
 
+    /// A function to run after `forking` off the process but before the exec call
+    /// # Safety
+    /// Some things, such as some memory access will immediately cause UB, keep it simple, short, and
+    /// sweet.
+    pub unsafe fn pre_exec<F: FnMut() -> Result<()> + Send + Sync + 'static>(
+        &mut self,
+        f: F,
+    ) -> &mut Self {
+        self.closures.push(Box::new(f));
+        self
+    }
+
     /// # Errors
     /// If the string is not `C string compatible`
     pub fn cwd<A: AsUnixStr>(&mut self, dir: A) -> Result<&mut Self> {
@@ -170,19 +186,19 @@ impl Command {
     }
 
     pub fn stdout(&mut self, stdout: Stdio) -> &mut Self {
-        self.stdin = Some(stdout);
+        self.stdout = Some(stdout);
         self
     }
 
     pub fn stderr(&mut self, stderr: Stdio) -> &mut Self {
-        self.stdin = Some(stderr);
+        self.stderr = Some(stderr);
         self
     }
 
     /// Spawns a new child process from this command.
     /// # Errors
     /// See `spawn`
-    pub fn spawn(&self) -> Result<Child> {
+    pub fn spawn(&mut self) -> Result<Child> {
         const NULL_ENV: [*const u8; 1] = [core::ptr::null()];
         let envp = match &self.env {
             #[cfg(feature = "start")]
@@ -200,6 +216,7 @@ impl Command {
                 self.stdin,
                 self.stdout,
                 self.stderr,
+                &mut self.closures,
                 self.cwd.as_deref(),
                 self.uid,
                 self.gid,
@@ -279,6 +296,7 @@ pub enum Stdio {
     Inherit,
     Null,
     MakePipe,
+    RawFd(Fd),
 }
 
 impl Stdio {
@@ -306,6 +324,8 @@ impl Stdio {
                 let fd = opts.open(DEV_NULL)?;
                 Ok((ChildStdio::Owned(fd.into_inner()), None))
             }
+
+            Stdio::RawFd(fd) => Ok((ChildStdio::Owned(OwnedFd(fd)), None)),
         }
     }
 }
@@ -352,9 +372,38 @@ impl Default for Environment {
     }
 }
 
+pub trait PreExec {
+    /// Run this routing pre exec
+    /// # Errors
+    /// Any errors occuring, it's up to the implementor to decide
+    fn run(&mut self) -> crate::error::Result<()>;
+}
+
+#[cfg(feature = "alloc")]
+impl PreExec for Box<dyn FnMut() -> crate::error::Result<()> + Send + Sync> {
+    #[inline]
+    fn run(&mut self) -> Result<()> {
+        (self)()
+    }
+}
+
+impl<'a> PreExec for &'a mut (dyn FnMut() -> crate::error::Result<()> + Send + Sync) {
+    #[inline]
+    fn run(&mut self) -> Result<()> {
+        (self)()
+    }
+}
+
+impl PreExec for () {
+    #[inline]
+    fn run(&mut self) -> Result<()> {
+        Ok(())
+    }
+}
+
 #[inline]
 #[allow(clippy::too_many_arguments)]
-unsafe fn do_spawn(
+unsafe fn do_spawn<F: PreExec>(
     bin: &UnixStr,
     argv: *const *const u8,
     envp: *const *const u8,
@@ -363,6 +412,7 @@ unsafe fn do_spawn(
     stdin: Option<Stdio>,
     stdout: Option<Stdio>,
     stderr: Option<Stdio>,
+    closures: &mut [F],
     cwd: Option<&UnixStr>,
     uid: Option<UidT>,
     gid: Option<GidT>,
@@ -398,6 +448,9 @@ unsafe fn do_spawn(
         if let Some(pgroup) = pgroup {
             rusl::unistd::setpgid(0, pgroup)?;
         }
+        for closure in closures {
+            closure.run()?;
+        }
         let e = if let Err(e) = rusl::process::execve(bin, argv, envp) {
             e
         } else {
@@ -423,7 +476,7 @@ unsafe fn do_spawn(
     }
     let _ = rusl::unistd::close(write_pipe);
     let mut process = Process {
-        pid: child_pid as i32,
+        pid: child_pid,
         status: None,
     };
     let mut bytes = [0, 0, 0, 0, 0, 0, 0, 0];
@@ -474,13 +527,14 @@ unsafe fn do_spawn(
 /// after if we did an allocation before that closure.
 #[cfg(not(feature = "alloc"))]
 #[allow(clippy::too_many_arguments)]
-pub fn spawn<const N: usize, BIN: AsUnixStr, ARG: AsUnixStr>(
+pub fn spawn<const N: usize, BIN: AsUnixStr, ARG: AsUnixStr, CL: PreExec>(
     bin: BIN,
     argv: [ARG; N],
     env: Environment,
     stdin: Option<Stdio>,
     stdout: Option<Stdio>,
     stderr: Option<Stdio>,
+    closures: &mut [CL],
     cwd: Option<&UnixStr>,
     uid: Option<UidT>,
     gid: Option<GidT>,
@@ -525,6 +579,7 @@ pub fn spawn<const N: usize, BIN: AsUnixStr, ARG: AsUnixStr>(
             stdin,
             stdout,
             stderr,
+            closures,
             cwd,
             uid,
             gid,

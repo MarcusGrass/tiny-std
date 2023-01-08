@@ -12,7 +12,7 @@ use rusl::string::unix_str::{AsUnixStr, UnixStr};
 use crate::error::Error;
 use crate::error::Result;
 use crate::io::{Read, Write};
-use crate::unix::fd::{BorrowedFd, OwnedFd, RawFd};
+use crate::unix::fd::{AsRawFd, BorrowedFd, OwnedFd, RawFd};
 
 #[cfg(test)]
 mod test;
@@ -44,12 +44,38 @@ impl File {
         let fd = rusl::unistd::open_at_mode(dir_fd, path, flags, opts.mode)?;
         Ok(File(OwnedFd(fd)))
     }
+
+    /// Create a File from a raw `fd`
+    /// # Safety
+    /// The fd is valid and is not duplicated.
+    /// Duplication is bad since the `fd` will be closed when this `File` is dropped
+    #[must_use]
+    pub const unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        Self(OwnedFd::from_raw(fd))
+    }
+
+    /// Set this `File` to be non-blocking.
+    /// This will result in for example read expecting a certain number of bytes
+    /// to fail with `EAGAIN` if that data isn't available.
+    /// # Errors
+    /// Errors making the underlying syscalls
+    #[inline]
+    pub fn set_nonblocking(&self) -> Result<()> {
+        self.0.set_nonblocking()
+    }
 }
 
 impl File {
     #[inline]
     pub(crate) fn into_inner(self) -> OwnedFd {
         self.0
+    }
+}
+
+impl AsRawFd for File {
+    #[inline]
+    fn as_raw_fd(&self) -> RawFd {
+        self.0.as_raw_fd()
     }
 }
 

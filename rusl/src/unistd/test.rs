@@ -1,6 +1,6 @@
 use crate::error::Errno;
 use crate::platform::OpenFlags;
-use crate::unistd::{close, open, read, write};
+use crate::unistd::{close, fcntl_get_file_status, fcntl_set_file_status, open, read, write};
 
 #[test]
 fn no_write_on_read_only() {
@@ -39,4 +39,15 @@ fn close_closes() {
     expect_errno!(Errno::EBADF, read(fd, &mut buf));
     // Close on closed should also fail
     expect_errno!(Errno::EBADF, close(fd));
+}
+
+#[test]
+fn set_file_non_blocking() {
+    let path = "test-files/can_open.txt\0";
+    let fd = open(path, OpenFlags::O_RDONLY).unwrap();
+    let flags = fcntl_get_file_status(fd).unwrap();
+    assert_eq!(OpenFlags::empty(), flags & OpenFlags::O_NONBLOCK);
+    fcntl_set_file_status(fd, OpenFlags::O_NONBLOCK).unwrap();
+    let new_flags = fcntl_get_file_status(fd).unwrap();
+    assert_eq!(OpenFlags::O_NONBLOCK, new_flags & OpenFlags::O_NONBLOCK);
 }

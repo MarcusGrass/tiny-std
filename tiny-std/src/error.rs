@@ -22,7 +22,8 @@ impl Error {
     }
 
     #[inline]
-    pub(crate) fn matches_errno(&self, errno: Errno) -> bool {
+    #[must_use]
+    pub fn matches_errno(&self, errno: Errno) -> bool {
         if let Self::Os { code, .. } = self {
             *code == errno
         } else {
@@ -50,9 +51,9 @@ impl Debug for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Error::Uncategorized(msg) => f.write_fmt(format_args!("Error: {}", msg,)),
+            Error::Uncategorized(msg) => f.write_fmt(format_args!("Error: {msg}")),
             Error::Os { msg, code } => {
-                f.write_fmt(format_args!("OsError {{ msg: `{}`, code: {} }}", msg, code,))
+                f.write_fmt(format_args!("OsError {{ msg: `{msg}`, code: {code} }}"))
             }
         }
     }

@@ -1,9 +1,9 @@
-use rusl::string::unix_str::AsUnixStr;
 use rusl::platform::{AddressFamily, SocketAddress, SocketType};
+use rusl::string::unix_str::AsUnixStr;
 
 use crate::error::Result;
-use crate::io::{AsRawFd, Read, Write};
-use crate::unix::fd::{OwnedFd, RawFd};
+use crate::io::{Read, Write};
+use crate::unix::fd::{AsRawFd, OwnedFd, RawFd};
 
 #[cfg(test)]
 mod test;
