@@ -44,6 +44,13 @@ macro_rules! transparent_bitflags {
             $vis const fn empty() -> Self {
                 Self(0)
             }
+
+            #[inline]
+            #[allow(dead_code)]
+            #[must_use]
+            $vis const fn contains(&self, other: Self) -> bool {
+                self.0 & other.0 != 0
+            }
         }
 
         impl Default for $BitFlags {

@@ -25,7 +25,7 @@ impl<'a> IoSlice<'a> {
 #[repr(transparent)]
 pub struct IoSliceMut<'a> {
     #[allow(dead_code)]
-    vec: iovec,
+    pub(crate) vec: iovec,
     _p: PhantomData<&'a mut [u8]>,
 }
 
