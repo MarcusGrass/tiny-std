@@ -1,3 +1,4 @@
+use core::fmt::{Debug, Formatter};
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU32, Ordering};
 
@@ -5,10 +6,12 @@ use linux_rust_bindings::io_uring::{
     __BindgenUnionField, io_cqring_offsets, io_sqring_offsets, io_uring_cqe, io_uring_params,
     io_uring_sqe, io_uring_sqe__bindgen_ty_1, io_uring_sqe__bindgen_ty_2,
     io_uring_sqe__bindgen_ty_3, io_uring_sqe__bindgen_ty_4, io_uring_sqe__bindgen_ty_5,
-    io_uring_sqe__bindgen_ty_6,
+    io_uring_sqe__bindgen_ty_6, IORING_SQ_NEED_WAKEUP,
 };
 
-use crate::platform::{Fd, Mode, OpenFlags, AT_FDCWD};
+use crate::platform::{
+    Fd, Mode, OpenFlags, RenameFlags, Statx, StatxFlags, StatxMask, AT_FDCWD, AT_REMOVEDIR,
+};
 use crate::string::unix_str::UnixStr;
 
 transparent_bitflags! {
@@ -73,6 +76,16 @@ transparent_bitflags! {
 #[repr(transparent)]
 pub struct IoUringSubmissionQueueEntry(pub io_uring_sqe);
 
+impl Debug for IoUringSubmissionQueueEntry {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("IoUringSubmissionQueueEntry")
+            .field("opcode", &self.0.opcode)
+            .field("flags", &self.0.flags)
+            .field("user_data", &self.0.user_data)
+            .finish()
+    }
+}
+
 impl IoUringSubmissionQueueEntry {
     #[inline]
     #[must_use]
@@ -111,6 +124,7 @@ impl IoUringSubmissionQueueEntry {
             },
         })
     }
+
     /// Creates a new entry that will execute an `openat` syscall.  
     /// # Safety
     /// It is up to the caller to make sure that the `path` reference lives until this
@@ -141,6 +155,186 @@ impl IoUringSubmissionQueueEntry {
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
                 open_flags: open_flags.bits() as u32,
             },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Creates a new entry that will execute an equivalent to a `close` syscall
+    #[inline]
+    #[must_use]
+    pub fn new_close(fd: Fd, user_data: u64, sqe_flags: IoUringSQEFlags) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_CLOSE as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 { addr: 0 },
+            len: 0,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 { open_flags: 0 },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Creates a new entry that will execute an equivalent to a `statx` syscall  
+    /// # Safety
+    /// The references `path` and the memory backing `statx_ptr`
+    /// needs to live until this entry is submitted to the kernel.
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_statx(
+        dir_fd: Option<Fd>,
+        path: &UnixStr,
+        flags: StatxFlags,
+        mask: StatxMask,
+        statx_ptr: *mut Statx,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_STATX as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: dir_fd.unwrap_or(AT_FDCWD),
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
+                off: statx_ptr as u64,
+            },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: path.0.as_ptr() as u64,
+            },
+            len: mask.bits(),
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                statx_flags: flags.bits() as u32,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Creates a new entry that will execute an equivalent to an `unlinkat` syscall.  
+    /// # Safety
+    /// The reference to `path` needs to live until this entry is submitted to the kernel.  
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_unlink_at(
+        dir_fd: Option<Fd>,
+        path: &UnixStr,
+        rmdir: bool,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_UNLINKAT as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: dir_fd.unwrap_or(AT_FDCWD),
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: path.0.as_ptr() as u64,
+            },
+            len: 0,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                unlink_flags: if rmdir { AT_REMOVEDIR as u32 } else { 0 },
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Creates a new entry that will execute an equivalent to an `renameat2` syscall.  
+    /// # Safety
+    /// The references to `old_path` and `new_path` needs to live until this entry is submitted to the kernel.  
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_rename_at(
+        old_dir_fd: Option<Fd>,
+        new_dir_fd: Option<Fd>,
+        old_path: &UnixStr,
+        new_path: &UnixStr,
+        flags: RenameFlags,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_RENAMEAT as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: old_dir_fd.unwrap_or(AT_FDCWD),
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
+                addr2: new_path.0.as_ptr() as u64,
+            },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: old_path.0.as_ptr() as u64,
+            },
+            len: new_dir_fd.unwrap_or(AT_FDCWD) as u32,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                rename_flags: flags.bits(),
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Creates a new entry that will execute an equivalent to an `mkdirat2` syscall.  
+    /// # Safety
+    /// The references to `old_path` and `new_path` needs to live until this entry is submitted to the kernel.  
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_mkdirat(
+        dir_fd: Option<Fd>,
+        path: &UnixStr,
+        mode: Mode,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_MKDIRAT as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: dir_fd.unwrap_or(AT_FDCWD),
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: path.0.as_ptr() as u64,
+            },
+            len: mode.bits(),
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 { rename_flags: 0 },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
             personality: 0,
@@ -222,6 +416,22 @@ impl IoUring {
         }
     }
 
+    #[inline]
+    pub(crate) fn needs_wakeup(&self) -> bool {
+        if self.flags.contains(IoUringParamFlags::IORING_SETUP_SQPOLL) {
+            unsafe {
+                self.submission_queue
+                    .kernel_flags
+                    .as_ref()
+                    .load(Ordering::Relaxed)
+                    & IORING_SQ_NEED_WAKEUP as u32
+                    != 0
+            }
+        } else {
+            false
+        }
+    }
+
     pub(crate) fn get_next_sqe_slot(&mut self) -> Option<*mut IoUringSubmissionQueueEntry> {
         let next = self.submission_queue.tail as u32 + 1;
         let shift = u32::from(self.flags.contains(IoUringParamFlags::IORING_SETUP_SQE128));
@@ -260,12 +470,8 @@ impl IoUring {
         if tail <= head {
             return None;
         }
-        let cqe = unsafe {
-            self.completion_queue
-                .entries
-                .as_ptr()
-                .add(((head & self.completion_queue.ring_mask) << shift) as usize)
-        };
+        let ind = ((head & self.completion_queue.ring_mask) << shift) as usize;
+        let cqe = unsafe { self.completion_queue.entries.as_ptr().add(ind) };
         self.completion_queue.advance(1);
         unsafe { cqe.as_ref() }
     }

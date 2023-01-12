@@ -1,13 +1,17 @@
+use core::mem::MaybeUninit;
+
+use crate::error::Errno;
 use crate::io_uring::{
     io_uring_enter, io_uring_register_buf, io_uring_register_files, io_uring_register_io_slices,
     io_uring_setup, setup_io_uring,
 };
 use crate::platform::{
-    Fd, IoSliceMut, IoUring, IoUringEnterFlags, IoUringParamFlags, IoUringParams, IoUringSQEFlags,
-    IoUringSubmissionQueueEntry, Mode, OpenFlags,
+    Fd, IoSliceMut, IoUring, IoUringCompletionQueueEntry, IoUringEnterFlags, IoUringParamFlags,
+    IoUringParams, IoUringSQEFlags, IoUringSubmissionQueueEntry, Mode, OpenFlags, RenameFlags,
+    StatxFlags, StatxMask, AT_REMOVEDIR,
 };
 use crate::string::unix_str::UnixStr;
-use crate::unistd::{open, read};
+use crate::unistd::{close, open, read, stat, unlink_flags};
 
 #[test]
 fn uring_setup() {
@@ -87,35 +91,23 @@ fn uring_setup_instance() {
 
 #[test]
 fn uring_single_read() {
-    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::IORING_SETUP_SQPOLL) else {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
     };
-    let next_slot = uring.get_next_sqe_slot().unwrap();
     let mut bytes = [0u8; 1024];
     let buf = IoSliceMut::new(&mut bytes);
     let mut slices = [buf];
     let fd = open("test-files/can_open.txt\0", OpenFlags::O_RDONLY).unwrap();
     let user_data = 15;
-    unsafe {
-        next_slot.write(IoUringSubmissionQueueEntry::new_readv(
-            fd,
-            0,
-            slices.as_mut_ptr() as usize,
-            1,
-            user_data,
-            IoUringSQEFlags::empty(),
-        ))
-    }
-    uring.flush_submission_queue();
-    io_uring_enter(
-        uring.fd,
+    let entry = IoUringSubmissionQueueEntry::new_readv(
+        fd,
+        0,
+        slices.as_mut_ptr() as usize,
         1,
-        1,
-        IoUringEnterFlags::IORING_ENTER_GETEVENTS | IoUringEnterFlags::IORING_ENTER_SQ_WAKEUP,
-    )
-    .unwrap();
-    let cqe = uring.get_next_cqe().unwrap();
-    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
+        user_data,
+        IoUringSQEFlags::empty(),
+    );
+    let cqe = write_await_single_entry(&mut uring, entry, user_data);
     assert_eq!(5, cqe.0.res, "Bad user data in cqe {:?}", cqe);
     assert_eq!(
         "open\n",
@@ -125,33 +117,22 @@ fn uring_single_read() {
 
 #[test]
 fn uring_single_open() {
-    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::IORING_SETUP_SQPOLL) else {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
     };
-    let next_slot = uring.get_next_sqe_slot().unwrap();
     let path = unsafe { UnixStr::from_str_unchecked("test-files/can_open.txt\0") };
     let user_data = 25;
-    unsafe {
-        next_slot.write(IoUringSubmissionQueueEntry::new_openat(
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_openat(
             None,
             path,
             OpenFlags::O_RDONLY,
             Mode::empty(),
             user_data,
             IoUringSQEFlags::empty(),
-        ))
-    }
-    uring.flush_submission_queue();
-    io_uring_enter(
-        uring.fd,
-        1,
-        1,
-        IoUringEnterFlags::IORING_ENTER_GETEVENTS | IoUringEnterFlags::IORING_ENTER_SQ_WAKEUP,
-    )
-    .unwrap();
-    let cqe = uring.get_next_cqe().unwrap();
-    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
-    assert!(cqe.0.res > 0, "open failed for cqe: {cqe:?}");
+        )
+    };
+    let cqe = write_await_single_entry(&mut uring, entry, user_data);
     let fd = cqe.0.res as Fd;
     let mut bytes = [0u8; 1024];
     let read_bytes = read(fd, &mut bytes).unwrap();
@@ -160,4 +141,257 @@ fn uring_single_open() {
         "open\n",
         core::str::from_utf8(&bytes[..read_bytes]).unwrap()
     );
+}
+
+#[test]
+fn uring_single_close() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let fd = open("test-files/can_open.txt\0", OpenFlags::O_RDONLY).unwrap();
+    let user_data = 35;
+    let entry = IoUringSubmissionQueueEntry::new_close(fd, user_data, IoUringSQEFlags::empty());
+    write_await_single_entry(&mut uring, entry, user_data);
+    let Err(e) = close(fd) else {
+        panic!("Uring close operation failed, expected `EBADF` on manual close after.")
+    };
+    assert_eq!(Errno::EBADF, e.code.unwrap())
+}
+
+#[test]
+fn uring_single_statx() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let user_data = 927;
+    let mut statx_uninit = MaybeUninit::uninit();
+    let path = unsafe { UnixStr::from_str_unchecked("test-files/can_open.txt\0") };
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_statx(
+            None,
+            path,
+            StatxFlags::empty(),
+            StatxMask::STATX_SIZE,
+            statx_uninit.as_mut_ptr(),
+            user_data,
+            IoUringSQEFlags::empty(),
+        )
+    };
+    write_await_single_entry(&mut uring, entry, user_data);
+    let statx = unsafe { statx_uninit.assume_init() };
+    assert_eq!(5, statx.0.stx_size);
+}
+
+#[test]
+fn uring_single_unlinkat() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let path =
+        unsafe { UnixStr::from_str_unchecked("test-files/io_uring/can_create_remove.txt\0") };
+
+    // Ensure file exists before test
+    if let Err(e) = stat(path) {
+        assert_eq!(Errno::ENOENT, e.code.unwrap());
+        let fd = open(path, OpenFlags::O_CREAT).unwrap();
+        close(fd).unwrap();
+        let stat_res = stat(path).unwrap();
+        assert_eq!(0, stat_res.st_size);
+    }
+    let user_data = 555;
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_unlink_at(
+            None,
+            path,
+            false,
+            user_data,
+            IoUringSQEFlags::empty(),
+        )
+    };
+    write_await_single_entry(&mut uring, entry, user_data);
+    if let Err(e) = stat(path) {
+        assert_eq!(Errno::ENOENT, e.code.unwrap());
+    } else {
+        panic!("Expected missing file after unlink");
+    }
+}
+
+#[test]
+fn uring_single_rename_at() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let old_path = unsafe { UnixStr::from_str_unchecked("test-files/io_uring/move_me.txt\0") };
+    let new_path = unsafe { UnixStr::from_str_unchecked("test-files/io_uring/moved.txt\0") };
+
+    // Ensure file exists before test
+    if let Err(e) = stat(old_path) {
+        assert_eq!(Errno::ENOENT, e.code.unwrap());
+        let fd = open(old_path, OpenFlags::O_CREAT).unwrap();
+        close(fd).unwrap();
+        let stat_res = stat(old_path).unwrap();
+        assert_eq!(0, stat_res.st_size);
+    }
+    let user_data = 367;
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_rename_at(
+            None,
+            None,
+            old_path,
+            new_path,
+            RenameFlags::empty(),
+            user_data,
+            IoUringSQEFlags::empty(),
+        )
+    };
+    write_await_single_entry(&mut uring, entry, user_data);
+    if let Err(e) = stat(old_path) {
+        assert_eq!(Errno::ENOENT, e.code.unwrap());
+        let stat_new = stat(new_path).unwrap();
+        assert_eq!(0, stat_new.st_size);
+    } else {
+        panic!("Expected missing file after rename");
+    }
+}
+
+#[test]
+fn uring_single_mkdir_at() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let new_dir_path =
+        unsafe { UnixStr::from_str_unchecked("test-files/io_uring/test_create_dir\0") };
+    // Ensure file exists before test
+    if let Err(e) = stat(new_dir_path) {
+        assert_eq!(Errno::ENOENT, e.code.unwrap());
+    } else {
+        unlink_flags(new_dir_path, AT_REMOVEDIR).unwrap();
+    }
+    let user_data = 1000;
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_mkdirat(
+            None,
+            new_dir_path,
+            Mode::empty(),
+            user_data,
+            IoUringSQEFlags::empty(),
+        )
+    };
+    write_await_single_entry(&mut uring, entry, user_data);
+    let stat = stat(new_dir_path).unwrap();
+    assert_eq!(
+        Mode::S_IFDIR,
+        Mode::from(stat.st_mode) & Mode::S_IFMT,
+        "Expected dir, got something else {stat:?}"
+    );
+}
+
+fn write_await_single_entry(
+    uring: &mut IoUring,
+    entry: IoUringSubmissionQueueEntry,
+    user_data: u64,
+) -> &IoUringCompletionQueueEntry {
+    let next_slot = uring.get_next_sqe_slot().unwrap();
+    unsafe {
+        next_slot.write(entry);
+    }
+    uring.flush_submission_queue();
+    io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
+    let cqe = uring.get_next_cqe().unwrap();
+    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
+    assert!(cqe.0.res >= 0, "statx failed for cqe: {cqe:?}");
+    cqe
+}
+
+#[test]
+fn uring_multi_linked_crud() {
+    const CREATE_DIR_DATA: u64 = 1;
+    const CREATE_FILE_DATA: u64 = 2;
+    const STAT_FILE_DATA: u64 = 3;
+    const REMOVE_FILE_DATA: u64 = 4;
+    const REMOVE_DIR_DATA: u64 = 5;
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let dir_path = unsafe { UnixStr::from_str_unchecked("test-files/io_uring/multi-dir\0") };
+    if stat(dir_path).is_ok() {
+        unlink_flags(dir_path, AT_REMOVEDIR).unwrap();
+    }
+    let file_path =
+        unsafe { UnixStr::from_str_unchecked("test-files/io_uring/multi-dir/new_file.txt\0") };
+    let mut statx_uninit = MaybeUninit::uninit();
+
+    unsafe {
+        let mkdir = IoUringSubmissionQueueEntry::new_mkdirat(
+            None,
+            dir_path,
+            Mode::S_IRUSR
+                | Mode::S_IRGRP
+                | Mode::S_IROTH
+                | Mode::S_IWUSR
+                | Mode::S_IWGRP
+                | Mode::S_IXUSR
+                | Mode::S_IXGRP
+                | Mode::S_IXOTH,
+            CREATE_DIR_DATA,
+            IoUringSQEFlags::IOSQE_IO_LINK,
+        );
+        let create_file = IoUringSubmissionQueueEntry::new_openat(
+            // Would use above dir but it's not created yet
+            None,
+            file_path,
+            OpenFlags::O_CREAT | OpenFlags::O_RDWR,
+            Mode::empty(),
+            CREATE_FILE_DATA,
+            IoUringSQEFlags::IOSQE_IO_LINK,
+        );
+        let stat_file = IoUringSubmissionQueueEntry::new_statx(
+            None,
+            file_path,
+            StatxFlags::empty(),
+            StatxMask::STATX_SIZE,
+            statx_uninit.as_mut_ptr(),
+            STAT_FILE_DATA,
+            IoUringSQEFlags::IOSQE_IO_LINK,
+        );
+        let remove_file = IoUringSubmissionQueueEntry::new_unlink_at(
+            None,
+            file_path,
+            false,
+            REMOVE_FILE_DATA,
+            IoUringSQEFlags::IOSQE_IO_LINK,
+        );
+        let remove_dir = IoUringSubmissionQueueEntry::new_unlink_at(
+            None,
+            dir_path,
+            true,
+            REMOVE_DIR_DATA,
+            IoUringSQEFlags::IOSQE_IO_LINK,
+        );
+        let next = uring.get_next_sqe_slot().unwrap();
+        next.write(mkdir);
+        let next = uring.get_next_sqe_slot().unwrap();
+        next.write(create_file);
+        let next = uring.get_next_sqe_slot().unwrap();
+        next.write(stat_file);
+        let next = uring.get_next_sqe_slot().unwrap();
+        next.write(remove_file);
+        let next = uring.get_next_sqe_slot().unwrap();
+        next.write(remove_dir);
+    }
+    uring.flush_submission_queue();
+
+    io_uring_enter(uring.fd, 5, 5, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
+    for _ in 0..5 {
+        let cqe = uring.get_next_cqe().unwrap();
+        assert!(cqe.0.res >= 0);
+        match cqe.0.user_data {
+            STAT_FILE_DATA => {
+                unsafe {
+                    assert_eq!(0, (*statx_uninit.as_ptr()).0.stx_size);
+                }
+            }
+            _ => {}
+        }
+    }
 }

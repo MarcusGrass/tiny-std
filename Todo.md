@@ -9,3 +9,4 @@
 7. [ ] Figure out VDSO for `aarch64`, currently not getting the aux value
 8. [ ] Get a real mutex
 9. [ ] Feature gate things even harder in both [rusl](rusl) and [tiny-std](tiny-std)
+10. [ ] Generate debug info depending on opcode for io uring sqes

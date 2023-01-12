@@ -108,11 +108,10 @@ pub fn setup_io_uring(entries: u32, flags: IoUringParamFlags) -> Result<IoUring>
         let cq_ring_entries = value_at_offset(cq_ring_ptr, params.0.cq_off.ring_entries as usize)?;
         // Map SQ-slots to SQEs, like in liburing
         for index in 0..sq_ring_entries {
-            sq_array
+            (*sq_array
                 .as_ptr()
-                .add(index as usize)
-                .read()
-                .store(index, Ordering::Relaxed);
+                .add(index as usize))
+                .store(index, Ordering::Release);
         }
         // Safety: All pointers are guaranteed to not be a null-pointer,
         // we get them from a successful `mmap`
