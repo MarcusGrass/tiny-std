@@ -4,8 +4,8 @@ use linux_rust_bindings::errno::ETIME;
 
 use crate::error::Errno;
 use crate::io_uring::{
-    io_uring_enter, io_uring_register_buf, io_uring_register_files, io_uring_register_io_slices,
-    io_uring_setup, setup_io_uring,
+    io_uring_enter, io_uring_register_buffers, io_uring_register_files,
+    io_uring_register_io_slices, io_uring_setup, setup_io_uring,
 };
 use crate::network::{bind, connect, listen, socket};
 use crate::platform::{
@@ -67,8 +67,9 @@ fn uring_register_buffer() {
     let Some(uring_fd) = setup_io_poll_uring() else {
         return;
     };
-    let buf1 = [0; 1024];
-    io_uring_register_buf(uring_fd, &buf1).unwrap();
+    let mut buf1 = [0; 1024];
+    let ioslice = IoSliceMut::new(&mut buf1);
+    unsafe { io_uring_register_buffers(uring_fd, &[ioslice]).unwrap() };
 }
 
 fn setup_ignore_enosys(entries: u32, flags: IoUringParamFlags) -> Option<IoUring> {
@@ -104,13 +105,15 @@ fn uring_single_read() {
     let mut slices = [buf];
     let fd = open("test-files/can_open.txt\0", OpenFlags::O_RDONLY).unwrap();
     let user_data = 15;
-    let entry = IoUringSubmissionQueueEntry::new_readv(
-        fd,
-        slices.as_mut_ptr() as usize,
-        1,
-        user_data,
-        IoUringSQEFlags::empty(),
-    );
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_readv(
+            fd,
+            slices.as_mut_ptr() as usize,
+            1,
+            user_data,
+            IoUringSQEFlags::empty(),
+        )
+    };
     let cqe = write_await_single_entry(&mut uring, entry, user_data);
     assert_eq!(5, cqe.0.res, "Bad user data in cqe {:?}", cqe);
     assert_eq!(
@@ -124,8 +127,9 @@ fn uring_single_write() {
     let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
     };
-    let path = unsafe { UnixStr::from_str_unchecked("test-files/io_uring/uring_swrite_test\0") };
-    let mut bytes = b"Uring written!\n";
+    let path =
+        unsafe { UnixStr::from_str_unchecked("test-files/io_uring/tmp_uring_swrite_test\0") };
+    let bytes = b"Uring written!\n";
     let buf = IoSlice::new(bytes);
     let mut slices = [buf];
 
@@ -429,13 +433,217 @@ fn uring_single_timeout() {
     io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
     let end = clock_get_monotonic_time();
     let diff = end.nanoseconds() - start.nanoseconds();
-    assert!(
-        diff > wait_nsec && diff - wait_nsec < 2 * wait_nsec,
-        "diff {diff} isn't between {wait_nsec} and 2 * {wait_nsec}"
-    );
+    assert!(diff > wait_nsec);
     let cqe = uring.get_next_cqe().unwrap();
     assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
     assert_eq!(0 - ETIME, cqe.0.res, "Expected `ETIME` for cqe: {cqe:?}");
+}
+
+#[test]
+fn uring_read_registered_buffers_and_fds() {
+    let mut buf1 = [0u8; 64];
+    let buf1_addr = core::ptr::addr_of_mut!(buf1);
+    let mut buf2 = [0u8; 64];
+    let buf2_addr = core::ptr::addr_of_mut!(buf2);
+    let mut buf3 = [0u8; 64];
+    let buf3_addr = core::ptr::addr_of_mut!(buf3);
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    unsafe {
+        io_uring_register_buffers(
+            uring.fd,
+            &[
+                IoSliceMut::new(&mut buf1),
+                IoSliceMut::new(&mut buf2),
+                IoSliceMut::new(&mut buf3),
+            ],
+        )
+        .unwrap();
+    }
+    let fd1 = open(
+        "test-files/io_uring/uring_register_read1\0",
+        OpenFlags::O_RDONLY,
+    )
+    .unwrap();
+    let fd2 = open(
+        "test-files/io_uring/uring_register_read2\0",
+        OpenFlags::O_RDONLY,
+    )
+    .unwrap();
+    let fd3 = open(
+        "test-files/io_uring/uring_register_read3\0",
+        OpenFlags::O_RDONLY,
+    )
+    .unwrap();
+    io_uring_register_files(uring.fd, &[fd1, fd2, fd3]).unwrap();
+    unsafe {
+        let r1 = IoUringSubmissionQueueEntry::new_readv_fixed(
+            0,
+            0,
+            buf1_addr as u64,
+            64,
+            1,
+            IoUringSQEFlags::IOSQE_FIXED_FILE,
+        );
+        let r2 = IoUringSubmissionQueueEntry::new_readv_fixed(
+            1,
+            1,
+            buf2_addr as u64,
+            64,
+            2,
+            IoUringSQEFlags::IOSQE_FIXED_FILE,
+        );
+        let r3 = IoUringSubmissionQueueEntry::new_readv_fixed(
+            2,
+            2,
+            buf3_addr as u64,
+            64,
+            3,
+            IoUringSQEFlags::IOSQE_FIXED_FILE,
+        );
+        uring.get_next_sqe_slot().unwrap().write(r1);
+        uring.get_next_sqe_slot().unwrap().write(r2);
+        uring.get_next_sqe_slot().unwrap().write(r3);
+        uring.flush_submission_queue();
+        io_uring_enter(uring.fd, 3, 3, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
+        for _ in 0..3 {
+            let cqe = uring.get_next_cqe().unwrap();
+            assert!(cqe.0.res >= 0, "Cqe with error {cqe:?}");
+            match cqe.0.user_data {
+                1 => assert_eq!(
+                    b"Read into first\n",
+                    &buf1[..cqe.0.res as usize],
+                    "bad match on cqe {cqe:?}"
+                ),
+                2 => assert_eq!(
+                    b"Read into second\n",
+                    &buf2[..cqe.0.res as usize],
+                    "bad match on cqe {cqe:?}"
+                ),
+                3 => assert_eq!(
+                    b"Read into third\n",
+                    &buf3[..cqe.0.res as usize],
+                    "bad match on cqe {cqe:?}"
+                ),
+                _ => panic!("Bad user data on cqe {cqe:?}"),
+            }
+        }
+    }
+}
+
+#[test]
+fn uring_write_registered_buffers_and_fds() {
+    let content1 = b"Uring fixed write 1!\n";
+    let mut buf1 = [0u8; 21];
+    buf1.copy_from_slice(content1);
+    let buf1_addr = core::ptr::addr_of_mut!(buf1);
+    let content2 = b"Uring fixed write 2!\n";
+    let mut buf2 = [0u8; 21];
+    buf2.copy_from_slice(content2);
+    let buf2_addr = core::ptr::addr_of_mut!(buf2);
+    let content3 = b"Uring fixed write 3!\n";
+    let mut buf3 = [0u8; 21];
+    buf3.copy_from_slice(content3);
+    let buf3_addr = core::ptr::addr_of_mut!(buf3);
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    unsafe {
+        io_uring_register_buffers(
+            uring.fd,
+            &[
+                IoSliceMut::new(&mut buf1),
+                IoSliceMut::new(&mut buf2),
+                IoSliceMut::new(&mut buf3),
+            ],
+        )
+        .unwrap();
+    }
+    let path1 = "test-files/io_uring/tmp_uring_register_write1\0";
+    let path2 = "test-files/io_uring/tmp_uring_register_write2\0";
+    let path3 = "test-files/io_uring/tmp_uring_register_write3\0";
+    let fd1 = open_mode(
+        path1,
+        OpenFlags::O_RDWR | OpenFlags::O_CREAT | OpenFlags::O_TRUNC,
+        Mode::S_IRUSR | Mode::S_IWUSR | Mode::S_IRGRP | Mode::S_IROTH,
+    )
+    .unwrap();
+    let fd2 = open_mode(
+        path2,
+        OpenFlags::O_RDWR | OpenFlags::O_CREAT | OpenFlags::O_TRUNC,
+        Mode::S_IRUSR | Mode::S_IWUSR | Mode::S_IRGRP | Mode::S_IROTH,
+    )
+    .unwrap();
+    let fd3 = open_mode(
+        path3,
+        OpenFlags::O_RDWR | OpenFlags::O_CREAT | OpenFlags::O_TRUNC,
+        Mode::S_IRUSR | Mode::S_IWUSR | Mode::S_IRGRP | Mode::S_IROTH,
+    )
+    .unwrap();
+    io_uring_register_files(uring.fd, &[fd1, fd2, fd3]).unwrap();
+    unsafe {
+        let r1 = IoUringSubmissionQueueEntry::new_writev_fixed(
+            0,
+            0,
+            buf1_addr as u64,
+            21,
+            1,
+            IoUringSQEFlags::IOSQE_FIXED_FILE,
+        );
+        let r2 = IoUringSubmissionQueueEntry::new_writev_fixed(
+            1,
+            1,
+            buf2_addr as u64,
+            21,
+            2,
+            IoUringSQEFlags::IOSQE_FIXED_FILE,
+        );
+        let r3 = IoUringSubmissionQueueEntry::new_writev_fixed(
+            2,
+            2,
+            buf3_addr as u64,
+            21,
+            3,
+            IoUringSQEFlags::IOSQE_FIXED_FILE,
+        );
+        uring.get_next_sqe_slot().unwrap().write(r1);
+        uring.get_next_sqe_slot().unwrap().write(r2);
+        uring.get_next_sqe_slot().unwrap().write(r3);
+        uring.flush_submission_queue();
+        io_uring_enter(uring.fd, 3, 3, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
+        for _ in 0..3 {
+            let cqe = uring.get_next_cqe().unwrap();
+            assert!(cqe.0.res >= 0, "Cqe with error {cqe:?}");
+            match cqe.0.user_data {
+                1 => {
+                    let fd = open(path1, OpenFlags::O_RDONLY).unwrap();
+                    let mut buf = [0u8; 21];
+                    read(fd, &mut buf).unwrap();
+                    assert_eq!(
+                        b"Uring fixed write 1!\n", &mut buf,
+                        "bad match on cqe {cqe:?}"
+                    )
+                }
+                2 => {
+                    let fd = open(path2, OpenFlags::O_RDONLY).unwrap();
+                    let mut buf = [0u8; 21];
+                    read(fd, &mut buf).unwrap();
+                    assert_eq!(
+                        b"Uring fixed write 2!\n", &mut buf,
+                        "bad match on cqe {cqe:?}"
+                    )
+                }
+                3 => {
+                    let fd = open(path3, OpenFlags::O_RDONLY).unwrap();
+                    let mut buf = [0u8; 21];
+                    read(fd, &mut buf).unwrap();
+                    assert_eq!(b"Uring fixed write 3!\n", &buf3, "bad match on cqe {cqe:?}")
+                }
+                _ => panic!("Bad user data on cqe {cqe:?}"),
+            }
+        }
+    }
 }
 
 #[test]

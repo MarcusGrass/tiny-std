@@ -1,8 +1,9 @@
 use core::marker::PhantomData;
-use rusl::platform::OpenFlags;
+
+use rusl::platform::{Fd, OpenFlags};
 use rusl::unistd::fcntl_set_file_status;
 
-pub type RawFd = i32;
+pub type RawFd = Fd;
 
 #[repr(transparent)]
 #[derive(Debug)]

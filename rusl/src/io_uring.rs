@@ -108,10 +108,7 @@ pub fn setup_io_uring(entries: u32, flags: IoUringParamFlags) -> Result<IoUring>
         let cq_ring_entries = value_at_offset(cq_ring_ptr, params.0.cq_off.ring_entries as usize)?;
         // Map SQ-slots to SQEs, like in liburing
         for index in 0..sq_ring_entries {
-            (*sq_array
-                .as_ptr()
-                .add(index as usize))
-                .store(index, Ordering::Release);
+            (*sq_array.as_ptr().add(index as usize)).store(index, Ordering::Release);
         }
         // Safety: All pointers are guaranteed to not be a null-pointer,
         // we get them from a successful `mmap`
@@ -219,19 +216,22 @@ pub fn io_uring_register_io_slices(uring_fd: Fd, buffers: &[IoSliceMut]) -> Resu
     Ok(())
 }
 
-/// Register a fixed buffer on an `io_uring` instance.  
+/// Register the contained io slices, the parent buffer does not need to live longer than until
+/// the completion of this syscall.  
 /// See [Linux documentation for details](https://man7.org/linux/man-pages//man2/io_uring_register.2.html)
 /// # Errors
 /// See above
+/// # Safety
+/// The buffers must not be used by `uring` fixed-buffer calls after the buffers are deallocated.  
 #[inline]
-pub fn io_uring_register_buf(uring_fd: Fd, buffer: &[u8]) -> Result<()> {
+pub unsafe fn io_uring_register_buffers(uring_fd: Fd, buffer: &[IoSliceMut]) -> Result<()> {
     let res = unsafe {
         syscall!(
             IO_URING_REGISTER,
             uring_fd,
             IORING_REGISTER_BUFFERS,
             buffer.as_ptr(),
-            1
+            buffer.len()
         )
     };
     bail_on_below_zero!(res, "`IO_URING_REGISTER` Syscall failed registering buffer");

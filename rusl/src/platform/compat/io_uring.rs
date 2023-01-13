@@ -36,13 +36,13 @@ transparent_bitflags! {
 
 transparent_bitflags! {
     pub struct IoUringSQEFlags: u8 {
-        const IOSQE_FIXED_FILE = linux_rust_bindings::io_uring::IOSQE_FIXED_FILE_BIT as u8;
-        const IOSQE_IO_DRAIN = linux_rust_bindings::io_uring::IOSQE_IO_DRAIN_BIT as u8;
-        const IOSQE_IO_LINK = linux_rust_bindings::io_uring::IOSQE_IO_LINK_BIT as u8;
-        const IOSQE_IO_HARDLINK = linux_rust_bindings::io_uring::IOSQE_IO_HARDLINK_BIT as u8;
-        const IOSQE_ASYNC = linux_rust_bindings::io_uring::IOSQE_ASYNC_BIT as u8;
-        const IOSQE_BUFFER_SELECT = linux_rust_bindings::io_uring::IOSQE_BUFFER_SELECT_BIT as u8;
-        const IOSQE_CQE_SKIP_SUCCESS = linux_rust_bindings::io_uring::IOSQE_CQE_SKIP_SUCCESS_BIT as u8;
+        const IOSQE_FIXED_FILE = 1 << linux_rust_bindings::io_uring::IOSQE_FIXED_FILE_BIT as u8;
+        const IOSQE_IO_DRAIN = 1 << linux_rust_bindings::io_uring::IOSQE_IO_DRAIN_BIT as u8;
+        const IOSQE_IO_LINK = 1 << linux_rust_bindings::io_uring::IOSQE_IO_LINK_BIT as u8;
+        const IOSQE_IO_HARDLINK = 1 << linux_rust_bindings::io_uring::IOSQE_IO_HARDLINK_BIT as u8;
+        const IOSQE_ASYNC = 1 << linux_rust_bindings::io_uring::IOSQE_ASYNC_BIT as u8;
+        const IOSQE_BUFFER_SELECT = 1 << linux_rust_bindings::io_uring::IOSQE_BUFFER_SELECT_BIT as u8;
+        const IOSQE_CQE_SKIP_SUCCESS = 1 << linux_rust_bindings::io_uring::IOSQE_CQE_SKIP_SUCCESS_BIT as u8;
     }
 }
 
@@ -88,9 +88,12 @@ impl Debug for IoUringSubmissionQueueEntry {
 }
 
 impl IoUringSubmissionQueueEntry {
+    /// Read vectored into a buffer.     
+    /// # Safety
+    /// The underlying buffer needs to live at least until this `sqe` is submitted to the kernel.  
     #[inline]
     #[must_use]
-    pub fn new_readv(
+    pub unsafe fn new_readv(
         fd: Fd,
         buf_ptr: usize,
         num_buffers: u32,
@@ -123,6 +126,48 @@ impl IoUringSubmissionQueueEntry {
         })
     }
 
+    /// Read vectored into a pre-registered buffer, buffers are registered with `io_uring_register`.   
+    /// # Safety
+    /// The underlying buffer needs to live at least until this `sqe` is completed.  
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_readv_fixed(
+        fd: Fd,
+        buf_ind: u16,
+        start_read_into_addr: u64,
+        read_exact: u32,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_READ_FIXED as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: start_read_into_addr,
+            },
+            len: read_exact,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                // Todo: Accept `preadv` flags here https://man7.org/linux/man-pages//man2/preadv2.2.html
+                rw_flags: 0,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: buf_ind },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Write vectored from a buffer.  
+    /// # Safety
+    /// The underlying buffer needs to live at least until this `sqe` is submitted to the kernel
     #[inline]
     #[must_use]
     pub unsafe fn new_writev(
@@ -148,6 +193,45 @@ impl IoUringSubmissionQueueEntry {
             },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Write vectored from a fixed previously registered buffer (`io_uring_register`).  
+    /// # Safety
+    /// The underlying buffer needs to live at least until this `sqe` is completed
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_writev_fixed(
+        fd: Fd,
+        buf_ind: u16,
+        start_read_into_addr: u64,
+        write_exact: u32,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_WRITE_FIXED as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: start_read_into_addr,
+            },
+            len: write_exact,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                // Todo: Accept `pwritev` flags here https://man7.org/linux/man-pages//man2/preadv2.2.html
+                rw_flags: 0,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: buf_ind },
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
