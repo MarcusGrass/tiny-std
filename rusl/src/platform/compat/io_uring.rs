@@ -701,7 +701,7 @@ impl IoUring {
         }
     }
 
-    pub(crate) fn get_next_sqe_slot(&mut self) -> Option<*mut IoUringSubmissionQueueEntry> {
+    pub fn get_next_sqe_slot(&mut self) -> Option<*mut IoUringSubmissionQueueEntry> {
         let next = self.submission_queue.tail + 1;
         let shift = u32::from(self.flags.contains(IoUringParamFlags::IORING_SETUP_SQE128));
         let head = if self.flags.contains(IoUringParamFlags::IORING_SETUP_SQPOLL) {
@@ -719,7 +719,7 @@ impl IoUring {
         }
     }
 
-    pub(crate) fn flush_submission_queue(&mut self) -> u32 {
+    pub fn flush_submission_queue(&mut self) -> u32 {
         let tail = self.submission_queue.tail;
         if self.submission_queue.head != tail {
             self.submission_queue.head = tail;
@@ -732,7 +732,7 @@ impl IoUring {
         tail - self.submission_queue.get_khead_relaxed()
     }
 
-    pub(crate) fn get_next_cqe(&mut self) -> Option<&IoUringCompletionQueueEntry> {
+    pub fn get_next_cqe(&mut self) -> Option<&IoUringCompletionQueueEntry> {
         let shift = u32::from(self.flags.contains(IoUringParamFlags::IORING_SETUP_CQE32));
         let tail = self.completion_queue.acquire_ktail();
         let head = self.completion_queue.acquire_khead();

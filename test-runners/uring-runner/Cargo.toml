@@ -1,0 +1,12 @@
+[package]
+name = "uring-runner"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+compiler_builtins = { version = "0.1.84", features = ["mem"] }
+rusl = { path = "../../rusl", default-features = false }
+tiny-std = { path = "../../tiny-std", default-features = false, features = ["start", "symbols", "aux", "vdso"] }
+unix-print = "0.1.0"
