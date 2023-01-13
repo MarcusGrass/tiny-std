@@ -6,11 +6,12 @@ use linux_rust_bindings::io_uring::{
     __BindgenUnionField, io_cqring_offsets, io_sqring_offsets, io_uring_cqe, io_uring_params,
     io_uring_sqe, io_uring_sqe__bindgen_ty_1, io_uring_sqe__bindgen_ty_2,
     io_uring_sqe__bindgen_ty_3, io_uring_sqe__bindgen_ty_4, io_uring_sqe__bindgen_ty_5,
-    io_uring_sqe__bindgen_ty_6, IORING_SQ_NEED_WAKEUP,
+    io_uring_sqe__bindgen_ty_6, IORING_SQ_NEED_WAKEUP, IORING_TIMEOUT_ABS,
 };
 
 use crate::platform::{
-    Fd, Mode, OpenFlags, RenameFlags, Statx, StatxFlags, StatxMask, AT_FDCWD, AT_REMOVEDIR,
+    AddressFamily, Fd, Mode, OpenFlags, RenameFlags, SocketArg, SocketType, Statx, StatxFlags,
+    StatxMask, TimeSpec, AT_FDCWD, AT_REMOVEDIR,
 };
 use crate::string::unix_str::UnixStr;
 
@@ -108,7 +109,7 @@ impl IoUringSubmissionQueueEntry {
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: buf_ptr as u64,
             },
-            len: num_buffers as u32,
+            len: num_buffers,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
                 // Todo: Accept `preadv` flags here https://man7.org/linux/man-pages//man2/preadv2.2.html
                 rw_flags: 0,
@@ -346,6 +347,158 @@ impl IoUringSubmissionQueueEntry {
             },
         })
     }
+
+    /// Creates a new socket. Will execute an equivalent to an `socket2` syscall.  
+    #[inline]
+    #[must_use]
+    pub fn new_socket(
+        domain: AddressFamily,
+        socket_type: SocketType,
+        protocol: i32,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SOCKET as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: domain.bits() as i32,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
+                off: socket_type.bits() as u64,
+            },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 { addr: 0 },
+            len: protocol as u32,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 { rw_flags: 0 },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+    /// Creates a new socket. Will execute an equivalent to an `connect` syscall.  
+    /// # Safety
+    /// `sockaddr` needs to live until this entry is passed to the kernel
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_connect(
+        socket: Fd,
+        sockaddr: &SocketArg,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_CONNECT as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: socket,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
+                off: core::ptr::addr_of!(sockaddr.addr_len) as u64,
+            },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: core::ptr::addr_of!(sockaddr.addr) as u64,
+            },
+            len: 0,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 { rw_flags: 0 },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Creates a new socket. Will execute an equivalent to an `accept4` syscall.  
+    /// # Safety
+    /// `sockaddr` needs to live until this entry is passed to the kernel
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_accept(
+        socket: Fd,
+        sockaddr: &SocketArg,
+        sock_type: SocketType,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_ACCEPT as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: socket,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
+                addr2: core::ptr::addr_of!(sockaddr.addr_len) as u64,
+            },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: core::ptr::addr_of!(sockaddr.addr) as u64,
+            },
+            len: 0,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                accept_flags: sock_type.bits() as u32,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Enters a timeout entry, will produce a cqe with result `-ETIME` on elapse or 0
+    /// if `await_completions` is specified and that number of cqes have completed during
+    /// the timeout duration.  
+    /// # Safety
+    /// `ts` needs to live until this entry is passed to the kernel
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_timeout(
+        ts: &TimeSpec,
+        relative: bool,
+        await_completions: Option<u64>,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_TIMEOUT as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: 0,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
+                off: await_completions.unwrap_or_default(),
+            },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: ts as *const TimeSpec as u64,
+            },
+            len: 1,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                timeout_flags: if relative {
+                    0
+                } else {
+                    IORING_TIMEOUT_ABS as u32
+                },
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
 }
 
 #[repr(transparent)]
@@ -433,7 +586,7 @@ impl IoUring {
     }
 
     pub(crate) fn get_next_sqe_slot(&mut self) -> Option<*mut IoUringSubmissionQueueEntry> {
-        let next = self.submission_queue.tail as u32 + 1;
+        let next = self.submission_queue.tail + 1;
         let shift = u32::from(self.flags.contains(IoUringParamFlags::IORING_SETUP_SQE128));
         let head = if self.flags.contains(IoUringParamFlags::IORING_SETUP_SQPOLL) {
             self.submission_queue.acquire_khead()

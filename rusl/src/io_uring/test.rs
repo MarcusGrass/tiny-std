@@ -1,16 +1,21 @@
 use core::mem::MaybeUninit;
 
+use linux_rust_bindings::errno::ETIME;
+
 use crate::error::Errno;
 use crate::io_uring::{
     io_uring_enter, io_uring_register_buf, io_uring_register_files, io_uring_register_io_slices,
     io_uring_setup, setup_io_uring,
 };
+use crate::network::{bind, connect, listen, socket};
 use crate::platform::{
-    Fd, IoSliceMut, IoUring, IoUringCompletionQueueEntry, IoUringEnterFlags, IoUringParamFlags,
-    IoUringParams, IoUringSQEFlags, IoUringSubmissionQueueEntry, Mode, OpenFlags, RenameFlags,
-    StatxFlags, StatxMask, AT_REMOVEDIR,
+    AddressFamily, Fd, IoSliceMut, IoUring, IoUringCompletionQueueEntry, IoUringEnterFlags,
+    IoUringParamFlags, IoUringParams, IoUringSQEFlags, IoUringSubmissionQueueEntry, Mode,
+    OpenFlags, RenameFlags, SocketAddress, SocketType, StatxFlags, StatxMask, TimeSpec,
+    AT_REMOVEDIR,
 };
 use crate::string::unix_str::UnixStr;
+use crate::time::clock_get_monotonic_time;
 use crate::unistd::{close, open, read, stat, unlink_flags};
 
 #[test]
@@ -261,7 +266,7 @@ fn uring_single_mkdir_at() {
     };
     let new_dir_path =
         unsafe { UnixStr::from_str_unchecked("test-files/io_uring/test_create_dir\0") };
-    // Ensure file exists before test
+    // Ensure dir doesn't exist before test
     if let Err(e) = stat(new_dir_path) {
         assert_eq!(Errno::ENOENT, e.code.unwrap());
     } else {
@@ -286,6 +291,64 @@ fn uring_single_mkdir_at() {
     );
 }
 
+#[test]
+fn uring_single_socket() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let user_data = 10001;
+    let entry = IoUringSubmissionQueueEntry::new_socket(
+        AddressFamily::AF_UNIX,
+        SocketType::SOCK_STREAM | SocketType::SOCK_CLOEXEC,
+        0,
+        user_data,
+        IoUringSQEFlags::empty(),
+    );
+    write_await_single_entry(&mut uring, entry, user_data);
+}
+
+#[test]
+fn uring_single_accept() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let server_socket = socket(AddressFamily::AF_UNIX, SocketType::SOCK_STREAM, 0).unwrap();
+    let sock_path =
+        unsafe { UnixStr::from_str_unchecked("test-files/io_uring/test-sock-accept\0") };
+    let addr = SocketAddress::try_from_unix(sock_path).unwrap();
+    // Ensure socket doesn't exist before test
+    if let Err(e) = stat(sock_path) {
+        assert_eq!(Errno::ENOENT, e.code.unwrap());
+    } else {
+        unlink_flags(sock_path, 0).unwrap();
+    }
+    bind(server_socket, &addr).unwrap();
+    listen(server_socket, 100).unwrap();
+    let user_data = 10011;
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_accept(
+            server_socket,
+            &addr,
+            SocketType::SOCK_CLOEXEC | SocketType::SOCK_NONBLOCK,
+            user_data,
+            // Run as async since we know we won't be able to connect yet
+            IoUringSQEFlags::IOSQE_ASYNC,
+        )
+    };
+    // We actually have to handle this async since we're on a single thread and accept will block
+    // for a connect
+    let next_slot = uring.get_next_sqe_slot().unwrap();
+    unsafe { next_slot.write(entry) }
+    uring.flush_submission_queue();
+    io_uring_enter(uring.fd, 1, 0, IoUringEnterFlags::empty()).unwrap();
+    let conn_sock = socket(AddressFamily::AF_UNIX, SocketType::SOCK_STREAM, 0).unwrap();
+    connect(conn_sock, &addr).unwrap();
+    io_uring_enter(uring.fd, 0, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
+    let cqe = uring.get_next_cqe().unwrap();
+    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
+    assert!(cqe.0.res >= 0, "Failed res for cqe: {cqe:?}");
+}
+
 fn write_await_single_entry(
     uring: &mut IoUring,
     entry: IoUringSubmissionQueueEntry,
@@ -299,8 +362,45 @@ fn write_await_single_entry(
     io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
     let cqe = uring.get_next_cqe().unwrap();
     assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
-    assert!(cqe.0.res >= 0, "statx failed for cqe: {cqe:?}");
+    assert!(cqe.0.res >= 0, "Failed res for cqe: {cqe:?}");
     cqe
+}
+
+#[test]
+fn uring_single_timeout() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    // 10 millis
+    let wait_nsec = 10_000_000;
+    let ts = TimeSpec::new(0, wait_nsec);
+    let user_data = 27;
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_timeout(
+            &ts,
+            true,
+            None,
+            user_data,
+            // Run as async since we know we won't be able to connect yet
+            IoUringSQEFlags::empty(),
+        )
+    };
+    let next_slot = uring.get_next_sqe_slot().unwrap();
+    unsafe {
+        next_slot.write(entry);
+    }
+    uring.flush_submission_queue();
+    let start = clock_get_monotonic_time();
+    io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
+    let end = clock_get_monotonic_time();
+    let diff = end.nanoseconds() - start.nanoseconds();
+    assert!(
+        diff > wait_nsec && diff - wait_nsec < 2 * wait_nsec,
+        "diff {diff} isn't between {wait_nsec} and 2 * {wait_nsec}"
+    );
+    let cqe = uring.get_next_cqe().unwrap();
+    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
+    assert_eq!(0 - ETIME, cqe.0.res, "Expected `ETIME` for cqe: {cqe:?}");
 }
 
 #[test]
@@ -386,11 +486,9 @@ fn uring_multi_linked_crud() {
         let cqe = uring.get_next_cqe().unwrap();
         assert!(cqe.0.res >= 0);
         match cqe.0.user_data {
-            STAT_FILE_DATA => {
-                unsafe {
-                    assert_eq!(0, (*statx_uninit.as_ptr()).0.stx_size);
-                }
-            }
+            STAT_FILE_DATA => unsafe {
+                assert_eq!(0, (*statx_uninit.as_ptr()).0.stx_size);
+            },
             _ => {}
         }
     }
