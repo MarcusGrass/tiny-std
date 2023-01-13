@@ -92,7 +92,6 @@ impl IoUringSubmissionQueueEntry {
     #[must_use]
     pub fn new_readv(
         fd: Fd,
-        file_offset: usize,
         buf_ptr: usize,
         num_buffers: u32,
         user_data: u64,
@@ -103,15 +102,48 @@ impl IoUringSubmissionQueueEntry {
             flags: sqe_flags.bits(),
             ioprio: 0,
             fd,
-            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
-                off: file_offset as u64,
-            },
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: buf_ptr as u64,
             },
             len: num_buffers,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
                 // Todo: Accept `preadv` flags here https://man7.org/linux/man-pages//man2/preadv2.2.html
+                rw_flags: 0,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_writev(
+        fd: Fd,
+        buf_ptr: usize,
+        num_buffers: u32,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_WRITEV as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: buf_ptr as u64,
+            },
+            len: num_buffers,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                // Todo: Accept `pwritev` flags here https://man7.org/linux/man-pages//man2/preadv2.2.html
                 rw_flags: 0,
             },
             user_data,

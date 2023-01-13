@@ -9,14 +9,14 @@ use crate::io_uring::{
 };
 use crate::network::{bind, connect, listen, socket};
 use crate::platform::{
-    AddressFamily, Fd, IoSliceMut, IoUring, IoUringCompletionQueueEntry, IoUringEnterFlags,
-    IoUringParamFlags, IoUringParams, IoUringSQEFlags, IoUringSubmissionQueueEntry, Mode,
-    OpenFlags, RenameFlags, SocketAddress, SocketType, StatxFlags, StatxMask, TimeSpec,
-    AT_REMOVEDIR,
+    AddressFamily, Fd, IoSlice, IoSliceMut, IoUring, IoUringCompletionQueueEntry,
+    IoUringEnterFlags, IoUringParamFlags, IoUringParams, IoUringSQEFlags,
+    IoUringSubmissionQueueEntry, Mode, OpenFlags, RenameFlags, SocketAddress, SocketType,
+    StatxFlags, StatxMask, TimeSpec, AT_REMOVEDIR,
 };
 use crate::string::unix_str::UnixStr;
 use crate::time::clock_get_monotonic_time;
-use crate::unistd::{close, open, read, stat, unlink_flags};
+use crate::unistd::{close, open, open_mode, read, stat, unlink_flags};
 
 #[test]
 fn uring_setup() {
@@ -106,7 +106,6 @@ fn uring_single_read() {
     let user_data = 15;
     let entry = IoUringSubmissionQueueEntry::new_readv(
         fd,
-        0,
         slices.as_mut_ptr() as usize,
         1,
         user_data,
@@ -118,6 +117,42 @@ fn uring_single_read() {
         "open\n",
         core::str::from_utf8(&bytes[..cqe.0.res as usize]).unwrap()
     );
+}
+
+#[test]
+fn uring_single_write() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let path = unsafe { UnixStr::from_str_unchecked("test-files/io_uring/uring_swrite_test\0") };
+    let mut bytes = b"Uring written!\n";
+    let buf = IoSlice::new(bytes);
+    let mut slices = [buf];
+
+    let fd = open_mode(
+        path,
+        OpenFlags::O_RDWR | OpenFlags::O_TRUNC | OpenFlags::O_CREAT,
+        Mode::S_IRUSR | Mode::S_IWUSR | Mode::S_IRGRP | Mode::S_IROTH,
+    )
+    .unwrap();
+    let user_data = 15559;
+    let entry = unsafe {
+        IoUringSubmissionQueueEntry::new_writev(
+            fd,
+            slices.as_mut_ptr() as usize,
+            1,
+            user_data,
+            IoUringSQEFlags::empty(),
+        )
+    };
+    let cqe = write_await_single_entry(&mut uring, entry, user_data);
+    assert_eq!(
+        "Uring written!\n",
+        core::str::from_utf8(&bytes[..cqe.0.res as usize]).unwrap()
+    );
+    let mut buf = [0u8; 15];
+    read(fd, &mut buf).unwrap();
+    assert_eq!(bytes, &buf);
 }
 
 #[test]
