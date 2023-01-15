@@ -686,18 +686,15 @@ impl IoUring {
     }
 
     #[inline]
-    pub(crate) fn needs_wakeup(&self) -> bool {
-        if self.flags.contains(IoUringParamFlags::IORING_SETUP_SQPOLL) {
-            unsafe {
-                self.submission_queue
-                    .kernel_flags
-                    .as_ref()
-                    .load(Ordering::Relaxed)
-                    & IORING_SQ_NEED_WAKEUP as u32
-                    != 0
-            }
-        } else {
-            false
+    #[must_use]
+    pub fn needs_wakeup(&self) -> bool {
+        unsafe {
+            self.submission_queue
+                .kernel_flags
+                .as_ref()
+                .load(Ordering::Acquire)
+                & IORING_SQ_NEED_WAKEUP as u32
+                != 0
         }
     }
 
