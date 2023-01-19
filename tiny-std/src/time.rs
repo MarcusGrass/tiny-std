@@ -253,3 +253,17 @@ fn get_monotonic_time() -> TimeSpec {
 fn get_real_time() -> TimeSpec {
     rusl::time::clock_get_real_time()
 }
+
+impl Into<TimeSpec> for Instant {
+    #[inline]
+    fn into(self) -> TimeSpec {
+        self.0
+    }
+}
+
+impl AsRef<TimeSpec> for Instant {
+    #[inline]
+    fn as_ref(&self) -> &TimeSpec {
+        &self.0
+    }
+}
