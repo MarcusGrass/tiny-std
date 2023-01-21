@@ -5,7 +5,7 @@ pub use fcntl::{fcntl_get_file_status, fcntl_set_file_status};
 pub use get_dents::get_dents;
 pub use getuid::get_uid;
 pub use mkdir::{mkdir, mkdir_at};
-pub use mmap::mmap;
+pub use mmap::{mmap, munmap};
 pub use open::{open, open_at, open_at_mode, open_mode, open_raw};
 pub use pipe::{pipe, pipe2};
 pub use read::read;

@@ -1,4 +1,5 @@
 use core::fmt::{Debug, Formatter};
+use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU32, Ordering};
 
@@ -6,7 +7,7 @@ use linux_rust_bindings::io_uring::{
     __BindgenUnionField, io_cqring_offsets, io_sqring_offsets, io_uring_cqe, io_uring_params,
     io_uring_sqe, io_uring_sqe__bindgen_ty_1, io_uring_sqe__bindgen_ty_2,
     io_uring_sqe__bindgen_ty_3, io_uring_sqe__bindgen_ty_4, io_uring_sqe__bindgen_ty_5,
-    io_uring_sqe__bindgen_ty_6, IORING_SQ_NEED_WAKEUP, IORING_TIMEOUT_ABS,
+    io_uring_sqe__bindgen_ty_6, IORING_SETUP_SQE128, IORING_SQ_NEED_WAKEUP, IORING_TIMEOUT_ABS,
 };
 
 use crate::platform::{
@@ -14,6 +15,7 @@ use crate::platform::{
     StatxMask, TimeSpec, AT_FDCWD, AT_REMOVEDIR,
 };
 use crate::string::unix_str::UnixStr;
+use crate::unistd::munmap;
 
 transparent_bitflags! {
     pub struct IoUringParamFlags: u32 {
@@ -628,13 +630,13 @@ pub struct IoUringParams(pub io_uring_params);
 impl IoUringParams {
     /// Fields are populated by the kernel
     #[must_use]
-    pub const fn new(flags: IoUringParamFlags) -> Self {
+    pub const fn new(flags: IoUringParamFlags, sq_thread_cpu: u32, sq_thread_idle: u32) -> Self {
         Self(io_uring_params {
             sq_entries: 0,
             cq_entries: 0,
             flags: flags.bits(),
-            sq_thread_cpu: 0,
-            sq_thread_idle: 0,
+            sq_thread_cpu,
+            sq_thread_idle,
             features: 0,
             wq_fd: 0,
             resv: [0u32; 3usize],
@@ -740,6 +742,30 @@ impl IoUring {
         let cqe = unsafe { self.completion_queue.entries.as_ptr().add(ind) };
         self.completion_queue.advance(1);
         unsafe { cqe.as_ref() }
+    }
+}
+
+impl Drop for IoUring {
+    fn drop(&mut self) {
+        let mut sqe_size = core::mem::size_of::<IoUringSubmissionQueueEntry>();
+        if self.flags.bits() & IORING_SETUP_SQE128 as u32 != 0 {
+            sqe_size += 64;
+        }
+        unsafe {
+            let _ = munmap(
+                self.submission_queue.entries.as_ptr() as usize,
+                NonZeroUsize::new(self.submission_queue.ring_entries as usize * sqe_size).unwrap(),
+            );
+            let _ = munmap(
+                self.submission_queue.ring_ptr,
+                NonZeroUsize::new(self.submission_queue.ring_size).unwrap(),
+            );
+            let _ = munmap(
+                self.completion_queue.ring_ptr,
+                NonZeroUsize::new(self.completion_queue.ring_size).unwrap(),
+            );
+        }
+        let _ = crate::unistd::close(self.fd);
     }
 }
 

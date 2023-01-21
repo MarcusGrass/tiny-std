@@ -26,8 +26,13 @@ mod test;
 /// # Errors
 /// See above
 #[allow(clippy::too_many_lines)]
-pub fn setup_io_uring(entries: u32, flags: IoUringParamFlags) -> Result<IoUring> {
-    let mut params = IoUringParams::new(flags);
+pub fn setup_io_uring(
+    entries: u32,
+    flags: IoUringParamFlags,
+    sq_thread_cpu: u32,
+    sq_thread_idle: u32,
+) -> Result<IoUring> {
+    let mut params = IoUringParams::new(flags, sq_thread_cpu, sq_thread_idle);
     let fd = io_uring_setup(entries, &mut params)?;
     let mut cq_size = core::mem::size_of::<IoUringCompletionQueueEntry>();
     if flags.contains(IoUringParamFlags::IORING_SETUP_CQE32) {

@@ -24,7 +24,7 @@ fn uring_setup() {
 }
 
 fn setup_io_poll_uring() -> Option<Fd> {
-    let mut params = IoUringParams::new(IoUringParamFlags::IORING_SETUP_IOPOLL);
+    let mut params = IoUringParams::new(IoUringParamFlags::IORING_SETUP_IOPOLL, 0, 0);
     let uring_fd = match io_uring_setup(1, &mut params) {
         Ok(uring_fd) => {
             assert_ne!(0, uring_fd);
@@ -73,7 +73,7 @@ fn uring_register_buffer() {
 }
 
 fn setup_ignore_enosys(entries: u32, flags: IoUringParamFlags) -> Option<IoUring> {
-    let uring = setup_io_uring(entries, flags);
+    let uring = setup_io_uring(entries, flags, 0, 0);
     match uring {
         Ok(u) => Some(u),
         Err(e) => {

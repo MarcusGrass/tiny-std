@@ -34,6 +34,19 @@ pub unsafe fn mmap(
     Ok(res_ptr)
 }
 
+/// Unmaps memory.
+/// Almost impossible to make safe, and the [linux documentation](https://man7.org/linux/man-pages/man2/mmap.2.html)
+/// should be consulted for details.
+/// # Errors
+/// See above
+/// # Safety
+/// see above
+pub unsafe fn munmap(addr: usize, length: NonZeroUsize) -> crate::Result<()> {
+    let res_ptr = syscall!(MUNMAP, addr, length.get());
+    bail_on_below_zero!(res_ptr, "`MUNMAP` syscall failed");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -63,6 +76,7 @@ mod tests {
             for i in 0..slice_stack.len() {
                 assert_eq!(i as u8, slice_stack[i]);
             }
+            munmap(stack, sz).unwrap();
         }
     }
 }
