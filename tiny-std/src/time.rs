@@ -254,10 +254,10 @@ fn get_real_time() -> TimeSpec {
     rusl::time::clock_get_real_time()
 }
 
-impl Into<TimeSpec> for Instant {
+impl From<TimeSpec> for Instant {
     #[inline]
-    fn into(self) -> TimeSpec {
-        self.0
+    fn from(value: TimeSpec) -> Self {
+        Self(value)
     }
 }
 

@@ -451,9 +451,8 @@ unsafe fn do_spawn<F: PreExec>(
         for closure in closures {
             closure.run()?;
         }
-        let e = if let Err(e) = rusl::process::execve(bin, argv, envp) {
-            e
-        } else {
+        let Err(e) = rusl::process::execve(bin, argv, envp) else {
+            // execve only returns on error.
             unreachable_unchecked();
         };
         let code: [u8; 4] = if let Some(code) = e.code {
