@@ -437,7 +437,8 @@ impl<'a> DirEntry<'a> {
     /// Os errors relating to permissions
     #[inline]
     pub fn open_file(&self) -> Result<File> {
-        if self.file_type() == FileType::RegularFile {
+        let ft = self.file_type();
+        if ft == FileType::RegularFile || ft == FileType::CharDevice {
             Ok(File::open_at(self.fd.fd, self.file_unix_name()?)?)
         } else {
             Err(Error::no_code("Tried to open non-file as file"))
