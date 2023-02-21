@@ -1,4 +1,5 @@
 use linux_rust_bindings::termios::tcflag_t;
+
 transparent_bitflags! {
     pub struct TermioFlags: u64 {
         const TIOCEXCL = linux_rust_bindings::termios::TIOCEXCL as u64;
@@ -108,43 +109,9 @@ impl SetAction {
     }
 }
 
-mod tio_shim {
-    use linux_rust_bindings::ioctl::{
-        _IOC_DIRSHIFT, _IOC_NRSHIFT, _IOC_READ, _IOC_SIZESHIFT, _IOC_TYPESHIFT, _IOC_WRITE,
-    };
-
-    macro_rules! _ioc {
-        ($dir:expr, $io_ty: expr, $nr: expr, $sz: expr, $ty: ty) => {
-            ($dir << _IOC_DIRSHIFT as $ty)
-                | ($io_ty << _IOC_TYPESHIFT as $ty)
-                | ($nr << _IOC_NRSHIFT as $ty)
-                | ($sz << _IOC_SIZESHIFT as $ty)
-        };
-    }
-    macro_rules! _ior {
-        ($io_ty: expr, $nr: expr, $ty: ty) => {
-            _ioc!(
-                _IOC_READ as $ty,
-                $io_ty,
-                $nr,
-                core::mem::size_of::<$ty>() as $ty,
-                $ty
-            )
-        };
-    }
-    macro_rules! _iow {
-        ($io_ty: expr, $nr: expr, $ty: ty) => {
-            _ioc!(
-                _IOC_WRITE as $ty,
-                $io_ty,
-                $nr,
-                core::mem::size_of::<$ty>() as $ty,
-                $ty
-            )
-        };
-    }
-    pub const TIOCGPTN: u32 = _ior!('T' as u32, 0x30u32, u32);
-    pub const TIOCSPTLCK: i32 = _iow!('T' as i32, 0x31i32, i32);
+pub(crate) mod tio_shim {
+    pub const TIOCGPTN: u32 = crate::_ior!('T' as u32, 0x30u32, u32);
+    pub const TIOCSPTLCK: i32 = crate::_iow!('T' as i32, 0x31i32, i32);
 
     #[cfg(test)]
     mod tests {

@@ -3,6 +3,7 @@ pub use clone::*;
 pub use dirent::*;
 pub use epoll::*;
 pub use fcntl::*;
+pub use hidio::*;
 pub use io_uring::*;
 pub use mman::*;
 pub use mode_flags::*;
@@ -15,6 +16,7 @@ pub use stat::*;
 pub use termios::*;
 pub use time::*;
 pub use uio::*;
+pub use usb::*;
 pub use utsname::*;
 pub use vdso::*;
 pub use wait::*;
@@ -24,6 +26,7 @@ mod clone;
 mod dirent;
 mod epoll;
 mod fcntl;
+mod hidio;
 mod io_uring;
 mod mman;
 mod mode_flags;
@@ -36,6 +39,7 @@ mod stat;
 mod termios;
 mod time;
 mod uio;
+mod usb;
 mod utsname;
 mod vdso;
 mod wait;
@@ -75,6 +79,39 @@ transparent_bitflags! {
     }
 }
 
+#[macro_export]
+macro_rules! _ioc {
+    ($dir:expr, $io_ty: expr, $nr: expr, $sz: expr, $ty: ty) => {
+        ($dir << linux_rust_bindings::ioctl::_IOC_DIRSHIFT as $ty)
+            | ($io_ty << linux_rust_bindings::ioctl::_IOC_TYPESHIFT as $ty)
+            | ($nr << linux_rust_bindings::ioctl::_IOC_NRSHIFT as $ty)
+            | ($sz << linux_rust_bindings::ioctl::_IOC_SIZESHIFT as $ty)
+    };
+}
+#[macro_export]
+macro_rules! _ior {
+    ($io_ty: expr, $nr: expr, $ty: ty) => {
+        $crate::_ioc!(
+            linux_rust_bindings::ioctl::_IOC_READ as $ty,
+            $io_ty,
+            $nr,
+            core::mem::size_of::<$ty>() as $ty,
+            $ty
+        )
+    };
+}
+#[macro_export]
+macro_rules! _iow {
+    ($io_ty: expr, $nr: expr, $ty: ty) => {
+        $crate::_ioc!(
+            linux_rust_bindings::ioctl::_IOC_WRITE as $ty,
+            $io_ty,
+            $nr,
+            core::mem::size_of::<$ty>() as $ty,
+            $ty
+        )
+    };
+}
 #[cfg(test)]
 mod tests {
     #[test]
