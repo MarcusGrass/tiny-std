@@ -8,3 +8,6 @@ pub const USBDEVFS_BULK: u32 = crate::_ioc!(
     core::mem::size_of::<usbdevfs_bulktransfer>() as u32,
     u32
 );
+
+pub const USBDEVFS_CLAIM_INTERFACE: u32 = crate::_ior!('U' as u32, 15u32, u32);
+pub const USBDEVFS_RELEASE_INTERFACE: u32 = crate::_ior!('U' as u32, 16u32, u32);
