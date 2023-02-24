@@ -1,7 +1,9 @@
 use linux_rust_bindings::usb::usbdevfs_bulktransfer;
 
 use crate::ioctl::ioctl;
-use crate::platform::{Fd, USBDEVFS_BULK, USBDEVFS_CLAIM_INTERFACE, USBDEVFS_RELEASE_INTERFACE};
+use crate::platform::{
+    Fd, USBDEVFS_BULK, USBDEVFS_CLAIM_INTERFACE, USBDEVFS_RELEASE_INTERFACE, USBDEVFS_RESET,
+};
 use crate::Result;
 
 /// Make a bulk transfer on the hid fd specified by `fd` at `endpoint`, `data` is either an
@@ -31,6 +33,13 @@ pub fn claim_interface(fd: Fd, interface_number: u32) -> Result<()> {
             USBDEVFS_CLAIM_INTERFACE as usize,
             core::ptr::addr_of!(interface_number) as usize,
         )?;
+    }
+    Ok(())
+}
+
+pub fn reset_usb_device(fd: Fd) -> Result<()> {
+    unsafe {
+        ioctl(fd as usize, USBDEVFS_RESET as usize, 0)?;
     }
     Ok(())
 }
