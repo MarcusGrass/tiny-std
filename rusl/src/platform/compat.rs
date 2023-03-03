@@ -7,6 +7,7 @@ pub use hidio::*;
 pub use io_uring::*;
 pub use mman::*;
 pub use mode_flags::*;
+pub use mount::*;
 pub use open_flags::*;
 pub use poll::*;
 pub use renameat::*;
@@ -43,6 +44,7 @@ mod usb;
 mod utsname;
 mod vdso;
 mod wait;
+mod mount;
 
 /// Shared typedefs for 64 bit systems (GNU source)
 pub type UidT = u32;
