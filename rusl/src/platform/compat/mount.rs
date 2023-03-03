@@ -1,4 +1,4 @@
-use crate::string::unix_str::{UnixStr};
+use crate::string::unix_str::UnixStr;
 
 #[derive(Debug, Copy, Clone)]
 pub enum FilesystemType {

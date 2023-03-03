@@ -31,6 +31,7 @@ mod hidio;
 mod io_uring;
 mod mman;
 mod mode_flags;
+mod mount;
 mod open_flags;
 mod poll;
 mod renameat;
@@ -44,7 +45,6 @@ mod usb;
 mod utsname;
 mod vdso;
 mod wait;
-mod mount;
 
 /// Shared typedefs for 64 bit systems (GNU source)
 pub type UidT = u32;

@@ -224,6 +224,24 @@ impl Command {
             )
         }
     }
+
+    pub fn exec(&mut self) -> Error {
+        const NULL_ENV: [*const u8; 1] = [core::ptr::null()];
+        let envp = match &self.env {
+            #[cfg(feature = "start")]
+            Environment::Inherit => unsafe { crate::start::ENV.env_p },
+            Environment::None => NULL_ENV.as_ptr(),
+            Environment::Provided(provided) => provided.envp.0.as_ptr(),
+        };
+        unsafe {
+            do_exec(
+                &self.bin,
+                self.argv.0.as_ptr(),
+                envp,
+                &mut self.closures
+            )
+        }
+    }
 }
 
 pub struct Child {
@@ -399,6 +417,26 @@ impl PreExec for () {
     fn run(&mut self) -> Result<()> {
         Ok(())
     }
+}
+
+#[inline]
+#[allow(clippy::too_many_arguments)]
+unsafe fn do_exec<F: PreExec>(
+    bin: &UnixStr,
+    argv: *const *const u8,
+    envp: *const *const u8,
+    closures: &mut [F],
+) -> Error {
+    for closure in closures {
+        if let Err(e) = closure.run() {
+            return e.into();
+        }
+    }
+    let Err(e) = rusl::process::execve(bin, argv, envp) else {
+            // execve only returns on error.
+            unreachable_unchecked();
+        };
+    e.into()
 }
 
 #[inline]

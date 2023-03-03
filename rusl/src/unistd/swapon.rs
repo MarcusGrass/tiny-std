@@ -1,6 +1,6 @@
-use sc::syscall;
 use crate::string::unix_str::AsUnixStr;
 use crate::Result;
+use sc::syscall;
 
 pub fn swapon(path: impl AsUnixStr, flags: i32) -> Result<()> {
     path.exec_with_self_as_ptr(|ptr| {
