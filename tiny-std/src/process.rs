@@ -429,7 +429,7 @@ unsafe fn do_exec<F: PreExec>(
 ) -> Error {
     for closure in closures {
         if let Err(e) = closure.run() {
-            return e.into();
+            return e;
         }
     }
     let Err(e) = rusl::process::execve(bin, argv, envp) else {

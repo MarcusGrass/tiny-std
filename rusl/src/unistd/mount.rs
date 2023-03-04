@@ -3,6 +3,12 @@ use crate::string::unix_str::AsUnixStr;
 use crate::Result;
 use sc::syscall;
 
+/// Mount a device.
+/// Attempt to mount a device from `source` to `target` specifying a `FilesystemType` and `flags`.
+/// Some filesystems allow providing additional data, which goes in `data`.
+/// See the [linux docs for details](https://man7.org/linux/man-pages/man2/mount.2.html).
+/// # Errors
+/// See above
 pub fn mount<SRC, TGT, DATA>(
     source: SRC,
     target: TGT,
@@ -49,6 +55,11 @@ where
     Ok(())
 }
 
+/// Unmount a device.
+/// Attempts to unmount the device at `target`.
+/// See the [linux docs for details](https://man7.org/linux/man-pages/man2/umount.2.html).
+/// # Errors
+/// See above.
 pub fn unmount<TGT>(target: TGT) -> Result<()>
 where
     TGT: AsUnixStr,

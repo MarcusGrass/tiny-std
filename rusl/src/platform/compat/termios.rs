@@ -1,5 +1,7 @@
 use linux_rust_bindings::termios::tcflag_t;
 
+pub use linux_rust_bindings::termios::{ECHO, ECHONL};
+
 transparent_bitflags! {
     pub struct TermioFlags: u64 {
         const TIOCEXCL = linux_rust_bindings::termios::TIOCEXCL as u64;
@@ -80,7 +82,7 @@ transparent_bitflags! {
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-pub struct Termios(linux_rust_bindings::termios::termios2);
+pub struct Termios(pub linux_rust_bindings::termios::termios2);
 
 impl Termios {
     pub fn set_iflag(&mut self, flags: InputFlags, state: bool) {
