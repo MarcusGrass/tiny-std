@@ -4,14 +4,14 @@ use rusl::termios::{tcgetattr, tcsetattr};
 use crate::error::Error;
 
 /// Sets the terminal to no echo and waits for a line to be entered.
-/// The raw input, including the newline will be put into the buffer
-/// if the buffer is too small to fit the input, an attempt will be made to drain stdin and then
+/// The raw input, including the newline, will be put into the buffer and converted to a &str.
+/// If the buffer is too small to fit the input, an attempt will be made to drain stdin and then
 /// return an error.
 /// # Errors
 /// Buffer undersized.
 /// Stdin unreadable.
 /// Fail to set terminal attributes.
-pub fn get_pass(buf: &mut [u8]) -> crate::error::Result<usize> {
+pub fn get_pass(buf: &mut [u8]) -> crate::error::Result<&str> {
     /// If the user supplied a buffer that's too small we'd still like to drain stdin
     /// so that it doesn't leak.
     /// # Safety
@@ -39,16 +39,16 @@ pub fn get_pass(buf: &mut [u8]) -> crate::error::Result<usize> {
     iflag.bitand_assign(!(rusl::platform::ECHO as u32));
     iflag.bitor_assign(rusl::platform::ECHONL as u32);
     tcsetattr(STDIN, SetAction::NOW, &stdin_term)?;
-    let mut buf = [0u8; 1];
-    let read = rusl::unistd::read(STDIN, &mut buf)?;
+    let read = rusl::unistd::read(STDIN, buf)?;
     unsafe {
         // Safety, we know the buffer is not empty.
         if read == buf.len() && *buf.last().unwrap_unchecked() != b'\n' {
-            drain_newline(&mut buf)?;
+            drain_newline(buf)?;
             tcsetattr(STDIN, SetAction::NOW, &orig_flags)?;
             return Err(Error::Uncategorized("Supplied a buffer that was too small to getpass, buffer overrun."));
         }
     }
     tcsetattr(STDIN, SetAction::NOW, &orig_flags)?;
-    Ok(read)
+    core::str::from_utf8(&buf[..read])
+        .map_err(|_| Error::no_code("Failed to convert read password to utf8.  "))
 }
