@@ -233,14 +233,7 @@ impl Command {
             Environment::None => NULL_ENV.as_ptr(),
             Environment::Provided(provided) => provided.envp.0.as_ptr(),
         };
-        unsafe {
-            do_exec(
-                &self.bin,
-                self.argv.0.as_ptr(),
-                envp,
-                &mut self.closures
-            )
-        }
+        unsafe { do_exec(&self.bin, self.argv.0.as_ptr(), envp, &mut self.closures) }
     }
 }
 
@@ -377,6 +370,7 @@ pub struct ProvidedEnvironment {
     envp: Envp,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for Environment {
     fn default() -> Self {
         #[cfg(feature = "start")]
@@ -419,9 +413,13 @@ impl PreExec for () {
     }
 }
 
+/// Execute a binary after running the provided closures.
+/// Will not return if successful.
+/// # Safety
+/// Pointers are valid.
 #[inline]
 #[allow(clippy::too_many_arguments)]
-unsafe fn do_exec<F: PreExec>(
+pub unsafe fn do_exec<F: PreExec>(
     bin: &UnixStr,
     argv: *const *const u8,
     envp: *const *const u8,

@@ -1,7 +1,7 @@
+use crate::error::Error;
 use core::ops::{BitAndAssign, BitOrAssign};
 use rusl::platform::{SetAction, STDIN};
 use rusl::termios::{tcgetattr, tcsetattr};
-use crate::error::Error;
 
 /// Sets the terminal to no echo and waits for a line to be entered.
 /// The raw input, including the newline, will be put into the buffer and converted to a &str.
@@ -22,16 +22,18 @@ pub fn get_pass(buf: &mut [u8]) -> crate::error::Result<&str> {
             let res = rusl::unistd::read(STDIN, buf)?;
             // EOF or full line read
             if res == 0 || res < buf.len() {
-                return Ok(())
+                return Ok(());
             }
             let last = *buf.last().unwrap_unchecked();
             if last == b'\n' {
-                return Ok(())
+                return Ok(());
             }
         }
     }
     if buf.is_empty() {
-        return Err(Error::Uncategorized("Supplied a zero-length buffer to getpass, need an initialized buffer to populate"));
+        return Err(Error::Uncategorized(
+            "Supplied a zero-length buffer to getpass, need an initialized buffer to populate",
+        ));
     }
     let mut stdin_term = tcgetattr(STDIN)?;
     let orig_flags = stdin_term;
@@ -45,7 +47,9 @@ pub fn get_pass(buf: &mut [u8]) -> crate::error::Result<&str> {
         if read == buf.len() && *buf.last().unwrap_unchecked() != b'\n' {
             drain_newline(buf)?;
             tcsetattr(STDIN, SetAction::NOW, &orig_flags)?;
-            return Err(Error::Uncategorized("Supplied a buffer that was too small to getpass, buffer overrun."));
+            return Err(Error::Uncategorized(
+                "Supplied a buffer that was too small to getpass, buffer overrun.",
+            ));
         }
     }
     tcsetattr(STDIN, SetAction::NOW, &orig_flags)?;
