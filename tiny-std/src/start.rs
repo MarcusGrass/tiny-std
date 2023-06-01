@@ -29,7 +29,9 @@ pub(crate) struct AuxV {
 #[cfg(feature = "aux")]
 pub(crate) static mut AUX_V: AuxV = AuxV {
     ptr: core::ptr::null(),
-    locations: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    locations: [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ],
 };
 
 /// VDSO dynamically provided function pointer to CLOCK_GET_TIME

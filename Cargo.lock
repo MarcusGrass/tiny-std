@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "linux-rust-bindings"
 version = "0.1.0"
-source = "git+https://github.com/MarcusGrass/linux-rust-bindings?rev=edd8daa#edd8daa940fe0490178bce6a2c653f802e63fc7d"
+source = "git+https://github.com/MarcusGrass/linux-rust-bindings?rev=890044c#890044ce1e40c35b0ad0a1e4be5bbbf8a8a597bd"
 
 [[package]]
 name = "rusl"

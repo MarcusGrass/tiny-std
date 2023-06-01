@@ -746,6 +746,7 @@ impl IoUring {
 }
 
 impl Drop for IoUring {
+    #[allow(clippy::let_underscore_untyped)]
     fn drop(&mut self) {
         let mut sqe_size = core::mem::size_of::<IoUringSubmissionQueueEntry>();
         if self.flags.bits() & IORING_SETUP_SQE128 as u32 != 0 {

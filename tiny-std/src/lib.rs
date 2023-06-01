@@ -1,5 +1,6 @@
 #![cfg_attr(feature = "start", feature(naked_functions))]
 #![cfg_attr(not(test), no_std)]
+#![allow(clippy::let_underscore_untyped)]
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
