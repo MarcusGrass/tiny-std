@@ -84,7 +84,7 @@ where
 {
     #[inline]
     fn to_unix_string(&self) -> crate::Result<UnixString> {
-        self.deref().to_unix_string()
+        (*self).to_unix_string()
     }
 }
 
@@ -108,12 +108,12 @@ where
     where
         F: FnOnce(*const u8) -> crate::Result<T>,
     {
-        self.deref().exec_with_self_as_ptr(func)
+        (*self).exec_with_self_as_ptr(func)
     }
 
     #[inline]
     unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        self.deref().match_up_to(null_terminated_pointer)
+        (*self).match_up_to(null_terminated_pointer)
     }
 }
 
