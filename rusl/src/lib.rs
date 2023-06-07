@@ -9,6 +9,7 @@ pub use error::{Error, Result};
 pub mod error;
 #[macro_use]
 pub(crate) mod macros;
+pub mod futex;
 pub mod hidio;
 pub mod io_uring;
 pub mod ioctl;

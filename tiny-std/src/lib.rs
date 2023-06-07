@@ -13,6 +13,7 @@ pub mod io;
 pub mod linux;
 pub mod net;
 pub mod process;
+pub mod rwlock;
 pub mod signal;
 #[cfg(feature = "start")]
 pub mod start;
