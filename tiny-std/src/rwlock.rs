@@ -34,7 +34,8 @@ use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 use core::sync::atomic::AtomicU32;
 use core::sync::atomic::Ordering::{Acquire, Relaxed, Release};
-use rusl::futex::futex_wake;
+use rusl::error::Errno;
+use rusl::futex::{futex_wait, futex_wake};
 use rusl::platform::FutexFlags;
 
 pub struct RwLock<T: ?Sized> {
@@ -106,7 +107,10 @@ impl<'rwlock, T: ?Sized> RwLockWriteGuard<'rwlock, T> {
 impl<T> RwLock<T> {
     #[inline]
     pub const fn new(t: T) -> RwLock<T> {
-        RwLock { inner: InnerLock::new(), data: UnsafeCell::new(t) }
+        RwLock {
+            inner: InnerLock::new(),
+            data: UnsafeCell::new(t),
+        }
     }
 }
 
@@ -121,9 +125,7 @@ impl<T: ?Sized> RwLock<T> {
 
     #[inline]
     pub fn try_read(&self) -> Option<RwLockReadGuard<'_, T>> {
-        unsafe {
-            self.inner.try_read().then(|| RwLockReadGuard::new(self))
-        }
+        unsafe { self.inner.try_read().then(|| RwLockReadGuard::new(self)) }
     }
 
     #[inline]
@@ -136,14 +138,12 @@ impl<T: ?Sized> RwLock<T> {
 
     #[inline]
     pub fn try_write(&self) -> Option<RwLockWriteGuard<'_, T>> {
-        unsafe {
-            self.inner.try_write().then(|| RwLockWriteGuard::new(self))
-        }
+        unsafe { self.inner.try_write().then(|| RwLockWriteGuard::new(self)) }
     }
 
     pub fn into_inner(self) -> T
-        where
-            T: Sized,
+    where
+        T: Sized,
     {
         self.data.into_inner()
     }
@@ -266,7 +266,10 @@ impl InnerLock {
             }
 
             // Check for overflow.
-            assert!(!has_reached_max_readers(state), "too many active read locks on RwLock");
+            assert!(
+                !has_reached_max_readers(state),
+                "too many active read locks on RwLock"
+            );
 
             // Make sure the readers waiting bit is set before we go to sleep.
             if !has_readers_waiting(state) {
@@ -280,7 +283,7 @@ impl InnerLock {
             }
 
             // Wait for the state to change.
-            let _ = rusl::futex::futex_wait(&self.state, state | READERS_WAITING, FutexFlags::empty(), None);
+            futex_wait_fast(&self.state, state | READERS_WAITING);
 
             // Spin again after waking up.
             state = self.spin_read();
@@ -368,7 +371,7 @@ impl InnerLock {
             }
 
             // Wait for the state to change.
-            let _ = rusl::futex::futex_wait(&self.writer_notify, seq, FutexFlags::empty(), None);
+            futex_wait_fast(&self.writer_notify, seq);
 
             // Spin again after waking up.
             state = self.spin_write();
@@ -426,10 +429,12 @@ impl InnerLock {
         }
 
         // If readers are waiting, wake them all up.
-        if state == READERS_WAITING && self
-            .state
-            .compare_exchange(state, 0, Relaxed, Relaxed)
-            .is_ok() {
+        if state == READERS_WAITING
+            && self
+                .state
+                .compare_exchange(state, 0, Relaxed, Relaxed)
+                .is_ok()
+        {
             let _ = futex_wake(&self.state, i32::MAX);
         }
     }
@@ -538,6 +543,27 @@ impl<T: ?Sized> Drop for RwLockWriteGuard<'_, T> {
     }
 }
 
+fn futex_wait_fast(futex: &AtomicU32, expect: u32) {
+    loop {
+        if futex.load(Relaxed) != expect {
+            return;
+        }
+        match futex_wait(futex, expect, FutexFlags::empty(), None) {
+            Ok(_) => {
+                return;
+            }
+            Err(e) => {
+                if let Some(code) = e.code {
+                    if code == Errno::EAGAIN {
+                    } else {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -547,9 +573,7 @@ mod tests {
         let rw = alloc::sync::Arc::new(super::RwLock::new(0));
         let rw_c = rw.clone();
         let mut guard = rw.write();
-        let res = std::thread::spawn(move || {
-            *rw_c.read()
-        });
+        let res = std::thread::spawn(move || *rw_c.read());
         *guard = 15;
         drop(guard);
         let thread_res = res.join().unwrap();

@@ -60,21 +60,26 @@ pub fn get_aux_value(val: rusl::platform::AuxValue) -> Option<usize> {
 #[cfg(all(feature = "symbols", feature = "start"))]
 pub unsafe fn rust_eh_personality() {}
 
-/// Binary entrypoint
-#[naked]
-#[no_mangle]
-#[cfg(all(feature = "symbols", feature = "start"))]
-pub unsafe extern "C" fn _start() {
-    // Naked function making sure that main gets the first stack address as an arg
-    #[cfg(target_arch = "x86_64")]
-    {
-        core::arch::asm!("mov rdi, rsp", "call __proxy_main", options(noreturn))
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        core::arch::asm!("MOV X0, sp", "bl __proxy_main", options(noreturn))
-    }
-}
+// Binary entrypoint
+#[cfg(all(feature = "symbols", feature = "start", target_arch = "x86_64"))]
+core::arch::global_asm!(
+    ".text",
+    ".global _start",
+    ".type _start,@function",
+    "_start:",
+    "mov rdi, rsp",
+    "call __proxy_main"
+);
+
+#[cfg(all(feature = "symbols", feature = "start", target_arch = "aarch64"))]
+core::arch::global_asm!(
+    ".text",
+    ".global _start",
+    ".type _start,@function",
+    "_start:",
+    "MOV X0, sp",
+    "bl __proxy_main"
+);
 
 /// Called with a pointer to the top of the stack
 #[no_mangle]

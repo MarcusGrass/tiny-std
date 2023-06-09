@@ -4,13 +4,14 @@ version = 3
 
 [[package]]
 name = "compiler_builtins"
-version = "0.1.84"
+version = "0.1.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "989b2c1ca6e90ad06fdc69d1d1862fa28d27a977be6d92ae2fa762cf61fe0b10"
+checksum = "64518f1ae689f74db058bbfb3238dfe6eb53f59f4ae712f1ff4348628522e190"
 
 [[package]]
 name = "linux-rust-bindings"
 version = "0.1.0"
+source = "git+https://github.com/MarcusGrass/linux-rust-bindings?rev=d8c402a9b2a5ed3e33e85a21009e32a5b997ba60#d8c402a9b2a5ed3e33e85a21009e32a5b997ba60"
 
 [[package]]
 name = "rusl"

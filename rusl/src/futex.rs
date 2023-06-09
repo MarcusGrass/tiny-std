@@ -37,10 +37,7 @@ pub fn futex_wait(
 /// # Errors
 /// See above documentation
 #[inline]
-pub fn futex_wake(
-    uaddr: &AtomicU32,
-    num_waiters: i32,
-) -> Result<usize, Error> {
+pub fn futex_wake(uaddr: &AtomicU32, num_waiters: i32) -> Result<usize, Error> {
     let res = unsafe {
         syscall!(
             FUTEX,
@@ -64,7 +61,7 @@ mod tests {
     fn test_futex_wait_wake() {
         use crate::futex::{futex_wait, futex_wake};
         use crate::platform::FutexFlags;
-        use core::sync::atomic::{AtomicU32};
+        use core::sync::atomic::AtomicU32;
         use core::time::Duration;
 
         let rf = alloc::sync::Arc::new(AtomicU32::new(15));
