@@ -6,17 +6,10 @@ version = 3
 name = "alloc-main"
 version = "0.1.0"
 dependencies = [
- "compiler_builtins",
  "dlmalloc",
  "tiny-std",
  "unix-print",
 ]
-
-[[package]]
-name = "compiler_builtins"
-version = "0.1.92"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64518f1ae689f74db058bbfb3238dfe6eb53f59f4ae712f1ff4348628522e190"
 
 [[package]]
 name = "dlmalloc"

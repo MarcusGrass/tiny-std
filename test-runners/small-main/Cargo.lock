@@ -3,12 +3,6 @@
 version = 3
 
 [[package]]
-name = "compiler_builtins"
-version = "0.1.92"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64518f1ae689f74db058bbfb3238dfe6eb53f59f4ae712f1ff4348628522e190"
-
-[[package]]
 name = "linux-rust-bindings"
 version = "0.1.0"
 source = "git+https://github.com/MarcusGrass/linux-rust-bindings?rev=d8c402a9b2a5ed3e33e85a21009e32a5b997ba60#d8c402a9b2a5ed3e33e85a21009e32a5b997ba60"
@@ -32,7 +26,6 @@ checksum = "010e18bd3bfd1d45a7e666b236c78720df0d9a7698ebaa9c1c559961eb60a38b"
 name = "small-main"
 version = "0.1.0"
 dependencies = [
- "compiler_builtins",
  "rusl",
  "tiny-std",
  "unix-print",
