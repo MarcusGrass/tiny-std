@@ -10,7 +10,7 @@ use crate::error::Result;
 pub fn sleep(duration: Duration) -> Result<()> {
     let mut ts = duration.try_into()?;
     loop {
-        match rusl::unistd::nanosleep_same_ptr(&mut ts) {
+        match rusl::time::nanosleep_same_ptr(&mut ts) {
             Ok(_) => return Ok(()),
             Err(ref e) if e.code == Some(Errno::EINTR) => {
                 continue;

@@ -13,6 +13,7 @@ macro_rules! transparent_bitflags {
     (
         $(#[$outer:meta])*
         $vis:vis struct $BitFlags:ident: $T:ty {
+            const DEFAULT = $const_default:expr;
             $(
                 $(#[$inner:ident $($args:tt)*])*
                 const $Flag:ident = $value:expr;
@@ -26,6 +27,7 @@ macro_rules! transparent_bitflags {
 
         impl $BitFlags {
 
+            const DEFAULT: Self = Self($const_default);
             $(
                 $(#[$inner $($args)*])*
                 $vis const $Flag: Self = Self($value);
@@ -42,14 +44,14 @@ macro_rules! transparent_bitflags {
             #[allow(dead_code)]
             #[must_use]
             $vis const fn empty() -> Self {
-                Self(0)
+                Self::DEFAULT
             }
 
             #[inline]
             #[allow(dead_code)]
             #[must_use]
-            $vis const fn contains(&self, other: Self) -> bool {
-                self.0 & other.0 != 0
+            $vis fn contains(&self, other: Self) -> bool {
+                self.0 & other.0 != Self::DEFAULT.0
             }
         }
 
@@ -100,15 +102,6 @@ macro_rules! transparent_bitflags {
             #[inline]
             fn bitor_assign(&mut self, rhs: Self) {
                 self.0 |= rhs.0;
-            }
-        }
-
-
-        impl core::ops::Not for $BitFlags {
-            type Output = Self;
-
-            fn not(self) -> Self::Output {
-                Self(!self.0)
             }
         }
 

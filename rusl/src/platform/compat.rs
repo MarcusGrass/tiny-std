@@ -1,3 +1,4 @@
+pub use crate::platform::numbers::NonNegativeI32;
 pub use auxvec::*;
 pub use clone::*;
 pub use dirent::*;
@@ -7,9 +8,7 @@ pub use futex::*;
 pub use hidio::*;
 pub use io_uring::*;
 pub use mman::*;
-pub use mode_flags::*;
 pub use mount::*;
-pub use open_flags::*;
 pub use poll::*;
 pub use renameat::*;
 pub use signal::*;
@@ -32,9 +31,7 @@ mod futex;
 mod hidio;
 mod io_uring;
 mod mman;
-mod mode_flags;
 mod mount;
-mod open_flags;
 mod poll;
 mod renameat;
 mod signal;
@@ -53,7 +50,7 @@ pub type UidT = u32;
 pub type GidT = u32;
 pub type PidT = i32;
 pub type TidT = i32;
-pub type Fd = i32;
+pub type Fd = NonNegativeI32;
 pub type OffT = i64;
 pub type BlkSizeT = i64;
 pub type BlkCntT = i64;
@@ -65,21 +62,22 @@ pub type NlinkT = u64;
 pub const NULL_BYTE: u8 = b'\0';
 pub const NULL_CHAR: char = '\0';
 
-pub const STDIN: Fd = 0;
-pub const STDOUT: Fd = 1;
-pub const STDERR: Fd = 2;
+pub const STDIN: Fd = NonNegativeI32::comptime_checked_new(0);
+pub const STDOUT: Fd = NonNegativeI32::comptime_checked_new(1);
+pub const STDERR: Fd = NonNegativeI32::comptime_checked_new(2);
 
 /// For this to be syscall compatible, the generated i32 needs to be downgraded to u8
 transparent_bitflags! {
     pub struct DirType: u8 {
-        const DT_UNKNOWN = linux_rust_bindings::types::DT_UNKNOWN as u8;
-        const DT_FIFO = linux_rust_bindings::types::DT_FIFO as u8;
-        const DT_CHR = linux_rust_bindings::types::DT_CHR as u8;
-        const DT_DIR = linux_rust_bindings::types::DT_DIR as u8;
-        const DT_BLK = linux_rust_bindings::types::DT_BLK as u8;
-        const DT_REG = linux_rust_bindings::types::DT_REG as u8;
-        const DT_LNK = linux_rust_bindings::types::DT_LNK as u8;
-        const DT_SOCK = linux_rust_bindings::types::DT_SOCK as u8;
+        const DEFAULT = 0;
+        const DT_UNKNOWN = comptime_i32_to_u8(linux_rust_bindings::types::DT_UNKNOWN);
+        const DT_FIFO = comptime_i32_to_u8(linux_rust_bindings::types::DT_FIFO);
+        const DT_CHR = comptime_i32_to_u8(linux_rust_bindings::types::DT_CHR);
+        const DT_DIR = comptime_i32_to_u8(linux_rust_bindings::types::DT_DIR);
+        const DT_BLK = comptime_i32_to_u8(linux_rust_bindings::types::DT_BLK);
+        const DT_REG = comptime_i32_to_u8(linux_rust_bindings::types::DT_REG);
+        const DT_LNK = comptime_i32_to_u8(linux_rust_bindings::types::DT_LNK);
+        const DT_SOCK = comptime_i32_to_u8(linux_rust_bindings::types::DT_SOCK);
     }
 }
 
@@ -92,6 +90,7 @@ macro_rules! _ioc {
             | ($sz << linux_rust_bindings::ioctl::_IOC_SIZESHIFT as $ty)
     };
 }
+
 #[macro_export]
 macro_rules! _ior {
     ($io_ty: expr, $nr: expr, $ty: ty) => {
@@ -104,6 +103,7 @@ macro_rules! _ior {
         )
     };
 }
+
 #[macro_export]
 macro_rules! _iow {
     ($io_ty: expr, $nr: expr, $ty: ty) => {
@@ -116,6 +116,40 @@ macro_rules! _iow {
         )
     };
 }
+
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub(crate) const fn comptime_i32_to_u8(input: i32) -> u8 {
+    assert!(
+        input >= 0 && input < u8::MAX as i32,
+        "Provided i32 cannot be converted to a u8"
+    );
+    input as u8
+}
+
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub(crate) const fn comptime_i32_to_u32(input: i32) -> u32 {
+    assert!(input >= 0, "Provided i32 cannot be converted to a u32");
+    input as u32
+}
+
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) const fn comptime_i32_to_i16(input: i32) -> i16 {
+    assert!(
+        input < i16::MAX as i32 && input > i16::MIN as i32,
+        "Provided i32 cannot be converted to an i16"
+    );
+    input as i16
+}
+
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) const fn comptime_u32_to_u8(input: u32) -> u8 {
+    assert!(
+        input < u8::MAX as u32,
+        "Provided u32 cannot be converted to a u8"
+    );
+    input as u8
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

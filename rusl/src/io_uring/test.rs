@@ -12,11 +12,11 @@ use crate::platform::{
     AddressFamily, Fd, IoSlice, IoSliceMut, IoUring, IoUringCompletionQueueEntry,
     IoUringEnterFlags, IoUringParamFlags, IoUringParams, IoUringSQEFlags,
     IoUringSubmissionQueueEntry, Mode, OpenFlags, RenameFlags, SocketAddress, SocketType,
-    StatxFlags, StatxMask, TimeSpec, AT_REMOVEDIR,
+    StatxFlags, StatxMask, TimeSpec, AT_REMOVEDIR, STDERR, STDIN, STDOUT,
 };
 use crate::string::unix_str::UnixStr;
 use crate::time::clock_get_monotonic_time;
-use crate::unistd::{close, open, open_mode, read, stat, unlink_flags};
+use crate::unistd::{close, open, open_mode, read, stat, unlink, unlink_flags};
 
 #[test]
 fn uring_setup() {
@@ -27,7 +27,7 @@ fn setup_io_poll_uring() -> Option<Fd> {
     let mut params = IoUringParams::new(IoUringParamFlags::IORING_SETUP_IOPOLL, 0, 0);
     let uring_fd = match io_uring_setup(1, &mut params) {
         Ok(uring_fd) => {
-            assert_ne!(0, uring_fd);
+            assert_ne!(0, uring_fd.0);
             uring_fd
         }
         #[allow(unused_variables)]
@@ -177,7 +177,7 @@ fn uring_single_open() {
         )
     };
     let cqe = write_await_single_entry(&mut uring, entry, user_data);
-    let fd = cqe.0.res as Fd;
+    let fd = Fd::try_new(cqe.0.res).unwrap();
     let mut bytes = [0u8; 1024];
     let read_bytes = read(fd, &mut bytes).unwrap();
     assert_eq!(5, read_bytes);
@@ -359,7 +359,7 @@ fn uring_single_accept() {
     if let Err(e) = stat(sock_path) {
         assert_eq!(Errno::ENOENT, e.code.unwrap());
     } else {
-        unlink_flags(sock_path, 0).unwrap();
+        unlink(sock_path).unwrap();
     }
     bind(server_socket, &addr).unwrap();
     listen(server_socket, 100).unwrap();
@@ -479,7 +479,7 @@ fn uring_read_registered_buffers_and_fds() {
     io_uring_register_files(uring.fd, &[fd1, fd2, fd3]).unwrap();
     unsafe {
         let r1 = IoUringSubmissionQueueEntry::new_readv_fixed(
-            0,
+            STDIN,
             0,
             buf1_addr as u64,
             64,
@@ -487,7 +487,7 @@ fn uring_read_registered_buffers_and_fds() {
             IoUringSQEFlags::IOSQE_FIXED_FILE,
         );
         let r2 = IoUringSubmissionQueueEntry::new_readv_fixed(
-            1,
+            STDOUT,
             1,
             buf2_addr as u64,
             64,
@@ -495,7 +495,7 @@ fn uring_read_registered_buffers_and_fds() {
             IoUringSQEFlags::IOSQE_FIXED_FILE,
         );
         let r3 = IoUringSubmissionQueueEntry::new_readv_fixed(
-            2,
+            STDERR,
             2,
             buf3_addr as u64,
             64,
@@ -584,7 +584,7 @@ fn uring_write_registered_buffers_and_fds() {
     io_uring_register_files(uring.fd, &[fd1, fd2, fd3]).unwrap();
     unsafe {
         let r1 = IoUringSubmissionQueueEntry::new_writev_fixed(
-            0,
+            STDIN,
             0,
             buf1_addr as u64,
             21,
@@ -592,7 +592,7 @@ fn uring_write_registered_buffers_and_fds() {
             IoUringSQEFlags::IOSQE_FIXED_FILE,
         );
         let r2 = IoUringSubmissionQueueEntry::new_writev_fixed(
-            1,
+            STDOUT,
             1,
             buf2_addr as u64,
             21,
@@ -600,7 +600,7 @@ fn uring_write_registered_buffers_and_fds() {
             IoUringSQEFlags::IOSQE_FIXED_FILE,
         );
         let r3 = IoUringSubmissionQueueEntry::new_writev_fixed(
-            2,
+            STDERR,
             2,
             buf3_addr as u64,
             21,

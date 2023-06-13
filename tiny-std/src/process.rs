@@ -565,7 +565,7 @@ unsafe fn do_spawn<F: PreExec>(
 pub fn spawn<const N: usize, BIN: AsUnixStr, ARG: AsUnixStr, CL: PreExec>(
     bin: BIN,
     argv: [ARG; N],
-    env: Environment,
+    env: &Environment,
     stdin: Option<Stdio>,
     stdout: Option<Stdio>,
     stderr: Option<Stdio>,

@@ -10,9 +10,8 @@ use crate::string::unix_str::AsUnixStr;
 /// Pointer must be null terminated
 #[inline]
 pub unsafe fn open_raw(name_addr: usize, flags: OpenFlags) -> crate::Result<Fd> {
-    let res = syscall!(OPENAT, AT_FDCWD, name_addr, flags.bits());
-    bail_on_below_zero!(res, "`OPEN` syscall failed");
-    Ok(res as Fd)
+    let res = syscall!(OPENAT, AT_FDCWD, name_addr, flags.bits().0);
+    Fd::coerce_from_register(res, "`OPENAT` syscall failed")
 }
 
 /// Attempts to open the fd at the path specified by a null terminated string, with the provided `OpenFlags`
@@ -21,9 +20,8 @@ pub unsafe fn open_raw(name_addr: usize, flags: OpenFlags) -> crate::Result<Fd> 
 /// See above, errors are converted into an Err with the corresponding error code
 pub fn open(path: impl AsUnixStr, flags: OpenFlags) -> crate::Result<Fd> {
     path.exec_with_self_as_ptr(|ptr| {
-        let res = unsafe { syscall!(OPENAT, AT_FDCWD, ptr, flags.bits()) };
-        bail_on_below_zero!(res, "`OPENAT` syscall failed");
-        Ok(res as i32)
+        let res = unsafe { syscall!(OPENAT, AT_FDCWD, ptr, flags.bits().0) };
+        Fd::coerce_from_register(res, "`OPENAT` syscall failed")
     })
 }
 
@@ -34,9 +32,8 @@ pub fn open(path: impl AsUnixStr, flags: OpenFlags) -> crate::Result<Fd> {
 #[inline]
 pub fn open_mode(path: impl AsUnixStr, flags: OpenFlags, mode: Mode) -> crate::Result<Fd> {
     path.exec_with_self_as_ptr(|ptr| {
-        let res = unsafe { syscall!(OPENAT, AT_FDCWD, ptr, flags.bits(), mode.bits()) };
-        bail_on_below_zero!(res, "`OPENAT` syscall failed");
-        Ok(res as i32)
+        let res = unsafe { syscall!(OPENAT, AT_FDCWD, ptr, flags.bits().0, mode.bits()) };
+        Fd::coerce_from_register(res, "`OPENAT` syscall failed")
     })
 }
 
@@ -46,9 +43,8 @@ pub fn open_mode(path: impl AsUnixStr, flags: OpenFlags, mode: Mode) -> crate::R
 /// see above
 pub fn open_at(dir: Fd, path: impl AsUnixStr, flags: OpenFlags) -> crate::Result<Fd> {
     path.exec_with_self_as_ptr(|ptr| {
-        let res = unsafe { syscall!(OPENAT, dir, ptr, flags.bits()) };
-        bail_on_below_zero!(res, "`OPENAT` syscall failed");
-        Ok(res as i32)
+        let res = unsafe { syscall!(OPENAT, dir.0, ptr, flags.bits().0) };
+        Fd::coerce_from_register(res, "`OPENAT` syscall failed")
     })
 }
 
@@ -63,9 +59,8 @@ pub fn open_at_mode(
     mode: Mode,
 ) -> crate::Result<Fd> {
     path.exec_with_self_as_ptr(|ptr| {
-        let res = unsafe { syscall!(OPENAT, dir, ptr, flags.bits(), mode.bits()) };
-        bail_on_below_zero!(res, "`OPENAT` syscall failed");
-        Ok(res as i32)
+        let res = unsafe { syscall!(OPENAT, dir.0, ptr, flags.bits().0, mode.bits()) };
+        Fd::coerce_from_register(res, "`OPENAT` syscall failed")
     })
 }
 

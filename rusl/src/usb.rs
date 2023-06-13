@@ -4,7 +4,7 @@ use crate::ioctl::ioctl;
 use crate::platform::{
     Fd, USBDEVFS_BULK, USBDEVFS_CLAIM_INTERFACE, USBDEVFS_RELEASE_INTERFACE, USBDEVFS_RESET,
 };
-use crate::Result;
+use crate::{Error, Result};
 
 /// Make a bulk transfer on the hid fd specified by `fd` at `endpoint`, `data` is either an
 /// input or output buffer, `timeout` is specified in milliseconds.
@@ -13,13 +13,15 @@ use crate::Result;
 pub fn bulk_transfer(fd: Fd, endpoint: u32, data: &mut [u8], timeout: u32) -> Result<usize> {
     let mut bulk = usbdevfs_bulktransfer {
         ep: endpoint,
-        len: data.len() as u32,
+        len: data.len().try_into().map_err(|_e| {
+            Error::no_code("`bulk_transfer` failed, too much data, max is u32::MAX")
+        })?,
         timeout,
         data: data.as_mut_ptr().cast(),
     };
     unsafe {
         ioctl(
-            fd as usize,
+            fd,
             USBDEVFS_BULK as usize,
             core::ptr::addr_of_mut!(bulk) as usize,
         )
@@ -35,7 +37,7 @@ pub fn bulk_transfer(fd: Fd, endpoint: u32, data: &mut [u8], timeout: u32) -> Re
 pub fn claim_interface(fd: Fd, interface_number: u32) -> Result<()> {
     unsafe {
         ioctl(
-            fd as usize,
+            fd,
             USBDEVFS_CLAIM_INTERFACE as usize,
             core::ptr::addr_of!(interface_number) as usize,
         )?;
@@ -50,7 +52,7 @@ pub fn claim_interface(fd: Fd, interface_number: u32) -> Result<()> {
 /// Errors relating to a bad `fd` and permissions.
 pub fn reset_usb_device(fd: Fd) -> Result<()> {
     unsafe {
-        ioctl(fd as usize, USBDEVFS_RESET as usize, 0)?;
+        ioctl(fd, USBDEVFS_RESET as usize, 0)?;
     }
     Ok(())
 }
@@ -62,7 +64,7 @@ pub fn reset_usb_device(fd: Fd) -> Result<()> {
 pub fn release_interface(fd: Fd, interface_number: u32) -> Result<()> {
     unsafe {
         ioctl(
-            fd as usize,
+            fd,
             USBDEVFS_RELEASE_INTERFACE as usize,
             interface_number as usize,
         )?;

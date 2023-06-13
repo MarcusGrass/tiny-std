@@ -10,6 +10,7 @@ macro_rules! get_name {
         /// Will attempt to convert the buffered name to utf8.
         /// # Errors
         /// If the bytes are not valid utf8
+        #[allow(clippy::transmute_ptr_to_ptr)]
         pub fn $ident(&self) -> crate::Result<&str> {
             unsafe {
                 let as_u8: &[u8] = core::mem::transmute(self.0.$ident.as_slice());

@@ -7,7 +7,7 @@ use crate::platform::Fd;
 /// # Errors
 /// See above
 pub fn get_dents(fd: Fd, dir_p: &mut [u8]) -> crate::Result<usize> {
-    let res = unsafe { syscall!(GETDENTS64, fd, dir_p.as_mut_ptr(), dir_p.len()) };
+    let res = unsafe { syscall!(GETDENTS64, fd.0, dir_p.as_mut_ptr(), dir_p.len()) };
     bail_on_below_zero!(res, "`GETDENTS64` syscall failed");
     Ok(res)
 }

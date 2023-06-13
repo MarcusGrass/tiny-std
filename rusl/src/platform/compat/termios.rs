@@ -3,39 +3,40 @@ use linux_rust_bindings::termios::tcflag_t;
 pub use linux_rust_bindings::termios::{ECHO, ECHONL};
 
 transparent_bitflags! {
-    pub struct TermioFlags: u64 {
-        const TIOCEXCL = linux_rust_bindings::termios::TIOCEXCL as u64;
-        const TIOCNXCL = linux_rust_bindings::termios::TIOCNXCL as u64;
-        const TIOCSCTTY = linux_rust_bindings::termios::TIOCSCTTY as u64;
-        const TIOCGPGRP = linux_rust_bindings::termios::TIOCGPGRP as u64;
-        const TIOCSPGRP = linux_rust_bindings::termios::TIOCSPGRP as u64;
-        const TIOCOUTQ = linux_rust_bindings::termios::TIOCOUTQ as u64;
-        const TIOCSTI = linux_rust_bindings::termios::TIOCSTI as u64;
-        const TIOCGWINSZ = linux_rust_bindings::termios::TIOCGWINSZ as u64;
-        const TIOCSWINSZ = linux_rust_bindings::termios::TIOCSWINSZ as u64;
-        const TIOCMGET = linux_rust_bindings::termios::TIOCMGET as u64;
-        const TIOCMBIS = linux_rust_bindings::termios::TIOCMBIS as u64;
-        const TIOCMBIC = linux_rust_bindings::termios::TIOCMBIC as u64;
-        const TIOCMSET = linux_rust_bindings::termios::TIOCMSET as u64;
-        const TIOCGSOFTCAR = linux_rust_bindings::termios::TIOCGSOFTCAR as u64;
-        const TIOCSSOFTCAR = linux_rust_bindings::termios::TIOCSSOFTCAR as u64;
-        const TIOCINQ = linux_rust_bindings::termios::TIOCINQ as u64;
-        const TIOCLINUX = linux_rust_bindings::termios::TIOCLINUX as u64;
-        const TIOCCONS = linux_rust_bindings::termios::TIOCCONS as u64;
-        const TIOCGSERIAL = linux_rust_bindings::termios::TIOCGSERIAL as u64;
-        const TIOCSSERIAL = linux_rust_bindings::termios::TIOCSSERIAL as u64;
-        const TIOCPKT = linux_rust_bindings::termios::TIOCPKT as u64;
-        const TIOCNOTTY = linux_rust_bindings::termios::TIOCNOTTY as u64;
-        const TIOCSETD = linux_rust_bindings::termios::TIOCSETD as u64;
-        const TIOCGETD = linux_rust_bindings::termios::TIOCGETD as u64;
-        const TCSBRKP = linux_rust_bindings::termios::TCSBRKP as u64;
-        const TIOCSBRK = linux_rust_bindings::termios::TIOCSBRK as u64;
-        const TIOCCBRK = linux_rust_bindings::termios::TIOCCBRK as u64;
-        const TIOCGSID = linux_rust_bindings::termios::TIOCGSID as u64;
-        const TIOCGRS485 = linux_rust_bindings::termios::TIOCGRS485 as u64;
-        const TIOCSRS485 = linux_rust_bindings::termios::TIOCSRS485 as u64;
-        const TIOCGPTN = tio_shim::TIOCGPTN as u64;
-        const TIOCSPTLCK = tio_shim::TIOCSPTLCK as u64;
+    pub struct TermioFlags: usize {
+        const DEFAULT = 0;
+        const TIOCEXCL = linux_rust_bindings::termios::TIOCEXCL as usize;
+        const TIOCNXCL = linux_rust_bindings::termios::TIOCNXCL as usize;
+        const TIOCSCTTY = linux_rust_bindings::termios::TIOCSCTTY as usize;
+        const TIOCGPGRP = linux_rust_bindings::termios::TIOCGPGRP as usize;
+        const TIOCSPGRP = linux_rust_bindings::termios::TIOCSPGRP as usize;
+        const TIOCOUTQ = linux_rust_bindings::termios::TIOCOUTQ as usize;
+        const TIOCSTI = linux_rust_bindings::termios::TIOCSTI as usize;
+        const TIOCGWINSZ = linux_rust_bindings::termios::TIOCGWINSZ as usize;
+        const TIOCSWINSZ = linux_rust_bindings::termios::TIOCSWINSZ as usize;
+        const TIOCMGET = linux_rust_bindings::termios::TIOCMGET as usize;
+        const TIOCMBIS = linux_rust_bindings::termios::TIOCMBIS as usize;
+        const TIOCMBIC = linux_rust_bindings::termios::TIOCMBIC as usize;
+        const TIOCMSET = linux_rust_bindings::termios::TIOCMSET as usize;
+        const TIOCGSOFTCAR = linux_rust_bindings::termios::TIOCGSOFTCAR as usize;
+        const TIOCSSOFTCAR = linux_rust_bindings::termios::TIOCSSOFTCAR as usize;
+        const TIOCINQ = linux_rust_bindings::termios::TIOCINQ as usize;
+        const TIOCLINUX = linux_rust_bindings::termios::TIOCLINUX as usize;
+        const TIOCCONS = linux_rust_bindings::termios::TIOCCONS as usize;
+        const TIOCGSERIAL = linux_rust_bindings::termios::TIOCGSERIAL as usize;
+        const TIOCSSERIAL = linux_rust_bindings::termios::TIOCSSERIAL as usize;
+        const TIOCPKT = linux_rust_bindings::termios::TIOCPKT as usize;
+        const TIOCNOTTY = linux_rust_bindings::termios::TIOCNOTTY as usize;
+        const TIOCSETD = linux_rust_bindings::termios::TIOCSETD as usize;
+        const TIOCGETD = linux_rust_bindings::termios::TIOCGETD as usize;
+        const TCSBRKP = linux_rust_bindings::termios::TCSBRKP as usize;
+        const TIOCSBRK = linux_rust_bindings::termios::TIOCSBRK as usize;
+        const TIOCCBRK = linux_rust_bindings::termios::TIOCCBRK as usize;
+        const TIOCGSID = linux_rust_bindings::termios::TIOCGSID as usize;
+        const TIOCGRS485 = linux_rust_bindings::termios::TIOCGRS485 as usize;
+        const TIOCSRS485 = linux_rust_bindings::termios::TIOCSRS485 as usize;
+        const TIOCGPTN = tio_shim::TIOCGPTN as usize;
+        const TIOCSPTLCK = tio_shim::TIOCSPTLCK as usize;
     }
 }
 #[repr(transparent)]
@@ -63,6 +64,7 @@ impl Default for WindowSize {
 
 transparent_bitflags! {
     pub struct InputFlags: tcflag_t {
+        const DEFAULT = 0;
         const IGNBRK = linux_rust_bindings::termios::IGNBRK as tcflag_t;
         const BRKINT = linux_rust_bindings::termios::BRKINT as tcflag_t;
         const IGNPAR = linux_rust_bindings::termios::IGNPAR as tcflag_t;

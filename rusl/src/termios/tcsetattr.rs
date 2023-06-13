@@ -11,7 +11,7 @@ pub fn tcsetattr(fd: Fd, action: SetAction, termios: &Termios) -> crate::Result<
     let res = unsafe {
         syscall!(
             IOCTL,
-            fd,
+            fd.0,
             TCSETS + action.into_i32(),
             termios as *const Termios
         )

@@ -137,7 +137,9 @@ const NUM_OUT_OF_RANGE: Error = Error::no_code("Number out of range");
 #[allow(clippy::needless_range_loop)]
 fn try_parse_num(buf: &[u8]) -> Result<u32> {
     let len = buf.len();
-    let mut pow = len as u32;
+    let mut pow = u32::try_from(buf.len()).map_err(|_e| {
+        Error::no_code("Tried to parse a number that had a digit-length larger than u32::MAX")
+    })?;
     let mut sum: u32 = 0;
     for i in 0..len {
         pow -= 1;
@@ -146,7 +148,7 @@ fn try_parse_num(buf: &[u8]) -> Result<u32> {
         ))?;
         sum = sum
             .checked_add(
-                (digit as u32)
+                u32::from(digit)
                     .checked_mul(10u32.checked_pow(pow).ok_or(NUM_OUT_OF_RANGE)?)
                     .ok_or(NUM_OUT_OF_RANGE)?,
             )

@@ -19,7 +19,7 @@ pub fn futex_wait(
         syscall!(
             FUTEX,
             uaddr as *const AtomicU32,
-            FUTEX_WAIT & flags.bits(),
+            FUTEX_WAIT & flags.bits().0,
             val,
             timeout
                 .as_ref()
@@ -67,7 +67,7 @@ mod tests {
         let rf = alloc::sync::Arc::new(AtomicU32::new(15));
         let rf_c = rf.clone();
         std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(50));
+            std::thread::sleep(Duration::from_millis(5));
             futex_wake(rf.as_ref(), i32::MAX).unwrap();
         });
         futex_wait(rf_c.as_ref(), 15, FutexFlags::empty(), None).unwrap();

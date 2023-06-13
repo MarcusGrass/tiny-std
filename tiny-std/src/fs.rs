@@ -133,6 +133,7 @@ impl Metadata {
     #[inline]
     #[must_use]
     #[allow(clippy::len_without_is_empty)]
+    #[allow(clippy::cast_sign_loss)]
     pub fn len(&self) -> u64 {
         self.0.st_size as u64
     }
@@ -308,7 +309,7 @@ impl Directory {
                 let fname = sub_dir.file_unix_name()?;
                 let next = Self::open_at(self.0 .0, fname)?;
                 next.remove_all()?;
-                rusl::unistd::unlink_at(self.0 .0, fname, AT_REMOVEDIR)?;
+                rusl::unistd::unlink_at(self.0 .0, fname, AT_REMOVEDIR.value())?;
             } else {
                 rusl::unistd::unlink_at(self.0 .0, sub_dir.file_unix_name()?, 0)?;
             }
@@ -427,7 +428,7 @@ impl<'a> DirEntry<'a> {
             // ie. we just did a range check.
             let tgt = self.inner.d_name.get_unchecked(..=len);
             // Safety: `&UnixStr` and `&[u8]` have the same layout
-            Ok(core::mem::transmute(tgt))
+            Ok(&*(tgt as *const [u8] as *const UnixStr))
         }
     }
 
@@ -491,6 +492,7 @@ impl Write for File {
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct OpenOptions {
     read: bool,
     write: bool,
@@ -522,7 +524,7 @@ impl OpenOptions {
             create_new: false,
             // system-specific
             flags: OpenFlags::empty(),
-            mode: Mode::from(0o0000666),
+            mode: Mode::from(0o0_000_666),
         }
     }
 

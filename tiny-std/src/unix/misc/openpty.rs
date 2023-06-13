@@ -27,15 +27,11 @@ pub fn openpty<P: AsUnixStr>(
         let pty_num_addr = core::ptr::addr_of_mut!(pty_num);
         // Todo: Maybe check if not zero and bail like musl does
         ioctl(
-            master as usize,
-            TermioFlags::TIOCSPTLCK.bits() as usize,
+            master,
+            TermioFlags::TIOCSPTLCK.bits(),
             pty_num_addr as usize,
         )?;
-        ioctl(
-            master as usize,
-            TermioFlags::TIOCGPTN.bits() as usize,
-            pty_num_addr as usize,
-        )?;
+        ioctl(master, TermioFlags::TIOCGPTN.bits(), pty_num_addr as usize)?;
         let slave = if let Some(name) = name {
             open(name, use_flags)?
         } else {
@@ -52,8 +48,8 @@ pub fn openpty<P: AsUnixStr>(
         }
         if let Some(winsize) = winsize {
             ioctl(
-                slave as usize,
-                TermioFlags::TIOCSWINSZ.bits() as usize,
+                slave,
+                TermioFlags::TIOCSWINSZ.bits(),
                 core::ptr::addr_of!(winsize) as usize,
             )?;
         }

@@ -1,20 +1,21 @@
-use crate::platform::Fd;
+use crate::platform::{comptime_i32_to_i16, Fd};
 
 // https://man7.org/linux/man-pages/man2/poll.2.html
 transparent_bitflags! {
     pub struct PollEvents: i16 {
-        const POLLIN = linux_rust_bindings::poll::POLLIN as i16;
-        const POLLPRI = linux_rust_bindings::poll::POLLPRI as i16;
-        const POLLOUT = linux_rust_bindings::poll::POLLOUT as i16;
-        const POLLERR = linux_rust_bindings::poll::POLLERR as i16;
-        const POLLHUP = linux_rust_bindings::poll::POLLHUP as i16;
-        const POLLNVAL = linux_rust_bindings::poll::POLLNVAL as i16;
-        const POLLRDNORM = linux_rust_bindings::poll::POLLRDNORM as i16;
-        const POLLRDBAND = linux_rust_bindings::poll::POLLRDBAND as i16;
-        const POLLWRNORM = linux_rust_bindings::poll::POLLWRNORM as i16;
-        const POLLWRBAND = linux_rust_bindings::poll::POLLWRBAND as i16;
-        const POLLMSG = linux_rust_bindings::poll::POLLMSG as i16;
-        const POLLRDHUP = linux_rust_bindings::poll::POLLRDHUP as i16;
+        const DEFAULT = 0;
+        const POLLIN = comptime_i32_to_i16(linux_rust_bindings::poll::POLLIN);
+        const POLLPRI = comptime_i32_to_i16(linux_rust_bindings::poll::POLLPRI);
+        const POLLOUT = comptime_i32_to_i16(linux_rust_bindings::poll::POLLOUT);
+        const POLLERR = comptime_i32_to_i16(linux_rust_bindings::poll::POLLERR);
+        const POLLHUP = comptime_i32_to_i16(linux_rust_bindings::poll::POLLHUP);
+        const POLLNVAL = comptime_i32_to_i16(linux_rust_bindings::poll::POLLNVAL);
+        const POLLRDNORM = comptime_i32_to_i16(linux_rust_bindings::poll::POLLRDNORM);
+        const POLLRDBAND = comptime_i32_to_i16(linux_rust_bindings::poll::POLLRDBAND);
+        const POLLWRNORM = comptime_i32_to_i16(linux_rust_bindings::poll::POLLWRNORM);
+        const POLLWRBAND = comptime_i32_to_i16(linux_rust_bindings::poll::POLLWRBAND);
+        const POLLMSG = comptime_i32_to_i16(linux_rust_bindings::poll::POLLMSG);
+        const POLLRDHUP = comptime_i32_to_i16(linux_rust_bindings::poll::POLLRDHUP);
     }
 }
 
@@ -27,7 +28,7 @@ impl PollFd {
     #[must_use]
     pub fn new(fd: Fd, events: PollEvents) -> Self {
         Self(linux_rust_bindings::poll::pollfd {
-            fd,
+            fd: fd.0,
             events: events.bits(),
             revents: 0,
         })
