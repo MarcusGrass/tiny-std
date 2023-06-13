@@ -13,7 +13,7 @@ pub fn get_hid_dev_dev_info(fd: Fd) -> Result<hiddev_devinfo> {
     let mut dev_info_uninit = MaybeUninit::uninit();
     unsafe {
         ioctl(
-            fd as usize,
+            fd,
             HIDIOCGDEV_INFO as usize,
             dev_info_uninit.as_mut_ptr() as usize,
         )?;

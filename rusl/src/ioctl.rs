@@ -1,3 +1,4 @@
+use crate::platform::Fd;
 use sc::syscall;
 
 /// Ioctl is a generic IO control interface, it can be used in a myriad of ways
@@ -8,8 +9,8 @@ use sc::syscall;
 /// See above
 /// # Safety
 /// See above
-pub unsafe fn ioctl(a: usize, b: usize, c: usize) -> crate::Result<usize> {
-    let res = syscall!(IOCTL, a, b, c);
+pub unsafe fn ioctl(fd: Fd, b: usize, c: usize) -> crate::Result<usize> {
+    let res = syscall!(IOCTL, fd.0, b, c);
     bail_on_below_zero!(res, "`IOCTL` syscall failed");
     Ok(res)
 }

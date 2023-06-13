@@ -176,6 +176,7 @@ fn checked_sub_dur(timespec: TimeSpec, duration: Duration) -> Option<TimeSpec> {
 }
 
 #[inline]
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 fn sub_ts_dur(lhs: TimeSpec, rhs: TimeSpec) -> Duration {
     let mut total_nanos = lhs.nanoseconds() - rhs.nanoseconds();
     let sub_sec = if total_nanos < 0 {

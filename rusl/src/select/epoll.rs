@@ -15,8 +15,7 @@ pub fn epoll_create(cloexec: bool) -> Result<Fd> {
         0
     };
     let res = unsafe { syscall!(EPOLL_CREATE1, flags) };
-    bail_on_below_zero!(res, "`EPOLL_CREATE1` syscall failed");
-    Ok(res as Fd)
+    Fd::coerce_from_register(res, "`EPOLL_CREATE1` syscall failed")
 }
 
 /// Add, remove, or modify the interest list of the specified `epoll_fd`.
@@ -26,7 +25,7 @@ pub fn epoll_create(cloexec: bool) -> Result<Fd> {
 #[inline]
 pub fn epoll_ctl(epoll_fd: Fd, epoll_op: EpollOp, fd: Fd, event: &EpollEvent) -> Result<()> {
     let evt_addr = core::ptr::addr_of!(event.0);
-    let res = unsafe { syscall!(EPOLL_CTL, epoll_fd, epoll_op.into_op(), fd, evt_addr) };
+    let res = unsafe { syscall!(EPOLL_CTL, epoll_fd.0, epoll_op.into_op(), fd.0, evt_addr) };
     bail_on_below_zero!(res, "`EPOLL_CTL` syscall failed");
     Ok(())
 }
@@ -39,7 +38,7 @@ pub fn epoll_ctl(epoll_fd: Fd, epoll_op: EpollOp, fd: Fd, event: &EpollEvent) ->
 /// See above
 #[inline]
 pub fn epoll_del(epoll_fd: Fd, fd: Fd) -> Result<()> {
-    let res = unsafe { syscall!(EPOLL_CTL, epoll_fd, EpollOp::Del.into_op(), fd, 0) };
+    let res = unsafe { syscall!(EPOLL_CTL, epoll_fd.0, EpollOp::Del.into_op(), fd.0, 0) };
     bail_on_below_zero!(res, "`EPOLL_CTL` syscall failed");
     Ok(())
 }
@@ -55,7 +54,7 @@ pub fn epoll_wait(epoll_fd: Fd, events: &mut [EpollEvent], timeout_millis: i32) 
     let res = unsafe {
         syscall!(
             EPOLL_PWAIT,
-            epoll_fd,
+            epoll_fd.0,
             events.as_mut_ptr(),
             events.len(),
             timeout_millis,
@@ -69,7 +68,7 @@ pub fn epoll_wait(epoll_fd: Fd, events: &mut [EpollEvent], timeout_millis: i32) 
 
 #[cfg(test)]
 mod test {
-    use crate::platform::{EpollEvent, EpollEventMask, EpollOp, STDIN};
+    use crate::platform::{EpollEvent, EpollEventMask, EpollOp, STDOUT};
     use crate::select::{epoll_create, epoll_ctl, epoll_wait};
 
     #[test]
@@ -78,7 +77,7 @@ mod test {
         epoll_ctl(
             epoll_fd,
             EpollOp::Add,
-            STDIN,
+            STDOUT,
             &EpollEvent::new(15, EpollEventMask::EPOLLIN | EpollEventMask::EPOLLOUT),
         )
         .unwrap();

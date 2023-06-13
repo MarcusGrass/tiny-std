@@ -1,3 +1,4 @@
+use crate::Error;
 use sc::syscall;
 
 use crate::platform::{Fd, OpenFlags};
@@ -17,8 +18,8 @@ pub fn pipe() -> crate::Result<Pipe> {
     let res = unsafe { syscall!(PIPE2, fds.as_mut_ptr(), 0) };
     bail_on_below_zero!(res, "`PIPE2` syscall failed creating new pipe");
     Ok(Pipe {
-        in_pipe: fds[0],
-        out_pipe: fds[1],
+        in_pipe: Fd::try_new(fds[0]).map_err(|_e| Error::no_code("In pipe fd below zero"))?,
+        out_pipe: Fd::try_new(fds[1]).map_err(|_e| Error::no_code("Out pipe fd below zero"))?,
     })
 }
 
@@ -28,10 +29,10 @@ pub fn pipe() -> crate::Result<Pipe> {
 /// See above
 pub fn pipe2(flags: OpenFlags) -> crate::Result<Pipe> {
     let mut fds = [-1, -1];
-    let res = unsafe { syscall!(PIPE2, fds.as_mut_ptr(), flags.bits()) };
+    let res = unsafe { syscall!(PIPE2, fds.as_mut_ptr(), flags.bits().0) };
     bail_on_below_zero!(res, "`PIPE2` syscall failed creating new pipe");
     Ok(Pipe {
-        in_pipe: fds[0],
-        out_pipe: fds[1],
+        in_pipe: Fd::try_new(fds[0]).map_err(|_e| Error::no_code("In pipe fd below zero"))?,
+        out_pipe: Fd::try_new(fds[1]).map_err(|_e| Error::no_code("Out pipe fd below zero"))?,
     })
 }

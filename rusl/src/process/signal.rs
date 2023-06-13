@@ -4,10 +4,7 @@ use core::mem::MaybeUninit;
 
 use sc::syscall;
 
-use rusl::error::Errno;
-use rusl::platform::{SaMask, SigSetT, SIG_DFL, SIG_IGN};
-
-use crate::error::Error;
+use crate::platform::{NonNegativeI32, SaMask, SigSetT, SIG_DFL, SIG_IGN};
 
 /// This struct can differ between architectures, it's the same on aarch64 and `x86_64` though.
 #[repr(C)]
@@ -63,25 +60,25 @@ unsafe extern "C" fn restorer() -> ! {
 /// library yet `SigAbrt` f.e.
 pub enum CatchSignal {
     // Keyboard interrupt
-    SIGINT,
+    Int,
     // Termination signal
-    SIGTERM,
+    Term,
     // Hangup
-    SIGHUP,
+    Hup,
     // Invalid memory reference
-    SIGSEGV,
+    Segv,
     // Child stopped or terminated
-    SIGCHLD,
+    Chld,
 }
 
 impl CatchSignal {
-    fn into_raw(self) -> i32 {
+    fn into_raw(self) -> NonNegativeI32 {
         match self {
-            CatchSignal::SIGINT => rusl::platform::SignalKind::SIGINT.bits(),
-            CatchSignal::SIGTERM => rusl::platform::SignalKind::SIGTERM.bits(),
-            CatchSignal::SIGHUP => rusl::platform::SignalKind::SIGHUP.bits(),
-            CatchSignal::SIGSEGV => rusl::platform::SignalKind::SIGSEGV.bits(),
-            CatchSignal::SIGCHLD => rusl::platform::SignalKind::SIGCHLD.bits(),
+            CatchSignal::Int => crate::platform::SignalKind::SIGINT.bits(),
+            CatchSignal::Term => crate::platform::SignalKind::SIGTERM.bits(),
+            CatchSignal::Hup => crate::platform::SignalKind::SIGHUP.bits(),
+            CatchSignal::Segv => crate::platform::SignalKind::SIGSEGV.bits(),
+            CatchSignal::Chld => crate::platform::SignalKind::SIGCHLD.bits(),
         }
     }
 }
@@ -94,6 +91,7 @@ impl CatchSignal {
 /// Additionally, signal handlers have to by async-signal-safe. Essentially meaning that
 /// anything they touch have to be safely accessible concurrently. Some things `Rust` may guarantee
 /// but many it won't.
+#[allow(clippy::cast_possible_truncation)]
 pub unsafe fn add_signal_action(
     signal: CatchSignal,
     sigaction: SaSignalaction,
@@ -119,17 +117,11 @@ pub unsafe fn add_signal_action(
     (*s_ptr).sa_flags = flags.bits() as i32;
     let res = syscall!(
         RT_SIGACTION,
-        signal.into_raw(),
+        signal.into_raw().value(),
         constructed_action.as_ptr(),
         0,
         8
-    ) as isize;
-    if res < 0 {
-        return Err(Error::Os {
-            msg: "Setting sigaction failed",
-            code: Errno::new(res as i32),
-        });
-    }
-
+    );
+    bail_on_below_zero!(res, "`RT_SIGACTION` syscall failed");
     Ok(())
 }

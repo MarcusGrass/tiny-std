@@ -11,7 +11,7 @@ use crate::platform::{Fd, Termios};
 pub fn tcgetattr(fd: Fd) -> crate::Result<Termios> {
     let mut termios = MaybeUninit::uninit();
     unsafe {
-        let res = syscall!(IOCTL, fd, TCGETS, termios.as_mut_ptr());
+        let res = syscall!(IOCTL, fd.0, TCGETS, termios.as_mut_ptr());
         bail_on_below_zero!(res, "`IOCTL` syscall through tcgetattr failed");
         Ok(termios.assume_init())
     }

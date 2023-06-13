@@ -11,69 +11,136 @@ use linux_rust_bindings::io_uring::{
 };
 
 use crate::platform::{
-    AddressFamily, Fd, Mode, OpenFlags, RenameFlags, SocketArg, SocketType, Statx, StatxFlags,
-    StatxMask, TimeSpec, AT_FDCWD, AT_REMOVEDIR,
+    comptime_i32_to_u32, comptime_u32_to_u8, AddressFamily, Fd, Mode, OpenFlags, RenameFlags,
+    SocketArg, SocketType, Statx, StatxFlags, StatxMask, TimeSpec, AT_FDCWD, AT_REMOVEDIR,
 };
 use crate::string::unix_str::UnixStr;
 use crate::unistd::munmap;
 
 transparent_bitflags! {
     pub struct IoUringParamFlags: u32 {
-        const IORING_SETUP_IOPOLL = linux_rust_bindings::io_uring::IORING_SETUP_IOPOLL as u32;
-        const IORING_SETUP_SQPOLL = linux_rust_bindings::io_uring::IORING_SETUP_SQPOLL as u32;
-        const IORING_SETUP_SQ_AFF = linux_rust_bindings::io_uring::IORING_SETUP_SQ_AFF as u32;
-        const IORING_SETUP_CQSIZE = linux_rust_bindings::io_uring::IORING_SETUP_CQSIZE as u32;
-        const IORING_SETUP_CLAMP = linux_rust_bindings::io_uring::IORING_SETUP_CLAMP as u32;
-        const IORING_SETUP_ATTACH_WQ = linux_rust_bindings::io_uring::IORING_SETUP_ATTACH_WQ as u32;
-        const IORING_SETUP_R_DISABLED = linux_rust_bindings::io_uring::IORING_SETUP_R_DISABLED as u32;
-        const IORING_SETUP_SUBMIT_ALL = linux_rust_bindings::io_uring::IORING_SETUP_SUBMIT_ALL as u32;
-        const IORING_SETUP_COOP_TASKRUN = linux_rust_bindings::io_uring::IORING_SETUP_COOP_TASKRUN as u32;
-        const IORING_SETUP_TASKRUN_FLAG = linux_rust_bindings::io_uring::IORING_SETUP_TASKRUN_FLAG as u32;
-        const IORING_SETUP_SQE128 = linux_rust_bindings::io_uring::IORING_SETUP_SQE128 as u32;
-        const IORING_SETUP_CQE32 = linux_rust_bindings::io_uring::IORING_SETUP_CQE32 as u32;
-        const IORING_SETUP_SINGLE_ISSUER = linux_rust_bindings::io_uring::IORING_SETUP_SINGLE_ISSUER as u32;
-        const IORING_SETUP_DEFER_TASKRUN = linux_rust_bindings::io_uring::IORING_SETUP_DEFER_TASKRUN as u32;
+        const DEFAULT = 0;
+        const IORING_SETUP_IOPOLL = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_IOPOLL);
+        const IORING_SETUP_SQPOLL = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_SQPOLL);
+        const IORING_SETUP_SQ_AFF = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_SQ_AFF);
+        const IORING_SETUP_CQSIZE = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_CQSIZE);
+        const IORING_SETUP_CLAMP = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_CLAMP);
+        const IORING_SETUP_ATTACH_WQ = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_ATTACH_WQ);
+        const IORING_SETUP_R_DISABLED = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_R_DISABLED);
+        const IORING_SETUP_SUBMIT_ALL = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_SUBMIT_ALL);
+        const IORING_SETUP_COOP_TASKRUN = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_COOP_TASKRUN);
+        const IORING_SETUP_TASKRUN_FLAG = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_TASKRUN_FLAG);
+        const IORING_SETUP_SQE128 = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_SQE128);
+        const IORING_SETUP_CQE32 = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_CQE32);
+        const IORING_SETUP_SINGLE_ISSUER = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_SINGLE_ISSUER);
+        const IORING_SETUP_DEFER_TASKRUN = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_SETUP_DEFER_TASKRUN);
     }
 }
 
 transparent_bitflags! {
     pub struct IoUringSQEFlags: u8 {
-        const IOSQE_FIXED_FILE = 1 << linux_rust_bindings::io_uring::IOSQE_FIXED_FILE_BIT as u8;
-        const IOSQE_IO_DRAIN = 1 << linux_rust_bindings::io_uring::IOSQE_IO_DRAIN_BIT as u8;
-        const IOSQE_IO_LINK = 1 << linux_rust_bindings::io_uring::IOSQE_IO_LINK_BIT as u8;
-        const IOSQE_IO_HARDLINK = 1 << linux_rust_bindings::io_uring::IOSQE_IO_HARDLINK_BIT as u8;
-        const IOSQE_ASYNC = 1 << linux_rust_bindings::io_uring::IOSQE_ASYNC_BIT as u8;
-        const IOSQE_BUFFER_SELECT = 1 << linux_rust_bindings::io_uring::IOSQE_BUFFER_SELECT_BIT as u8;
-        const IOSQE_CQE_SKIP_SUCCESS = 1 << linux_rust_bindings::io_uring::IOSQE_CQE_SKIP_SUCCESS_BIT as u8;
+        const DEFAULT = 0;
+        const IOSQE_FIXED_FILE = 1 << comptime_u32_to_u8(linux_rust_bindings::io_uring::IOSQE_FIXED_FILE_BIT);
+        const IOSQE_IO_DRAIN = 1 << comptime_u32_to_u8(linux_rust_bindings::io_uring::IOSQE_IO_DRAIN_BIT);
+        const IOSQE_IO_LINK = 1 << comptime_u32_to_u8(linux_rust_bindings::io_uring::IOSQE_IO_LINK_BIT);
+        const IOSQE_IO_HARDLINK = 1 << comptime_u32_to_u8(linux_rust_bindings::io_uring::IOSQE_IO_HARDLINK_BIT);
+        const IOSQE_ASYNC = 1 << comptime_u32_to_u8(linux_rust_bindings::io_uring::IOSQE_ASYNC_BIT);
+        const IOSQE_BUFFER_SELECT = 1 << comptime_u32_to_u8(linux_rust_bindings::io_uring::IOSQE_BUFFER_SELECT_BIT);
+        const IOSQE_CQE_SKIP_SUCCESS = 1 << comptime_u32_to_u8(linux_rust_bindings::io_uring::IOSQE_CQE_SKIP_SUCCESS_BIT);
     }
 }
 
 transparent_bitflags! {
     pub struct IoUringEnterFlags: u32 {
-        const IORING_ENTER_GETEVENTS = linux_rust_bindings::io_uring::IORING_ENTER_GETEVENTS as u32;
-        const IORING_ENTER_SQ_WAKEUP = linux_rust_bindings::io_uring::IORING_ENTER_SQ_WAKEUP as u32;
-        const IORING_ENTER_SQ_WAIT = linux_rust_bindings::io_uring::IORING_ENTER_SQ_WAIT as u32;
-        const IORING_ENTER_EXT_ARG = linux_rust_bindings::io_uring::IORING_ENTER_EXT_ARG as u32;
-        const IORING_ENTER_REGISTERED_RING = linux_rust_bindings::io_uring::IORING_ENTER_REGISTERED_RING as u32;
+        const DEFAULT = 0;
+        const IORING_ENTER_GETEVENTS = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_ENTER_GETEVENTS);
+        const IORING_ENTER_SQ_WAKEUP = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_ENTER_SQ_WAKEUP);
+        const IORING_ENTER_SQ_WAIT = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_ENTER_SQ_WAIT);
+        const IORING_ENTER_EXT_ARG = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_ENTER_EXT_ARG);
+        const IORING_ENTER_REGISTERED_RING = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_ENTER_REGISTERED_RING);
     }
 }
 
 transparent_bitflags! {
     pub struct IoUringFeatFlags: u32 {
-        const IORING_FEAT_SINGLE_MMAP = linux_rust_bindings::io_uring::IORING_FEAT_SINGLE_MMAP as u32;
-        const IORING_FEAT_NODROP = linux_rust_bindings::io_uring::IORING_FEAT_NODROP as u32;
-        const IORING_FEAT_SUBMIT_STABLE = linux_rust_bindings::io_uring::IORING_FEAT_SUBMIT_STABLE as u32;
-        const IORING_FEAT_RW_CUR_POS = linux_rust_bindings::io_uring::IORING_FEAT_RW_CUR_POS as u32;
-        const IORING_FEAT_CUR_PERSONALITY = linux_rust_bindings::io_uring::IORING_FEAT_CUR_PERSONALITY as u32;
-        const IORING_FEAT_FAST_POLL = linux_rust_bindings::io_uring::IORING_FEAT_FAST_POLL as u32;
-        const IORING_FEAT_POLL_32BITS = linux_rust_bindings::io_uring::IORING_FEAT_POLL_32BITS as u32;
-        const IORING_FEAT_SQPOLL_NONFIXED = linux_rust_bindings::io_uring::IORING_FEAT_SQPOLL_NONFIXED as u32;
-        const IORING_FEAT_EXT_ARG = linux_rust_bindings::io_uring::IORING_FEAT_EXT_ARG as u32;
-        const IORING_FEAT_NATIVE_WORKERS = linux_rust_bindings::io_uring::IORING_FEAT_NATIVE_WORKERS as u32;
-        const IORING_FEAT_RSRC_TAGS = linux_rust_bindings::io_uring::IORING_FEAT_RSRC_TAGS as u32;
-        const IORING_FEAT_CQE_SKIP = linux_rust_bindings::io_uring::IORING_FEAT_CQE_SKIP as u32;
-        const IORING_FEAT_LINKED_FILE = linux_rust_bindings::io_uring::IORING_FEAT_LINKED_FILE as u32;
+        const DEFAULT = 0;
+        const IORING_FEAT_SINGLE_MMAP = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_SINGLE_MMAP);
+        const IORING_FEAT_NODROP = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_NODROP);
+        const IORING_FEAT_SUBMIT_STABLE = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_SUBMIT_STABLE);
+        const IORING_FEAT_RW_CUR_POS = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_RW_CUR_POS);
+        const IORING_FEAT_CUR_PERSONALITY = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_CUR_PERSONALITY);
+        const IORING_FEAT_FAST_POLL = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_FAST_POLL);
+        const IORING_FEAT_POLL_32BITS = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_POLL_32BITS);
+        const IORING_FEAT_SQPOLL_NONFIXED = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_SQPOLL_NONFIXED);
+        const IORING_FEAT_EXT_ARG = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_EXT_ARG);
+        const IORING_FEAT_NATIVE_WORKERS = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_NATIVE_WORKERS);
+        const IORING_FEAT_RSRC_TAGS = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_RSRC_TAGS);
+        const IORING_FEAT_CQE_SKIP = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_CQE_SKIP);
+        const IORING_FEAT_LINKED_FILE = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_FEAT_LINKED_FILE);
     }
+}
+
+#[repr(u8)]
+pub enum IoUringOp {
+    Nop = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_NOP),
+    Readv = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_READV),
+    Writev = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_WRITEV),
+    Fsync = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_FSYNC),
+    ReadFixed = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_READ_FIXED),
+    WriteFixed =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_WRITE_FIXED),
+    PollFdd = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_POLL_ADD),
+    PollRemove =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_POLL_REMOVE),
+    SyncFileRange =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SYNC_FILE_RANGE),
+    Sendmsg = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SENDMSG),
+    Recvmsg = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_RECVMSG),
+    Timeout = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_TIMEOUT),
+    TimeoutRemove =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_TIMEOUT_REMOVE),
+    Accept = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_ACCEPT),
+    AsyncCancel =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_ASYNC_CANCEL),
+    LinkTimeout =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_LINK_TIMEOUT),
+    Connect = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_CONNECT),
+    Fallocate = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_FALLOCATE),
+    Openat = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_OPENAT),
+    Close = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_CLOSE),
+    FilesUpdate =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_FILES_UPDATE),
+    Statx = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_STATX),
+    Read = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_READ),
+    Write = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_WRITE),
+    Fadvise = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_FADVISE),
+    Madvise = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_MADVISE),
+    Send = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SEND),
+    Recv = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_RECV),
+    Openat2 = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_OPENAT2),
+    EpollCtl = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_EPOLL_CTL),
+    Splice = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SPLICE),
+    ProvideBuffers =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_PROVIDE_BUFFERS),
+    RemoveBuffers =
+        comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_REMOVE_BUFFERS),
+    Tee = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_TEE),
+    Shutdown = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SHUTDOWN),
+    Renameat = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_RENAMEAT),
+    Unlinkat = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_UNLINKAT),
+    Mkdirat = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_MKDIRAT),
+    Symlinkat = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SYMLINKAT),
+    Linkat = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_LINKAT),
+    MsgRing = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_MSG_RING),
+    Fsetxattr = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_FSETXATTR),
+    Setxattr = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SETXATTR),
+    Fgetxattr = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_FGETXATTR),
+    Getxattr = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_GETXATTR),
+    Socket = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SOCKET),
+    UringCmd = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_URING_CMD),
+    SendZc = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SEND_ZC),
+    SendmsgZc = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SENDMSG_ZC),
+    Last = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_LAST),
 }
 
 #[repr(transparent)]
@@ -90,9 +157,9 @@ impl Debug for IoUringSubmissionQueueEntry {
 }
 
 impl IoUringSubmissionQueueEntry {
-    /// Read vectored into a buffer.     
+    /// Read vectored into a buffer.
     /// # Safety
-    /// The underlying buffer needs to live at least until this `sqe` is submitted to the kernel.  
+    /// The underlying buffer needs to live at least until this `sqe` is submitted to the kernel.
     #[inline]
     #[must_use]
     pub unsafe fn new_readv(
@@ -103,10 +170,10 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_READV as u8,
+            opcode: IoUringOp::Readv as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd,
+            fd: fd.0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: buf_ptr as u64,
@@ -142,10 +209,10 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_READ_FIXED as u8,
+            opcode: IoUringOp::ReadFixed as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd,
+            fd: fd.0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: start_read_into_addr,
@@ -180,10 +247,10 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_WRITEV as u8,
+            opcode: IoUringOp::Writev as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd,
+            fd: fd.0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: buf_ptr as u64,
@@ -219,10 +286,10 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_WRITE_FIXED as u8,
+            opcode: IoUringOp::WriteFixed as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd,
+            fd: fd.0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: start_read_into_addr,
@@ -262,17 +329,17 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_OPENAT as u8,
+            opcode: IoUringOp::Openat as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: dir_fd.unwrap_or(AT_FDCWD),
+            fd: dir_fd.map_or(AT_FDCWD, |fd| fd.0),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: path.0.as_ptr() as u64,
             },
             len: mode.bits(),
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
-                open_flags: open_flags.bits() as u32,
+                open_flags: open_flags.bits().into_u32(),
             },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
@@ -291,10 +358,10 @@ impl IoUringSubmissionQueueEntry {
     #[must_use]
     pub fn new_close(fd: Fd, user_data: u64, sqe_flags: IoUringSQEFlags) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_CLOSE as u8,
+            opcode: IoUringOp::Close as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd,
+            fd: fd.0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 { addr: 0 },
             len: 0,
@@ -327,10 +394,10 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_STATX as u8,
+            opcode: IoUringOp::Statx as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: dir_fd.unwrap_or(AT_FDCWD),
+            fd: dir_fd.map_or(AT_FDCWD, |fd| fd.0),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
                 off: statx_ptr as u64,
             },
@@ -339,7 +406,7 @@ impl IoUringSubmissionQueueEntry {
             },
             len: mask.bits(),
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
-                statx_flags: flags.bits() as u32,
+                statx_flags: flags.bits().into_u32(),
             },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
@@ -366,17 +433,17 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_UNLINKAT as u8,
+            opcode: IoUringOp::Unlinkat as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: dir_fd.unwrap_or(AT_FDCWD),
+            fd: dir_fd.map_or(AT_FDCWD, |fd| fd.0),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: path.0.as_ptr() as u64,
             },
             len: 0,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
-                unlink_flags: if rmdir { AT_REMOVEDIR as u32 } else { 0 },
+                unlink_flags: if rmdir { AT_REMOVEDIR.into_u32() } else { 0 },
             },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
@@ -395,6 +462,7 @@ impl IoUringSubmissionQueueEntry {
     /// The references to `old_path` and `new_path` needs to live until this entry is submitted to the kernel.  
     #[inline]
     #[must_use]
+    #[allow(clippy::cast_sign_loss)]
     pub unsafe fn new_rename_at(
         old_dir_fd: Option<Fd>,
         new_dir_fd: Option<Fd>,
@@ -405,17 +473,17 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_RENAMEAT as u8,
+            opcode: IoUringOp::Renameat as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: old_dir_fd.unwrap_or(AT_FDCWD),
+            fd: old_dir_fd.map_or(AT_FDCWD, |fd| fd.0),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
                 addr2: new_path.0.as_ptr() as u64,
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: old_path.0.as_ptr() as u64,
             },
-            len: new_dir_fd.unwrap_or(AT_FDCWD) as u32,
+            len: new_dir_fd.map_or(AT_FDCWD as u32, Fd::into_u32),
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
                 rename_flags: flags.bits(),
             },
@@ -444,10 +512,10 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_MKDIRAT as u8,
+            opcode: IoUringOp::Mkdirat as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: dir_fd.unwrap_or(AT_FDCWD),
+            fd: dir_fd.map_or(AT_FDCWD, |fd| fd.0),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: path.0.as_ptr() as u64,
@@ -472,20 +540,20 @@ impl IoUringSubmissionQueueEntry {
     pub fn new_socket(
         domain: AddressFamily,
         socket_type: SocketType,
-        protocol: i32,
+        protocol: u32,
         user_data: u64,
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SOCKET as u8,
+            opcode: IoUringOp::Socket as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: domain.bits() as i32,
+            fd: i32::from(domain.bits()),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
-                off: socket_type.bits() as u64,
+                off: socket_type.bits().into_u64(),
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 { addr: 0 },
-            len: protocol as u32,
+            len: protocol,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 { rw_flags: 0 },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
@@ -510,10 +578,10 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_CONNECT as u8,
+            opcode: IoUringOp::Connect as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: socket,
+            fd: socket.0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
                 off: core::ptr::addr_of!(sockaddr.addr_len) as u64,
             },
@@ -547,10 +615,10 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_ACCEPT as u8,
+            opcode: IoUringOp::Accept as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: socket,
+            fd: socket.0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
                 addr2: core::ptr::addr_of!(sockaddr.addr_len) as u64,
             },
@@ -559,7 +627,7 @@ impl IoUringSubmissionQueueEntry {
             },
             len: 0,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
-                accept_flags: sock_type.bits() as u32,
+                accept_flags: sock_type.bits().into_u32(),
             },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
@@ -588,7 +656,7 @@ impl IoUringSubmissionQueueEntry {
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
         Self(io_uring_sqe {
-            opcode: linux_rust_bindings::io_uring::io_uring_op_IORING_OP_TIMEOUT as u8,
+            opcode: IoUringOp::Timeout as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
             fd: 0,

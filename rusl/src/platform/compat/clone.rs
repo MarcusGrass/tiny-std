@@ -2,6 +2,7 @@ use crate::platform::{Fd, SignalKind, TidT};
 
 transparent_bitflags!(
     pub struct CloneFlags: u64 {
+        const DEFAULT = 0;
         const CLONE_VM = linux_rust_bindings::sched::CLONE_VM as u64;
         const CLONE_FS = linux_rust_bindings::sched::CLONE_FS as u64;
         const CLONE_FILES = linux_rust_bindings::sched::CLONE_FILES as u64;

@@ -8,7 +8,7 @@ use crate::platform::Fd;
 /// See above
 #[inline]
 pub fn close(fd: Fd) -> crate::Result<()> {
-    let res = unsafe { syscall!(CLOSE, fd) };
+    let res = unsafe { syscall!(CLOSE, fd.0) };
     bail_on_below_zero!(res, "Failed `CLOSE` syscall");
     Ok(())
 }

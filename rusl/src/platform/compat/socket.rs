@@ -1,10 +1,12 @@
 //! These are not defined in the uapi which is a bit hairy, if they change, that's obviously
+use crate::platform::numbers::NonNegativeI32;
 /// a problem.
 use crate::string::unix_str::AsUnixStr;
 use crate::Error;
 
 transparent_bitflags! {
     pub struct AddressFamily: u16 {
+        const DEFAULT = 0;
         const AF_UNSPEC =	0;
         const AF_UNIX =		1;	/* Unix domain sockets 		*/
         const AF_LOCAL =	1;	/* POSIX name for AF_UNIX	*/
@@ -64,16 +66,17 @@ transparent_bitflags! {
 
 /// Defined in include/bits/socket_type.h actually an enum
 transparent_bitflags!(
-    pub struct SocketType: i32 {
-        const SOCK_STREAM = 1;
-        const SOCK_DGRAM = 2;
-        const SOCK_RAW = 3;
-        const SOCK_RDM = 4;
-        const SOCK_SEQPACKET = 5;
+    pub struct SocketType: NonNegativeI32 {
+        const DEFAULT = NonNegativeI32::comptime_checked_new(0);
+        const SOCK_STREAM = NonNegativeI32::comptime_checked_new(1);
+        const SOCK_DGRAM = NonNegativeI32::comptime_checked_new(2);
+        const SOCK_RAW = NonNegativeI32::comptime_checked_new(3);
+        const SOCK_RDM = NonNegativeI32::comptime_checked_new(4);
+        const SOCK_SEQPACKET = NonNegativeI32::comptime_checked_new(5);
         /// Deprecated
-        const SOCK_PACKET = 10;
-        const SOCK_NONBLOCK = linux_rust_bindings::fcntl::O_NONBLOCK;
-        const SOCK_CLOEXEC = linux_rust_bindings::fcntl::O_CLOEXEC;
+        const SOCK_PACKET = NonNegativeI32::comptime_checked_new(10);
+        const SOCK_NONBLOCK = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NONBLOCK);
+        const SOCK_CLOEXEC = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_CLOEXEC);
     }
 );
 

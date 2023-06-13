@@ -1,5 +1,10 @@
 #![cfg_attr(not(test), no_std)]
-#![allow(clippy::let_underscore_untyped)]
+#![warn(clippy::pedantic)]
+#![allow(
+    clippy::let_underscore_untyped,
+    clippy::module_name_repetitions,
+    clippy::similar_names
+)]
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
@@ -13,7 +18,6 @@ pub mod linux;
 pub mod net;
 pub mod process;
 pub mod rwlock;
-pub mod signal;
 #[cfg(feature = "start")]
 pub mod start;
 pub mod thread;

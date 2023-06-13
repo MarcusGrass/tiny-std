@@ -9,7 +9,7 @@ use crate::Result;
 /// See above
 #[inline]
 pub fn listen(sock_fd: Fd, backlog: i32) -> Result<()> {
-    let res = unsafe { syscall!(LISTEN, sock_fd, backlog) };
+    let res = unsafe { syscall!(LISTEN, sock_fd.0, backlog) };
     bail_on_below_zero!(res, "`LISTEN` syscall failed");
     Ok(())
 }

@@ -14,6 +14,8 @@ use crate::Result;
 pub unsafe fn fork() -> Result<PidT> {
     let res = syscall!(FORK);
     bail_on_below_zero!(res, "`FORK` syscall failed");
+    // We're trusting the syscall [API here](https://man7.org/linux/man-pages/man2/fork.2.html#RETURN_VALUE)
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     Ok(res as PidT)
 }
 
@@ -26,8 +28,9 @@ pub unsafe fn fork() -> Result<PidT> {
 pub unsafe fn fork() -> Result<PidT> {
     // `SIGCHLD` is mandatory on aarch64 if mimicking fork it seems
     let cflgs = crate::platform::SignalKind::SIGCHLD;
-    let res = syscall!(CLONE, cflgs.bits(), 0, 0, 0, 0);
+    let res = syscall!(CLONE, cflgs.bits().0, 0, 0, 0, 0);
     bail_on_below_zero!(res, "`CLONE` syscall failed");
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     Ok(res as i32)
 }
 
@@ -41,7 +44,7 @@ pub unsafe fn fork() -> Result<PidT> {
 /// See above
 pub unsafe fn clone(args: &CloneArgs) -> Result<PidT> {
     // Argument order differs per architecture
-    let flags = args.flags.bits() | args.exit_signal.bits() as u64;
+    let flags = args.flags.bits() | args.exit_signal.bits().into_u64();
     #[cfg(any(target_arch = "x86_64"))]
     let res = unsafe {
         syscall!(
@@ -65,6 +68,8 @@ pub unsafe fn clone(args: &CloneArgs) -> Result<PidT> {
         )
     };
     bail_on_below_zero!(res, "`CLONE` syscall failed");
+    // We're trusting the syscall [API here](https://man7.org/linux/man-pages/man2/clone.2.html#RETURN_VALUE)
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     Ok(res as PidT)
 }
 

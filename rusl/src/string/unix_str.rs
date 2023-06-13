@@ -329,7 +329,7 @@ impl UnixStr {
     pub unsafe fn from_ptr<'a>(s: *const u8) -> &'a Self {
         let non_null_len = strlen(s);
         let slice = core::slice::from_raw_parts(s, non_null_len + 1);
-        core::mem::transmute(slice)
+        &*(slice as *const [u8] as *const Self)
     }
 
     /// Try to convert this `&UnixStr` to a utf8 `&str`

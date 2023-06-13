@@ -18,7 +18,6 @@ pub fn accept(
     let (addr, addr_len) = socket_address.map_or((0, 0), |addr| {
         (core::ptr::addr_of!(addr.addr) as usize, addr.addr_len)
     });
-    let res = unsafe { syscall!(ACCEPT4, sock_fd, addr, addr_len, new_socket_type.bits()) };
-    bail_on_below_zero!(res, "`ACCEPT4` syscall failed");
-    Ok(res as i32)
+    let res = unsafe { syscall!(ACCEPT4, sock_fd.0, addr, addr_len, new_socket_type.bits().0) };
+    Fd::coerce_from_register(res, "`ACCEPT4` syscall failed")
 }

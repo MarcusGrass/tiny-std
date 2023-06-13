@@ -11,7 +11,7 @@ use sc::syscall;
 use crate::platform::{
     Fd, IoSliceMut, IoUring, IoUringCompletionQueueEntry, IoUringEnterFlags, IoUringFeatFlags,
     IoUringParamFlags, IoUringParams, IoUringSubmissionQueueEntry, MapAdditionalFlags,
-    MapRequiredFlag, MemoryProtection, OffT, UringCompletionQueue, UringSubmissionQueue,
+    MapRequiredFlag, MemoryProtection, UringCompletionQueue, UringSubmissionQueue,
 };
 use crate::unistd::mmap;
 use crate::{Error, Result};
@@ -58,7 +58,7 @@ pub fn setup_io_uring(
             MapRequiredFlag::MapShared,
             MapAdditionalFlags::MAP_POPULATE,
             Some(fd),
-            IORING_OFF_SQ_RING as OffT,
+            i64::from(IORING_OFF_SQ_RING),
         )?;
         let cq_ring_ptr =
             if params.0.features & IoUringFeatFlags::IORING_FEAT_SINGLE_MMAP.bits() == 0 {
@@ -71,7 +71,7 @@ pub fn setup_io_uring(
                     MapRequiredFlag::MapShared,
                     MapAdditionalFlags::MAP_POPULATE,
                     Some(fd),
-                    IORING_OFF_CQ_RING as OffT,
+                    i64::from(IORING_OFF_CQ_RING),
                 )?
             } else {
                 sq_ring_ptr
@@ -95,7 +95,7 @@ pub fn setup_io_uring(
             MapRequiredFlag::MapShared,
             MapAdditionalFlags::MAP_POPULATE,
             Some(fd),
-            IORING_OFF_SQES as OffT,
+            i64::from(IORING_OFF_SQES),
         )?;
         let sqes = NonNull::new_unchecked(sqes as *mut IoUringSubmissionQueueEntry);
         let cq_khead = into_non_null(cq_ring_ptr, params.0.cq_off.head as usize)?;
@@ -176,8 +176,7 @@ pub fn io_uring_setup(entries: u32, io_uring_params: &mut IoUringParams) -> Resu
             io_uring_params as *mut IoUringParams
         )
     };
-    bail_on_below_zero!(res, "`IO_URING_SETUP` syscall failed");
-    Ok(res as Fd)
+    Fd::coerce_from_register(res, "`IO_URING_SETUP` syscall failed")
 }
 
 /// Register files on an `io_uring` instance.  
@@ -189,7 +188,7 @@ pub fn io_uring_register_files(uring_fd: Fd, fds: &[Fd]) -> Result<()> {
     let res = unsafe {
         syscall!(
             IO_URING_REGISTER,
-            uring_fd,
+            uring_fd.0,
             IORING_REGISTER_FILES,
             fds.as_ptr(),
             fds.len()
@@ -208,7 +207,7 @@ pub fn io_uring_register_io_slices(uring_fd: Fd, buffers: &[IoSliceMut]) -> Resu
     let res = unsafe {
         syscall!(
             IO_URING_REGISTER,
-            uring_fd,
+            uring_fd.0,
             IORING_REGISTER_BUFFERS,
             buffers.as_ptr(),
             buffers.len()
@@ -233,7 +232,7 @@ pub unsafe fn io_uring_register_buffers(uring_fd: Fd, buffer: &[IoSliceMut]) -> 
     let res = unsafe {
         syscall!(
             IO_URING_REGISTER,
-            uring_fd,
+            uring_fd.0,
             IORING_REGISTER_BUFFERS,
             buffer.as_ptr(),
             buffer.len()
@@ -258,7 +257,7 @@ pub fn io_uring_enter(
     let res = unsafe {
         syscall!(
             IO_URING_ENTER,
-            uring_fd,
+            uring_fd.0,
             to_submit,
             min_complete,
             flags.bits(),

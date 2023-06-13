@@ -4,6 +4,7 @@ use linux_rust_bindings::time::__kernel_timespec;
 
 transparent_bitflags!(
     pub struct ClockId: i32 {
+        const DEFAULT = 0;
         const CLOCK_REALTIME = linux_rust_bindings::time::CLOCK_REALTIME;
         const CLOCK_MONOTONIC = linux_rust_bindings::time::CLOCK_MONOTONIC;
         const CLOCK_PROCESS_CPUTIME_ID = linux_rust_bindings::time::CLOCK_PROCESS_CPUTIME_ID;

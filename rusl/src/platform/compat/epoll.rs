@@ -3,18 +3,19 @@ use linux_rust_bindings::epoll::__poll_t;
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 transparent_bitflags! {
     pub struct EpollEventMask: __poll_t {
-        const EPOLLIN	        = 0x00000001;
-        const EPOLLPRI	        = 0x00000002;
-        const EPOLLOUT	        = 0x00000004;
-        const EPOLLERR	        = 0x00000008;
-        const EPOLLHUP          = 0x00000010;
-        const EPOLLNVAL 	    = 0x00000020;
-        const EPOLLRDNORM	    = 0x00000040;
-        const EPOLLRDBAND	    = 0x00000080;
-        const EPOLLWRNORM	    = 0x00000100;
-        const EPOLLWRBAND   	= 0x00000200;
-        const EPOLLMSG          = 0x00000400;
-        const EPOLLRDHUP    	= 0x00002000;
+        const DEFAULT = 0;
+        const EPOLLIN	        = 0x0000_0001;
+        const EPOLLPRI	        = 0x0000_0002;
+        const EPOLLOUT	        = 0x0000_0004;
+        const EPOLLERR	        = 0x0000_0008;
+        const EPOLLHUP          = 0x0000_0010;
+        const EPOLLNVAL 	    = 0x0000_0020;
+        const EPOLLRDNORM	    = 0x0000_0040;
+        const EPOLLRDBAND	    = 0x0000_0080;
+        const EPOLLWRNORM	    = 0x0000_0100;
+        const EPOLLWRBAND   	= 0x0000_0200;
+        const EPOLLMSG          = 0x0000_0400;
+        const EPOLLRDHUP    	= 0x0000_2000;
         const EPOLLEXCLUSIVE    = 1 << 28;
         const EPOLLWAKEUP	    = 1 << 29;
         const EPOLLONESHOT      = 1 << 30;

@@ -194,7 +194,6 @@ unsafe fn copy_forward(mut dest: *mut u8, mut src: *const u8, mut n: usize) {
         }
     }
 
-
     /// Both x86_64 and aarch support mem-unaligned
     #[inline(always)]
     unsafe fn copy_forward_misaligned_words(dest: *mut u8, src: *const u8, n: usize) {

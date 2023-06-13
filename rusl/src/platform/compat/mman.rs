@@ -1,5 +1,6 @@
 transparent_bitflags! {
     pub struct MemoryProtection: i32 {
+        const DEFAULT = 0;
         const PROT_NONE = linux_rust_bindings::mman::PROT_NONE;
         const PROT_READ = linux_rust_bindings::mman::PROT_READ;
         const PROT_WRITE = linux_rust_bindings::mman::PROT_WRITE;
@@ -29,6 +30,7 @@ impl MapRequiredFlag {
 
 transparent_bitflags! {
     pub struct MapAdditionalFlags: i32 {
+        const DEFAULT = 0;
         const MAP_TYPE = linux_rust_bindings::mman::MAP_TYPE;
         const MAP_FIXED = linux_rust_bindings::mman::MAP_FIXED;
         const MAP_ANONYMOUS = linux_rust_bindings::mman::MAP_ANONYMOUS;
@@ -59,6 +61,7 @@ transparent_bitflags! {
         const MAP_HUGE_512MB = linux_rust_bindings::mman::MAP_HUGE_512MB;
         const MAP_HUGE_1GB = linux_rust_bindings::mman::MAP_HUGE_1GB;
         const MAP_HUGE_2GB = linux_rust_bindings::mman::MAP_HUGE_2GB;
-        const MAP_HUGE_16GB = linux_rust_bindings::mman::MAP_HUGE_16GB as i32;
+        // Out of range, don't know how this is handled tbh
+        //const MAP_HUGE_16GB = comptime_i64_to_i32(linux_rust_bindings::mman::MAP_HUGE_16GB);
     }
 }

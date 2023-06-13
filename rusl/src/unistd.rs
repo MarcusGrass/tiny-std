@@ -14,7 +14,6 @@ pub use setgid::setgid;
 pub use setpgid::setpgid;
 pub use setsid::setsid;
 pub use setuid::setuid;
-pub use sleep::{nanosleep, nanosleep_same_ptr};
 pub use stat::{stat, statat};
 pub use swapon::swapon;
 pub use uname::uname;
@@ -38,7 +37,6 @@ mod setgid;
 mod setpgid;
 mod setsid;
 mod setuid;
-mod sleep;
 mod stat;
 mod swapon;
 #[cfg(test)]

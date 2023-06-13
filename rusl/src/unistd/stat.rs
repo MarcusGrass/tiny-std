@@ -11,7 +11,7 @@ use crate::string::unix_str::AsUnixStr;
 /// See above docs
 #[inline]
 pub fn stat(path: impl AsUnixStr) -> crate::Result<Stat> {
-    statat(AT_FDCWD, path)
+    do_statat(AT_FDCWD, path)
 }
 
 /// [fstat](https://man7.org/linux/man-pages/man2/stat.2.html)
@@ -19,6 +19,12 @@ pub fn stat(path: impl AsUnixStr) -> crate::Result<Stat> {
 /// # Errors
 /// See above docs
 pub fn statat(fd: Fd, path: impl AsUnixStr) -> crate::Result<Stat> {
+    do_statat(fd.0, path)
+}
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn do_statat(fd: i32, path: impl AsUnixStr) -> crate::Result<Stat> {
     path.exec_with_self_as_ptr(|ptr| {
         let mut stat = MaybeUninit::uninit();
         let res = unsafe {
@@ -27,7 +33,7 @@ pub fn statat(fd: Fd, path: impl AsUnixStr) -> crate::Result<Stat> {
                 fd,
                 ptr,
                 stat.as_mut_ptr(),
-                crate::platform::DirFlags::AT_EMPTY_PATH.bits()
+                crate::platform::DirFlags::AT_EMPTY_PATH.bits().0
             )
         };
         bail_on_below_zero!(res, "`STAT` syscall failed");

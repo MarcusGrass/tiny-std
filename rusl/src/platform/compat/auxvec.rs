@@ -3,6 +3,7 @@ pub const AUX_CNT: usize = 42;
 
 transparent_bitflags! {
     pub struct AuxValue: usize {
+        const DEFAULT = 0;
         const AT_NULL =   linux_rust_bindings::aux::AT_NULL as usize;	/* end of vector */
         const AT_IGNORE = linux_rust_bindings::aux::AT_IGNORE as usize;	/* entry should be ignored */
         const AT_EXECFD = linux_rust_bindings::aux::AT_EXECFD as usize;	/* file descriptor of program */

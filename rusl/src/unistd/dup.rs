@@ -18,7 +18,9 @@ pub fn dup2(old: Fd, new: Fd) -> crate::Result<()> {
 /// See above
 pub fn dup3(old: Fd, new: Fd, flags: OpenFlags) -> crate::Result<()> {
     loop {
-        let res = unsafe { syscall!(DUP3, old, new, flags.bits()) };
+        let res = unsafe { syscall!(DUP3, old.0, new.0, flags.bits().0) };
+        // Trusting the systall [API](https://man7.org/linux/man-pages/man2/dup.2.html#RETURN_VALUE)
+        #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
         if res as i32 == Errno::EBUSY.raw() {
             continue;
         }

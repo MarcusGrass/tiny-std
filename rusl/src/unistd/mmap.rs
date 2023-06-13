@@ -27,7 +27,7 @@ pub unsafe fn mmap(
         length.get(),
         memory_protection.bits(),
         flags.bits(),
-        fd.unwrap_or(-1),
+        fd.map_or(-1, |fd| fd.0),
         offset
     );
     bail_on_below_zero!(res_ptr, "`MMAP` syscall failed");

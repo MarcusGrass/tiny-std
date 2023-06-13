@@ -7,9 +7,11 @@ use sc::syscall;
 /// # Errors
 /// See above, relates to a bad `fd`
 pub fn fcntl_get_file_status(fd: Fd) -> Result<OpenFlags> {
-    let res = unsafe { syscall!(FCNTL, fd, FcntlFileStatusCmd::Get.into_cmd()) };
-    bail_on_below_zero!(res, "`FCNTL` syscall failed");
-    Ok(OpenFlags::from(res as i32))
+    let res = unsafe { syscall!(FCNTL, fd.0, FcntlFileStatusCmd::Get.into_cmd()) };
+    Ok(OpenFlags::from(Fd::coerce_from_register(
+        res,
+        "`FCNTL` syscall failed",
+    )?))
 }
 
 /// Set file status flags, access mode and creation flags are valid, but ignored
@@ -17,7 +19,14 @@ pub fn fcntl_get_file_status(fd: Fd) -> Result<OpenFlags> {
 /// # Errors
 /// See above
 pub fn fcntl_set_file_status(fd: Fd, flag: OpenFlags) -> Result<()> {
-    let res = unsafe { syscall!(FCNTL, fd, FcntlFileStatusCmd::Set.into_cmd(), flag.bits()) };
+    let res = unsafe {
+        syscall!(
+            FCNTL,
+            fd.0,
+            FcntlFileStatusCmd::Set.into_cmd(),
+            flag.bits().0
+        )
+    };
     bail_on_below_zero!(res, "`FCNTL` syscall failed");
     Ok(())
 }

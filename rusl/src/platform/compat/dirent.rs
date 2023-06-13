@@ -24,6 +24,7 @@ impl Dirent {
     /// of the `m`th already parsed `Dirent` from that same buffer.
     #[inline]
     #[must_use]
+    #[allow(clippy::transmute_ptr_to_ptr)]
     pub unsafe fn try_from_bytes(buf: &[u8]) -> Option<Self> {
         let header = buf.get(0..Self::HEADER_SIZE)?;
         // Could get_unchecked
