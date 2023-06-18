@@ -348,3 +348,15 @@ unsafe fn set_bytes(mut s: *mut u8, c: u8, mut n: usize) {
     }
     set_bytes_bytes(s, c, n);
 }
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn _Unwind_Resume() -> ! {
+    crate::process::exit(1)
+}
+
+#[no_mangle]
+#[cfg(target_arch = "aarch64")]
+pub extern "C" fn getauxval(_val: u64) -> u64 {
+    panic!("This is a bug, the extern `C` function `getauxval` was invoked, we don't use the `C` implementation here, but code using it was generated. implementation here, but code using it was generated.")
+}

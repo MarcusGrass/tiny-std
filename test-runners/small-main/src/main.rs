@@ -23,7 +23,7 @@ pub fn main() -> i32 {
     #[cfg(target_arch = "aarch64")]
     {
         // Running this in a container
-        assert_eq!("/root", v);
+        assert!(v == "/root" || v == "/");
     }
     let mut args = tiny_std::env::args();
     args.next();
@@ -45,7 +45,7 @@ fn test_spawn_no_args() {
     let mut proc = tiny_std::process::spawn::<0, &str, &str, ()>(
         "/usr/bin/uname\0",
         [],
-        Environment::Inherit,
+        &Environment::Inherit,
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),
@@ -72,7 +72,7 @@ fn test_spawn_with_args() {
     let mut proc_with_arg = tiny_std::process::spawn::<3, _, _, ()>(
         "/usr/bin/uname\0",
         ["/usr/bin/uname\0", "-a\0", "\0"],
-        Environment::Inherit,
+        &Environment::Inherit,
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),

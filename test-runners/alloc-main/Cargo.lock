@@ -7,6 +7,8 @@ name = "alloc-main"
 version = "0.1.0"
 dependencies = [
  "dlmalloc",
+ "rusl",
+ "sc",
  "tiny-std",
  "unix-print",
 ]
