@@ -1,8 +1,11 @@
-use core::time::Duration;
-
-use rusl::error::Errno;
+#[cfg(feature = "alloc")]
+mod spawn;
 
 use crate::error::Result;
+use core::time::Duration;
+use rusl::error::Errno;
+#[cfg(feature = "alloc")]
+pub use spawn::*;
 
 /// Sleep the current thread for the provided `Duration`
 /// # Errors

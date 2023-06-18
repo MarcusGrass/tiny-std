@@ -2,52 +2,66 @@
 #![no_main]
 extern crate alloc;
 
+use alloc::vec::Vec;
 use core::alloc::{GlobalAlloc, Layout};
-use core::cell::UnsafeCell;
+use core::sync::atomic::{AtomicBool, fence, Ordering};
 
 use dlmalloc::Dlmalloc;
 
 #[global_allocator]
-static ALLOCATOR: SingleThreadedAlloc = SingleThreadedAlloc::new();
+static ALLOCATOR: GlobalDlmalloc = GlobalDlmalloc;
 
-struct SingleThreadedAlloc {
-    inner: UnsafeCell<Dlmalloc>,
-}
+struct GlobalDlmalloc;
 
-impl SingleThreadedAlloc {
-    pub(crate) const fn new() -> Self {
-        SingleThreadedAlloc {
-            inner: UnsafeCell::new(Dlmalloc::new()),
-        }
-    }
-}
+static mut DLMALLOC: Dlmalloc = Dlmalloc::new();
 
-unsafe impl GlobalAlloc for SingleThreadedAlloc {
+unsafe impl GlobalAlloc for GlobalDlmalloc {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        (*self.inner.get()).malloc(layout.size(), layout.align())
+        Self::lock();
+        let ptr = DLMALLOC.malloc(layout.size(), layout.align());
+        Self::unlock();
+        ptr
     }
 
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        (*self.inner.get()).free(ptr, layout.size(), layout.align())
+        Self::lock();
+        DLMALLOC.free(ptr, layout.size(), layout.align());
+        Self::unlock();
     }
 
     #[inline]
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        (*self.inner.get()).calloc(layout.size(), layout.align())
+        Self::lock();
+        let ptr = DLMALLOC.calloc(layout.size(), layout.align());
+        Self::unlock();
+        ptr
     }
 
     #[inline]
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        (*self.inner.get()).realloc(ptr, layout.size(), layout.align(), new_size)
+        Self::lock();
+        let ptr = DLMALLOC.realloc(ptr, layout.size(), layout.align(), new_size);
+        Self::unlock();
+        ptr
     }
 }
 
-/// Extremely unsafe, this program is not thread safe at all will almost immediately segfault on more threads
-unsafe impl Sync for SingleThreadedAlloc {}
+static LOCK: AtomicBool = AtomicBool::new(false);
+impl GlobalDlmalloc {
 
-unsafe impl Send for SingleThreadedAlloc {}
+    fn lock() {
+        while LOCK.compare_exchange_weak(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
+
+        }
+        fence(Ordering::SeqCst);
+    }
+
+    fn unlock() {
+        LOCK.store(false, Ordering::SeqCst);
+    }
+}
 
 /// Panic handler
 #[panic_handler]
@@ -67,9 +81,28 @@ pub fn main() -> i32 {
     #[cfg(target_arch = "aarch64")]
     {
         // Running this in a container
-        assert_eq!("/root", v);
+        assert!(v == "/root" || v == "/");
     }
     test_cmd_no_args();
+
+
+    thread_panics_ok();
+    let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
+    let run_for = 1_000;
+    let mut handles = Vec::with_capacity(run_for);
+    for _ in 0..run_for {
+        let cnt_c = cnt.clone();
+        let handle = tiny_std::thread::spawn(move || {
+            tiny_std::thread::sleep(core::time::Duration::from_secs_f32(0.25)).unwrap();
+            *cnt_c.write() += 1;
+        }).unwrap();
+        handles.push(handle);
+    }
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    while *cnt.read() != run_for {}
+    unix_print::unix_println!("Val = {}", *cnt.read());
     0
 }
 
@@ -80,4 +113,9 @@ fn test_cmd_no_args() {
         .spawn()
         .unwrap();
     chld.wait().unwrap();
+}
+
+fn thread_panics_ok() {
+    let t = tiny_std::thread::spawn(|| panic!("This is expected!")).unwrap();
+    assert!(t.join().is_none());
 }

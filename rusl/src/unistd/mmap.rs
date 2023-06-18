@@ -41,6 +41,7 @@ pub unsafe fn mmap(
 /// See above
 /// # Safety
 /// see above
+#[inline]
 pub unsafe fn munmap(addr: usize, length: NonZeroUsize) -> crate::Result<()> {
     let res_ptr = syscall!(MUNMAP, addr, length.get());
     bail_on_below_zero!(res_ptr, "`MUNMAP` syscall failed");

@@ -543,7 +543,8 @@ impl<T: ?Sized> Drop for RwLockWriteGuard<'_, T> {
     }
 }
 
-fn futex_wait_fast(futex: &AtomicU32, expect: u32) {
+#[inline]
+pub(crate) fn futex_wait_fast(futex: &AtomicU32, expect: u32) {
     loop {
         if futex.load(Relaxed) != expect {
             return;
