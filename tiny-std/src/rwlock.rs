@@ -549,13 +549,13 @@ pub(crate) fn futex_wait_fast(futex: &AtomicU32, expect: u32) {
         if futex.load(Relaxed) != expect {
             return;
         }
-        match futex_wait(futex, expect, FutexFlags::empty(), None) {
+        match futex_wait(futex, expect, FutexFlags::PRIVATE, None) {
             Ok(_) => {
                 return;
             }
             Err(e) => {
                 if let Some(code) = e.code {
-                    if code == Errno::EAGAIN {
+                    if code == Errno::EINTR {
                     } else {
                         return;
                     }

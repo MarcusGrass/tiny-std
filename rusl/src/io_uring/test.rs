@@ -432,8 +432,25 @@ fn uring_single_timeout() {
     let start = clock_get_monotonic_time();
     io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
     let end = clock_get_monotonic_time();
-    let diff = end.nanoseconds() - start.nanoseconds();
-    assert!(diff > wait_nsec);
+    let start_ts = (start.seconds() as i128)
+        .checked_mul(1_000_000_000)
+        .unwrap()
+        .checked_add(start.nanoseconds() as i128)
+        .unwrap();
+    let end_ts = (end.seconds() as i128)
+        .checked_mul(1_000_000_000)
+        .unwrap()
+        .checked_add(end.nanoseconds() as i128)
+        .unwrap();
+    let diff = end_ts - start_ts;
+    assert!(
+        diff >= wait_nsec as i128,
+        "Diff failed, start = {}, end = {}, diff = {}, wait = {}",
+        start.nanoseconds(),
+        end.nanoseconds(),
+        diff,
+        wait_nsec
+    );
     let cqe = uring.get_next_cqe().unwrap();
     assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
     assert_eq!(0 - ETIME, cqe.0.res, "Expected `ETIME` for cqe: {cqe:?}");

@@ -108,6 +108,21 @@ pub fn read_to_string<P: AsUnixStr>(path: P) -> Result<String> {
     Ok(string)
 }
 
+/// Attempts to write the entire contents of `buf` into the path specified at `path`.
+/// If no file exists at `path` one will be created.
+/// If a file exists at `path` it will be overwritten.
+/// Use `File` and open with `append` to append to a file.
+/// # Errors
+/// Os errors relating to file creation or writing, such as permissions errors.
+pub fn write<P: AsUnixStr>(path: P, buf: &[u8]) -> Result<()> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(path)?;
+    file.write_all(buf)?;
+    Ok(())
+}
 #[derive(Debug, Clone)]
 pub struct Metadata(Stat);
 

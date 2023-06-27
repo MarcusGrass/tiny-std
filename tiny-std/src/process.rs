@@ -544,7 +544,7 @@ unsafe fn do_spawn<F: PreExec>(
             Ok(..) => {
                 // pipe I/O up to PIPE_BUF bytes should be atomic
                 process.wait()?;
-                return Err(Error::no_code("short read on the CLOEXEC pipe"));
+                return Err(Error::no_code("Short read on the CLOEXEC pipe"));
             }
         }
     }

@@ -2,7 +2,7 @@
 #![no_main]
 #![allow(dead_code)]
 
-use rusl::platform::{AuxValue};
+use rusl::platform::AuxValue;
 use tiny_std::io::Read;
 use tiny_std::process::{Environment, Stdio};
 
@@ -16,15 +16,7 @@ pub fn on_panic(info: &core::panic::PanicInfo) -> ! {
 #[no_mangle]
 pub fn main() -> i32 {
     let v = tiny_std::env::var("HOME").unwrap();
-    #[cfg(target_arch = "x86_64")]
-    {
-        assert_eq!("/home/gramar", v);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        // Running this in a container
-        assert!(v == "/root" || v == "/");
-    }
+    assert_eq!("/home/gramar", v);
     let mut args = tiny_std::env::args();
     args.next();
     let arg = args.next().unwrap().unwrap();
@@ -101,17 +93,8 @@ unsafe fn test_aux_values() {
     let _val = random.read();
     let uid = tiny_std::start::get_aux_value(AuxValue::AT_UID).unwrap();
     let gid = tiny_std::start::get_aux_value(AuxValue::AT_GID).unwrap();
-    #[cfg(target_arch = "x86_64")]
-    {
-        assert_eq!(1000, uid);
-        assert_eq!(1000, gid);
-    }
-    // Can only run this in a docker container at the moment
-    #[cfg(target_arch = "aarch64")]
-    {
-        assert_eq!(0, uid);
-        assert_eq!(0, gid);
-    }
+    assert_eq!(1000, uid);
+    assert_eq!(1000, gid);
     // TODO: Fix VDSO for aarch64
     #[cfg(not(target_arch = "aarch64"))]
     let _vdso = tiny_std::start::get_aux_value(AuxValue::AT_SYSINFO_EHDR).unwrap();
