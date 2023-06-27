@@ -1,10 +1,12 @@
-#[cfg(feature = "alloc")]
-mod spawn;
+/// We'll need symbols to set up a panic_handler, and alloc to run threads.
+/// We also need to set tls, which is done in `start`
+#[cfg(all(not(test), feature = "symbols", feature = "alloc", feature = "start"))]
+pub(crate) mod spawn;
 
 use crate::error::Result;
 use core::time::Duration;
 use rusl::error::Errno;
-#[cfg(feature = "alloc")]
+#[cfg(all(not(test), feature = "symbols", feature = "alloc", feature = "start"))]
 pub use spawn::*;
 
 /// Sleep the current thread for the provided `Duration`

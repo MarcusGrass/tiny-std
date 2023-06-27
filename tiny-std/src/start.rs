@@ -119,6 +119,31 @@ unsafe fn __proxy_main(stack_ptr: *const u8) {
             VDSO_CLOCK_GET_TIME = get_time;
         }
     }
+    #[cfg(feature = "alloc")]
+    {
+        // To be able to get the thread tls in the panic handler we need to set up
+        // thread local storage for the main thread. But we shouldn't dealloc this thread's stack
+        // on a panic so set stack_info to `None`.
+        // No spooky pointers into the stack here, this will live for the lifetime of
+        // the thread so we'll just alloc and leak it.
+        let mut main_thread_tls = alloc::boxed::Box::into_raw(alloc::boxed::Box::new(
+            crate::thread::spawn::ThreadLocalStorage {
+                self_addr: 0,
+                stack_info: None,
+            },
+        ));
+        let self_addr = main_thread_tls as usize;
+        (*main_thread_tls).self_addr = self_addr;
+        // x86_64 ARCH_GET_FS
+        #[cfg(target_arch = "x86_64")]
+        {
+            sc::syscall!(ARCH_PRCTL, 0x1002, self_addr);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            core::arch::asm!("msr tpidr_el0, {x}", x = in(reg) main_thread_tls);
+        }
+    }
     let code = main();
     exit(code);
 }

@@ -248,3 +248,44 @@ fn read_after_write_needs_reseek() {
     let mut my_read_buf = [0u8; 21];
     assert_eq!(0, file.read(&mut my_read_buf).unwrap());
 }
+
+#[test]
+fn can_create_with_write() {
+    const TARGET_FILE: &str = "test-files/test-write-create.txt\0";
+    const PAYLOAD: &[u8] = b"My write create payload!\n";
+    if metadata(TARGET_FILE).is_ok() {
+        crate::fs::remove_file(TARGET_FILE).unwrap();
+    }
+    assert!(metadata(TARGET_FILE).is_err());
+    crate::fs::write(TARGET_FILE, PAYLOAD).unwrap();
+    let mut read_buf = [0u8; PAYLOAD.len()];
+    let mut file = File::open(TARGET_FILE).unwrap();
+    file.read(&mut read_buf).unwrap();
+    assert_eq!(PAYLOAD, read_buf);
+}
+
+#[test]
+fn can_replace_with_write() {
+    const TARGET_FILE: &str = "test-files/test-write-overwrite.txt\0";
+    const PRE_PAYLOAD: &[u8] = b"My write should overwrite this payload!\n";
+    const POST_PAYLOAD: &[u8] = b"Overwritten!\n";
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(TARGET_FILE)
+        .unwrap();
+    file.write_all(PRE_PAYLOAD).unwrap();
+    drop(file);
+    let mut read_buf = [0u8; PRE_PAYLOAD.len()];
+    let mut file = File::open(TARGET_FILE).unwrap();
+    file.read(&mut read_buf).unwrap();
+    assert_eq!(PRE_PAYLOAD, read_buf);
+    drop(file);
+    crate::fs::write(TARGET_FILE, POST_PAYLOAD).unwrap();
+    let mut read_buf = [0u8; POST_PAYLOAD.len()];
+    File::open(TARGET_FILE)
+        .unwrap()
+        .read(&mut read_buf)
+        .unwrap();
+    assert_eq!(POST_PAYLOAD, read_buf);
+}
