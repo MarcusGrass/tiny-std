@@ -5,8 +5,8 @@ use core::arch::global_asm;
 use core::cell::UnsafeCell;
 use core::ffi::c_void;
 use core::fmt::Debug;
+use core::marker::PhantomData;
 use core::num::NonZeroUsize;
-use core::ptr::NonNull;
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use sc::nr::MUNMAP;
 
@@ -17,9 +17,8 @@ use crate::error::Result;
 use crate::rwlock::futex_wait_fast;
 
 pub struct JoinHandle<T: Sized> {
-    needs_dealloc: NonNull<AtomicBool>,
-    value: NonNull<UnsafeCell<Option<T>>>,
-    futex: NonNull<AtomicU32>,
+    tsm: Tsm,
+    _pd: PhantomData<T>,
 }
 
 // Kernel will set this to 0 on child exit https://man7.org/linux/man-pages/man2/set_tid_address.2.html
@@ -31,17 +30,13 @@ impl<T: Sized> JoinHandle<T> {
     pub fn join(self) -> Option<T> {
         // The OS will change to futex value to 0 and then wake it when the thread finishes.
         unsafe {
-            futex_wait_fast(self.futex.as_ref(), UNFINISHED);
+            futex_wait_fast(self.tsm.get_futex(), UNFINISHED);
             // The thread has completed, we have exclusive access to the memory.
             // Pack it into a box, then consume the box to get the value off the heap.
-            let val = Box::from_raw(self.value.as_ptr()).into_inner();
+            let val = self.tsm.get_value::<T>().into_inner();
             // We have exclusive access so we don't need to run the destructor anymore
             // just dealloc and forget.
-            dealloc(self.futex.as_ptr().cast(), Layout::new::<AtomicU32>());
-            dealloc(
-                self.needs_dealloc.as_ptr().cast(),
-                Layout::new::<AtomicBool>(),
-            );
+            self.tsm.dealloc();
             core::mem::forget(self);
             val
         }
@@ -54,25 +49,168 @@ impl<T: Sized> Drop for JoinHandle<T> {
             // We signal to the thread that it needs to dealloc this shared variable.
             // If it's already done, we're responsible for the cleanup.
             if self
-                .needs_dealloc
-                .as_ref()
+                .tsm
+                .get_sync()
                 .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
                 .is_err()
             {
                 // The thread got its work done first, we need to wait for it to exit, signalled
                 // by the OS through the futex, then we know we have exclusive access to the memory.
-                futex_wait_fast(self.futex.as_ref(), UNFINISHED);
-                dealloc(
-                    self.value.as_ptr().cast(),
-                    Layout::new::<UnsafeCell<Option<T>>>(),
-                );
-                dealloc(self.futex.as_ptr().cast(), Layout::new::<AtomicU32>());
-                dealloc(
-                    self.needs_dealloc.as_ptr().cast(),
-                    Layout::new::<AtomicBool>(),
-                );
+                futex_wait_fast(self.tsm.get_futex(), UNFINISHED);
+                self.tsm.dealloc();
             }
         }
+    }
+}
+
+/// Struct wrapping the pointer containing thread shared memory.
+/// Shared between parent and child thread.
+/// Raw memory mapping of a struct with members:
+/// 1. AtomicBool, sync ptr
+/// 2. AtomicU32, futex ptr
+/// 3. This struct's layout size (usize)
+/// 4. This struct's layout align (usize)
+/// 5. Some return value wrapped in an UnsafeCell
+/// This is useful because we don't need to allocate/deallocate/dereference
+/// 3 separate pointers, we just chunk them into one with the proper alignment.
+/// Ideally this would be a pointer to a struct and not just raw bytes, but since
+/// we don't know the size of `T` in the panic handler we need to keep it as anonymous bytes.
+/// Alignment when creating is important for this not to result in UB
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+struct Tsm(*mut u8);
+
+impl Tsm {
+    const FUTEX_OFFSET: usize = core::mem::size_of::<AtomicBool>()
+        + padding(
+            core::mem::size_of::<AtomicBool>(),
+            core::mem::align_of::<AtomicU32>(),
+        );
+    const SELF_SZ_OFFSET: usize = Self::FUTEX_OFFSET
+        + core::mem::size_of::<AtomicU32>()
+        + padding(
+            Self::FUTEX_OFFSET + core::mem::size_of::<AtomicU32>(),
+            core::mem::align_of::<usize>(),
+        );
+    const SELF_ALIGN_OFFSET: usize = Self::SELF_SZ_OFFSET
+        + core::mem::size_of::<usize>()
+        + padding(
+            Self::SELF_SZ_OFFSET + core::mem::size_of::<usize>(),
+            core::mem::align_of::<usize>(),
+        );
+
+    unsafe fn init<T>() -> Self {
+        let layout = Self::layout_thread_shared_memory::<T>();
+        let ptr = alloc::alloc::alloc(layout);
+        ptr.cast::<AtomicBool>().write(AtomicBool::new(false));
+        ptr.add(Self::FUTEX_OFFSET)
+            .cast::<AtomicU32>()
+            .write(AtomicU32::new(UNFINISHED));
+        ptr.add(Self::SELF_SZ_OFFSET)
+            .cast::<usize>()
+            .write(layout.size());
+        ptr.add(Self::SELF_ALIGN_OFFSET)
+            .cast::<usize>()
+            .write(layout.align());
+        ptr.add(Self::value_offset::<UnsafeCell<Option<T>>>())
+            .cast::<UnsafeCell<Option<T>>>()
+            .write(UnsafeCell::new(None));
+        Self(ptr)
+    }
+
+    const fn layout_thread_shared_memory<T: Sized>() -> Layout {
+        let mut base = push_aligned::<AtomicBool>(0, 0);
+        base = push_aligned::<AtomicU32>(base.size(), base.align());
+        base = push_aligned::<usize>(base.size(), base.align());
+        base = push_aligned::<usize>(base.size(), base.align());
+        let last = push_aligned::<UnsafeCell<Option<T>>>(base.size(), base.align());
+        unsafe {
+            // Pad up to size + align if not already there
+            let padded = last.size() + padding(last.size(), last.align());
+            Layout::from_size_align_unchecked(padded, last.align())
+        }
+    }
+
+    /// We need a static lifetime here, but that's a lie, the lifetime is 'until deallocated'.
+    /// It's actually implicitly ref-counted but with only two refs, the parent and child threads.
+    #[inline]
+    unsafe fn get_sync(self) -> &'static AtomicBool {
+        self.0.cast::<AtomicBool>().as_ref().unwrap_unchecked()
+    }
+
+    #[inline]
+    unsafe fn get_futex(self) -> &'static AtomicU32 {
+        self.0
+            .add(Self::FUTEX_OFFSET)
+            .cast::<AtomicU32>()
+            .as_ref()
+            .unwrap_unchecked()
+    }
+
+    #[inline]
+    unsafe fn get_layout(self) -> Layout {
+        let size = self.0.add(Self::SELF_SZ_OFFSET).cast::<usize>().read();
+        let align = self.0.add(Self::SELF_ALIGN_OFFSET).cast::<usize>().read();
+        Layout::from_size_align_unchecked(size, align)
+    }
+
+    #[inline]
+    unsafe fn value_offset<T>() -> usize {
+        Self::SELF_ALIGN_OFFSET
+            + core::mem::size_of::<usize>()
+            + padding(
+                Self::SELF_ALIGN_OFFSET + core::mem::size_of::<usize>(),
+                core::mem::align_of::<T>(),
+            )
+    }
+
+    #[inline]
+    unsafe fn get_value<T>(self) -> UnsafeCell<Option<T>> {
+        self.0
+            .add(Self::value_offset::<UnsafeCell<Option<T>>>())
+            .cast::<UnsafeCell<Option<T>>>()
+            .read()
+    }
+
+    #[inline]
+    unsafe fn value_mut<T>(self) -> *mut Option<T> {
+        self.0
+            .add(Self::value_offset::<UnsafeCell<Option<T>>>())
+            .cast::<UnsafeCell<Option<T>>>()
+            .as_ref()
+            .unwrap_unchecked()
+            .get()
+    }
+
+    #[inline]
+    unsafe fn dealloc(self) {
+        let layout = self.get_layout();
+        dealloc(self.0, layout);
+    }
+}
+
+const fn push_aligned<T>(base: usize, max_align: usize) -> Layout {
+    let t_align = core::mem::align_of::<T>();
+    let pad = padding(base, t_align);
+    let base = base + pad;
+    let max_align = max(max_align, t_align);
+    unsafe { Layout::from_size_align_unchecked(base + core::mem::size_of::<T>(), max_align) }
+}
+
+const fn max(a: usize, b: usize) -> usize {
+    if a > b {
+        a
+    } else {
+        b
+    }
+}
+
+const fn padding(base: usize, align: usize) -> usize {
+    let modulo = base % align;
+    if modulo == 0 {
+        0
+    } else {
+        align - modulo
     }
 }
 
@@ -111,19 +249,16 @@ impl ThreadLocalStorage {
 pub(crate) struct ThreadDealloc {
     stack_addr: usize,
     stack_sz: usize,
-    payload_ptr: usize,
-    payload_layout: Layout,
-    futex_ptr: usize,
-    sync_ptr: usize,
+    tsm: Tsm,
 }
 
 /// Spawn a thread that will run the provided function
 /// # Errors
 /// Failure to mmap the thread's stack.
-pub fn spawn<T: Debug + Copy, F: FnOnce() -> T>(func: F) -> Result<JoinHandle<T>>
+pub fn spawn<T, F: FnOnce() -> T>(func: F) -> Result<JoinHandle<T>>
 where
     F: Send + 'static,
-    T: Sized + Send + 'static,
+    T: Send + 'static,
 {
     let flags = CloneFlags::CLONE_VM
         | CloneFlags::CLONE_FS
@@ -138,42 +273,26 @@ where
     let guard_sz = 0;
     let size = guard_sz + stack_sz;
 
-    // Create a NonNull pointer to the data from our box.
-    let payload: NonNull<UnsafeCell<Option<T>>> =
-        unsafe { NonNull::new_unchecked(Box::into_raw(Box::new(UnsafeCell::new(None)))) };
-    let pl_c = payload;
-
-    let futex_mem = Box::into_raw(Box::new(AtomicU32::new(UNFINISHED)));
-    let needs_dealloc =
-        unsafe { NonNull::new_unchecked(Box::into_raw(Box::new(AtomicBool::new(false)))) };
-    let die_futex = unsafe { NonNull::new_unchecked(futex_mem) };
-    let payload_layout = unsafe {
-        Layout::from_size_align_unchecked(
-            core::mem::size_of::<UnsafeCell<Option<T>>>(),
-            core::mem::align_of::<UnsafeCell<Option<T>>>(),
-        )
-    };
+    let tsm = unsafe { Tsm::init::<T>() };
     let df_ptr: Box<dyn FnOnce()> = Box::new(move || {
         unsafe {
             // Run the function, if it panics, goto #[panic_handler].
             let func_ret = func();
             // The caller won't try to access the value until this thread exits.
-            pl_c.as_ref().get().write(Some(func_ret));
+            (*tsm.value_mut()) = Some(func_ret);
             // Signal that this thread is done with the value and it can be safely
             // consumed.
             // If it fails, it means the caller has dropped the JoinHandle, then we need to dealloc here.
-            if needs_dealloc
-                .as_ref()
+            if tsm
+                .get_sync()
                 .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
                 .is_err()
             {
-                dealloc(pl_c.as_ptr().cast(), Layout::new::<UnsafeCell<Option<T>>>());
-                dealloc(needs_dealloc.as_ptr().cast(), Layout::new::<AtomicBool>());
                 // We need to set this thread's TID_ADDRESS ptr to null, or else
                 // the kernel will try to update the value, and futex_wake on it, which will
                 // cause a segfault.
                 sc::syscall!(SET_TID_ADDRESS, 0);
-                dealloc(die_futex.as_ptr().cast(), Layout::new::<AtomicU32>());
+                tsm.dealloc();
             }
             // Also dealloc the local storage for this thread, nobody needs that anymore
             dealloc(get_tls_ptr().cast(), Layout::new::<ThreadLocalStorage>());
@@ -213,10 +332,7 @@ where
         stack_info: Some(ThreadDealloc {
             stack_addr: map_ptr,
             stack_sz: size,
-            payload_ptr: payload.as_ptr() as usize,
-            payload_layout,
-            futex_ptr: die_futex.as_ptr() as usize,
-            sync_ptr: needs_dealloc.as_ptr() as usize,
+            tsm,
         }),
     }));
     unsafe {
@@ -230,15 +346,14 @@ where
             flags.bits() as i32,
             args as _,
             tls as usize,
-            die_futex.as_ptr() as usize,
+            tsm.get_futex().as_ptr() as usize,
             map_ptr,
             stack_sz,
         );
     }
     Ok(JoinHandle {
-        needs_dealloc,
-        value: payload,
-        futex: die_futex,
+        tsm,
+        _pd: PhantomData::default(),
     })
 }
 
@@ -465,22 +580,16 @@ pub fn on_panic(info: &core::panic::PanicInfo) -> ! {
             dealloc(tls.cast(), Layout::new::<ThreadLocalStorage>());
             let map_ptr = stack_dealloc.stack_addr;
             let map_len = stack_dealloc.stack_sz;
-            let sync = stack_dealloc.sync_ptr as *mut AtomicBool;
-            let should_dealloc = sync
-                .as_ref()
-                .unwrap_unchecked()
+            let tsm = stack_dealloc.tsm;
+            let should_dealloc = tsm
+                .get_sync()
                 .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
                 .is_err();
             if should_dealloc {
                 // The caller has stopped waiting for a response from this thread.
                 // We're responsible from cleaning up the shared memory.
                 sc::syscall!(SET_TID_ADDRESS, 0);
-                dealloc(stack_dealloc.payload_ptr as _, stack_dealloc.payload_layout);
-                dealloc(sync.cast(), Layout::new::<AtomicBool>());
-                dealloc(
-                    stack_dealloc.futex_ptr as *mut u8,
-                    Layout::new::<AtomicU32>(),
-                );
+                tsm.dealloc();
             }
             // We need to be able to unmap the thread's own stack, we can't use the stack anymore after that
             // so it needs to be done in asm.

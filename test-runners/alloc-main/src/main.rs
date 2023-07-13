@@ -109,8 +109,10 @@ fn thread_panics() {
     assert!(t.join().is_none());
 }
 
+const THREAD_LOOP_COUNT: usize = 1_000;
+
 fn thread_parallel_compute() {
-    let run_for = 1_000;
+    let run_for = THREAD_LOOP_COUNT;
     let mut handles = Vec::with_capacity(run_for);
     for _ in 0..run_for {
         let handle = tiny_std::thread::spawn(move || {
@@ -128,7 +130,7 @@ fn thread_parallel_compute() {
 }
 
 fn thread_shared_memory_sequential_count() {
-    let run_for = 1_000;
+    let run_for = THREAD_LOOP_COUNT;
     let mut sum = 0;
     for _ in 0..run_for {
         let handle = tiny_std::thread::spawn(move || 1).unwrap();
@@ -139,7 +141,7 @@ fn thread_shared_memory_sequential_count() {
 
 fn thread_shared_memory_parallel_count() {
     let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
-    let run_for = 1_000;
+    let run_for = THREAD_LOOP_COUNT;
     let mut handles = Vec::with_capacity(run_for);
     for _ in 0..run_for {
         let cnt_c = cnt.clone();
@@ -157,7 +159,7 @@ fn thread_shared_memory_parallel_count() {
 
 fn thread_shared_memory_parallel_count_no_join() {
     let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
-    let run_for = 1_000;
+    let run_for = THREAD_LOOP_COUNT;
     for _ in 0..run_for {
         let cnt_c = cnt.clone();
         let _handle = tiny_std::thread::spawn(move || {
@@ -170,7 +172,7 @@ fn thread_shared_memory_parallel_count_no_join() {
 
 fn thread_shared_memory_parallel_count_panics() {
     let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
-    let run_for = 1_000;
+    let run_for = THREAD_LOOP_COUNT;
     let mut handles = Vec::with_capacity(run_for);
     for _ in 0..run_for {
         let cnt_c = cnt.clone();
@@ -189,7 +191,7 @@ fn thread_shared_memory_parallel_count_panics() {
 
 fn thread_shared_memory_parallel_count_panics_no_join() {
     let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
-    let run_for = 1_000;
+    let run_for = THREAD_LOOP_COUNT;
     for _ in 0..run_for {
         let cnt_c = cnt.clone();
         let _handle = tiny_std::thread::spawn(move || {
