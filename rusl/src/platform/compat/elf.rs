@@ -1,5 +1,12 @@
 use core::mem::MaybeUninit;
 
+pub use linux_rust_bindings::elf::*;
+
+#[cfg(target_arch = "x86_64")]
+pub const REL_RELATIVE: u64 = 8;
+#[cfg(target_arch = "aarch64")]
+pub const REL_RELATIVE: u64 = 1027;
+
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
 #[cfg(target_pointer_width = "32")]
@@ -69,3 +76,18 @@ pub struct ElfSymbol(pub linux_rust_bindings::elf::Elf32_Sym);
 #[repr(transparent)]
 #[cfg(target_pointer_width = "64")]
 pub struct ElfSymbol(pub linux_rust_bindings::elf::Elf64_Sym);
+
+#[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
+#[cfg(target_pointer_width = "64")]
+pub struct ElfPhdr(pub linux_rust_bindings::elf::Elf64_Phdr);
+
+#[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
+#[cfg(target_pointer_width = "64")]
+pub struct Elf64Rel(pub linux_rust_bindings::elf::Elf64_Rel);
+
+#[derive(Debug, Copy, Clone)]
+#[repr(transparent)]
+#[cfg(target_pointer_width = "64")]
+pub struct Elf64Rela(pub linux_rust_bindings::elf::Elf64_Rela);

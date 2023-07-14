@@ -202,7 +202,7 @@ impl Command {
         const NULL_ENV: [*const u8; 1] = [core::ptr::null()];
         let envp = match &self.env {
             #[cfg(feature = "start")]
-            Environment::Inherit => unsafe { crate::start::ENV.env_p },
+            Environment::Inherit => unsafe { crate::env::ENV.env_p },
             Environment::None => NULL_ENV.as_ptr(),
             Environment::Provided(provided) => provided.envp.0.as_ptr(),
         };
@@ -229,7 +229,7 @@ impl Command {
         const NULL_ENV: [*const u8; 1] = [core::ptr::null()];
         let envp = match &self.env {
             #[cfg(feature = "start")]
-            Environment::Inherit => unsafe { crate::start::ENV.env_p },
+            Environment::Inherit => unsafe { crate::env::ENV.env_p },
             Environment::None => NULL_ENV.as_ptr(),
             Environment::Provided(provided) => provided.envp.0.as_ptr(),
         };
@@ -579,7 +579,7 @@ pub fn spawn<const N: usize, BIN: AsUnixStr, ARG: AsUnixStr, CL: PreExec>(
     let mut no_args: [*const u8; 2] = [core::ptr::null_mut(), core::ptr::null_mut()];
     let envp = match env {
         #[cfg(feature = "start")]
-        Environment::Inherit => unsafe { crate::start::ENV.env_p },
+        Environment::Inherit => unsafe { crate::env::ENV.env_p },
         Environment::None => NO_ENV.as_ptr(),
     };
     let mut new_args = [core::ptr::null(); N];

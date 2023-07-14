@@ -1,37 +1,29 @@
-#[cfg(feature = "start")]
 use core::str::Utf8Error;
 
-#[cfg(feature = "start")]
 use rusl::string::strlen::strlen;
-#[cfg(feature = "start")]
 use rusl::string::unix_str::AsUnixStr;
-#[cfg(feature = "start")]
 use rusl::string::unix_str::UnixStr;
 
-#[cfg(feature = "start")]
-use crate::start::ENV;
+/// We have to mimic libc globals here sadly, we rip the environment off the first pointer of the stack
+/// in the start method. Should never be modified ever, just set on start
+pub(crate) static mut ENV: Env = Env {
+    arg_c: 0,
+    arg_v: core::ptr::null(),
+    env_p: core::ptr::null(),
+};
 
-#[cfg(feature = "start")]
+pub(crate) struct Env {
+    pub(crate) arg_c: u64,
+    pub(crate) arg_v: *const *const u8,
+    pub(crate) env_p: *const *const u8,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum VarError {
     Missing,
     NotUnicode(Utf8Error),
 }
 
-/// Attempts to get the system hostname as a utf8 `String`
-/// # Errors
-/// Hostname is not utf8
-#[cfg(feature = "alloc")]
-pub fn host_name() -> Result<alloc::string::String, crate::error::Error> {
-    #[allow(unused_imports)]
-    use alloc::string::ToString;
-    unix_print::unix_eprintln!("Getting uname");
-    let raw = rusl::unistd::uname()?;
-    unix_print::unix_eprintln!("Got uname");
-    Ok(raw.nodename()?.to_string())
-}
-
-#[cfg(feature = "start")]
 pub fn var<P: AsUnixStr>(ident: P) -> Result<&'static str, VarError> {
     let mut env_ptr = unsafe { ENV.env_p };
     while !env_ptr.is_null() {
@@ -58,7 +50,6 @@ pub fn var<P: AsUnixStr>(ident: P) -> Result<&'static str, VarError> {
     Err(VarError::Missing)
 }
 
-#[cfg(feature = "start")]
 pub fn args() -> Args {
     Args {
         ind: 0,
@@ -66,7 +57,6 @@ pub fn args() -> Args {
     }
 }
 
-#[cfg(feature = "start")]
 pub fn args_os() -> ArgsOs {
     ArgsOs {
         ind: 0,
@@ -74,13 +64,11 @@ pub fn args_os() -> ArgsOs {
     }
 }
 
-#[cfg(feature = "start")]
 pub struct Args {
     ind: usize,
     num_args: usize,
 }
 
-#[cfg(feature = "start")]
 impl Iterator for Args {
     type Item = Result<&'static str, Utf8Error>;
 
@@ -105,20 +93,17 @@ impl Iterator for Args {
     }
 }
 
-#[cfg(feature = "start")]
 impl ExactSizeIterator for Args {
     fn len(&self) -> usize {
         self.num_args
     }
 }
 
-#[cfg(feature = "start")]
 pub struct ArgsOs {
     ind: usize,
     num_args: usize,
 }
 
-#[cfg(feature = "start")]
 impl Iterator for ArgsOs {
     type Item = &'static UnixStr;
 
@@ -141,7 +126,6 @@ impl Iterator for ArgsOs {
     }
 }
 
-#[cfg(feature = "start")]
 impl ExactSizeIterator for ArgsOs {
     fn len(&self) -> usize {
         self.num_args

@@ -3,6 +3,17 @@ use core::mem::MaybeUninit;
 use rusl::platform::{ElfHeader, ElfSymbol, SectionHeader, TimeSpec};
 use rusl::string::unix_str::UnixStr;
 
+/// VDSO dynamically provided function pointer to CLOCK_GET_TIME
+pub(crate) static mut VDSO_CLOCK_GET_TIME: Option<extern "C" fn(i32, *mut TimeSpec) -> i32> = None;
+
+pub(crate) unsafe fn init_vdso_get_time() {
+    let elf_start = crate::elf::aux::AUX_VALUES.at_sysinfo_ehdr;
+    if elf_start != 0 {
+        let get_time = find_vdso_clock_get_time(elf_start as _);
+        VDSO_CLOCK_GET_TIME = get_time;
+    }
+}
+
 const DYNSTR_NAME: &[u8] = b".dynstr\0";
 const DYNSYM_NAME: &[u8] = b".dynsym\0";
 const CLOCK_GETTIME_NAME: &[u8] = b"__vdso_clock_gettime\0";
@@ -20,7 +31,7 @@ const CLOCK_GETTIME_NAME: &[u8] = b"__vdso_clock_gettime\0";
 /// 5. Align the offset, transmute to appropriate `extern fn`
 /// See [Linux vdso docs](https://man7.org/linux/man-pages/man7/vdso.7.html)
 /// See also [Linux elf docs](https://man7.org/linux/man-pages/man5/elf.5.html)
-pub(crate) unsafe fn find_vdso_clock_get_time(
+unsafe fn find_vdso_clock_get_time(
     vdso: *const u8,
 ) -> Option<extern "C" fn(i32, *mut TimeSpec) -> i32> {
     // Elf specifies LE bytes for some fields, this could be an issue

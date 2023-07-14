@@ -10,6 +10,8 @@ extern crate alloc;
 
 pub use rusl::string::unix_str::*;
 
+pub mod elf;
+#[cfg(feature = "start")]
 pub mod env;
 pub mod error;
 pub mod fs;
@@ -23,5 +25,3 @@ pub mod start;
 pub mod thread;
 pub mod time;
 pub mod unix;
-#[cfg(feature = "vdso")]
-mod vdso;

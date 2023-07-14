@@ -2,6 +2,7 @@ pub use crate::platform::numbers::NonNegativeI32;
 pub use auxvec::*;
 pub use clone::*;
 pub use dirent::*;
+pub use elf::*;
 pub use epoll::*;
 pub use fcntl::*;
 pub use futex::*;
@@ -19,12 +20,12 @@ pub use time::*;
 pub use uio::*;
 pub use usb::*;
 pub use utsname::*;
-pub use vdso::*;
 pub use wait::*;
 
 mod auxvec;
 mod clone;
 mod dirent;
+mod elf;
 mod epoll;
 mod fcntl;
 mod futex;
@@ -42,7 +43,6 @@ mod time;
 mod uio;
 mod usb;
 mod utsname;
-mod vdso;
 mod wait;
 
 /// Shared typedefs for 64 bit systems (GNU source)

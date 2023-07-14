@@ -717,7 +717,7 @@ impl IoUringParams {
                 dropped: 0,
                 array: 0,
                 resv1: 0,
-                resv2: 0,
+                user_addr: 0,
             },
             cq_off: io_cqring_offsets {
                 head: 0,
@@ -728,7 +728,7 @@ impl IoUringParams {
                 cqes: 0,
                 flags: 0,
                 resv1: 0,
-                resv2: 0,
+                user_addr: 0,
             },
         })
     }
