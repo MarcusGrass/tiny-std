@@ -52,7 +52,7 @@ impl<'a> BorrowedFd<'a> {
     pub(crate) fn new(fd: RawFd) -> Self {
         Self {
             fd,
-            _pd: PhantomData::default(),
+            _pd: PhantomData,
         }
     }
 }

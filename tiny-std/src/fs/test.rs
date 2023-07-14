@@ -289,3 +289,16 @@ fn can_replace_with_write() {
         .unwrap();
     assert_eq!(POST_PAYLOAD, read_buf);
 }
+
+#[test]
+fn file_exists_when_exists() {
+    let tgt = "test-files/test_exists_not_yet.txt\0";
+    if crate::fs::exists(tgt).unwrap() {
+        crate::fs::remove_file(tgt).unwrap();
+    }
+    assert!(!crate::fs::exists(tgt).unwrap());
+    crate::fs::write(tgt, b"Hello").unwrap();
+    assert!(crate::fs::exists(tgt).unwrap());
+    crate::fs::remove_file(tgt).unwrap();
+    assert!(!crate::fs::exists(tgt).unwrap());
+}

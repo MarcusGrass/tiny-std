@@ -126,7 +126,7 @@ unsafe fn __proxy_main(stack_ptr: *const u8) {
         // on a panic so set stack_info to `None`.
         // No spooky pointers into the stack here, this will live for the lifetime of
         // the thread so we'll just alloc and leak it.
-        let mut main_thread_tls = alloc::boxed::Box::into_raw(alloc::boxed::Box::new(
+        let main_thread_tls = alloc::boxed::Box::into_raw(alloc::boxed::Box::new(
             crate::thread::spawn::ThreadLocalStorage {
                 self_addr: 0,
                 stack_info: None,

@@ -5,7 +5,8 @@ use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 
 use rusl::error::Errno;
-use rusl::platform::{Dirent, Mode, OpenFlags, Stat, AT_REMOVEDIR, NULL_BYTE};
+pub use rusl::platform::Mode;
+use rusl::platform::{Dirent, OpenFlags, Stat, AT_REMOVEDIR, NULL_BYTE};
 use rusl::string::strlen::{buf_strlen, strlen};
 use rusl::string::unix_str::{AsUnixStr, UnixStr};
 
@@ -147,6 +148,12 @@ impl Metadata {
 
     #[inline]
     #[must_use]
+    pub fn mode(&self) -> Mode {
+        Mode::from(self.0.st_mode)
+    }
+
+    #[inline]
+    #[must_use]
     #[allow(clippy::len_without_is_empty)]
     #[allow(clippy::cast_sign_loss)]
     pub fn len(&self) -> u64 {
@@ -163,6 +170,22 @@ pub fn metadata<P: AsUnixStr>(path: P) -> Result<Metadata> {
     Ok(Metadata(res))
 }
 
+/// Checks if anything exists at the provided path.
+/// Will false-negative if the path is empty.
+/// # Errors
+/// Os errors relating to file access
+pub fn exists<P: AsUnixStr>(path: P) -> Result<bool> {
+    match rusl::unistd::stat(path) {
+        Ok(_) => Ok(true),
+        Err(e) => {
+            if matches!(e.code, Some(Errno::ENOENT)) {
+                return Ok(false);
+            }
+            Err(Error::from(e))
+        }
+    }
+}
+
 /// Tries to remove a file from the filesystem at the specified path
 /// # Errors
 /// OS errors relating to file access/permissions
@@ -177,7 +200,15 @@ pub fn remove_file<P: AsUnixStr>(path: P) -> Result<()> {
 /// OS errors relating to file access/permissions
 #[inline]
 pub fn create_dir<P: AsUnixStr>(path: P) -> Result<()> {
-    rusl::unistd::mkdir(path, Mode::from(0o755))?;
+    create_dir_mode(path, Mode::from(0o755))
+}
+
+/// Create a directory with the given mode
+/// # Errors
+/// OS errors relating to file access/permissions
+#[inline]
+pub fn create_dir_mode<P: AsUnixStr>(path: P, mode: Mode) -> Result<()> {
+    rusl::unistd::mkdir(path, mode)?;
     Ok(())
 }
 

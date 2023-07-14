@@ -327,7 +327,7 @@ where
         (*args).start_arg = raw_df as usize;
     }
 
-    let mut tls = Box::into_raw(Box::new(ThreadLocalStorage {
+    let tls = Box::into_raw(Box::new(ThreadLocalStorage {
         self_addr: 0,
         stack_info: Some(ThreadDealloc {
             stack_addr: map_ptr,

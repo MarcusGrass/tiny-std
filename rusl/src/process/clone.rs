@@ -45,7 +45,7 @@ pub unsafe fn fork() -> Result<PidT> {
 pub unsafe fn clone(args: &CloneArgs) -> Result<PidT> {
     // Argument order differs per architecture
     let flags = args.flags.bits() | args.exit_signal.bits().into_u64();
-    #[cfg(any(target_arch = "x86_64"))]
+    #[cfg(target_arch = "x86_64")]
     let res = unsafe {
         syscall!(
             CLONE,

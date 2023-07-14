@@ -17,7 +17,7 @@ impl<'a> IoSlice<'a> {
                 iov_base: buf.as_ptr().cast_mut().cast(),
                 iov_len: buf.len() as u64,
             },
-            _p: PhantomData::default(),
+            _p: PhantomData,
         }
     }
 }
@@ -37,7 +37,7 @@ impl<'a> IoSliceMut<'a> {
                 iov_base: buf.as_mut_ptr().cast(),
                 iov_len: buf.len() as u64,
             },
-            _p: PhantomData::default(),
+            _p: PhantomData,
         }
     }
 }
