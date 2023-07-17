@@ -11,3 +11,5 @@
 9. [ ] Feature gate things even harder in both [rusl](rusl) and [tiny-std](tiny-std)
 10. [ ] Generate debug info depending on opcode for io uring sqes
 11. [ ] Implement file copy, should probably copy mode
+12. [ ] Figure out whether it should be possible to run start without `aux`, since that configuration
+makes static-pie binaries not work properly.
