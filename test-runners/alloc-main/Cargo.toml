@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 dlmalloc = { git = "https://github.com/MarcusGrass/dlmalloc-rs.git", rev = "a8e9fc0d2c03a06810530a48abd37fecc71e8109", default-features = false }
-tiny-std = { path = "../../tiny-std", features = ["start", "symbols", "aux", "vdso"] }
+tiny-std = { path = "../../tiny-std", features = ["executable"] }
 rusl = { path = "../../rusl", features = ["alloc"]}
 unix-print = "0.1.0"
 sc = "0.2.7"

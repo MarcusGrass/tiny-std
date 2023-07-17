@@ -4,7 +4,7 @@ use crate::env::ENV;
 use crate::process::exit;
 
 // Binary entrypoint
-#[cfg(all(feature = "start", target_arch = "x86_64"))]
+#[cfg(all(feature = "start", feature = "symbols", target_arch = "x86_64"))]
 core::arch::global_asm!(
     ".text",
     ".global _start",
@@ -19,7 +19,7 @@ core::arch::global_asm!(
     "call __proxy_main"
 );
 
-#[cfg(all(feature = "start", target_arch = "aarch64"))]
+#[cfg(all(feature = "start", feature = "symbols", target_arch = "aarch64"))]
 core::arch::global_asm!(
     ".text",
     ".global _start",

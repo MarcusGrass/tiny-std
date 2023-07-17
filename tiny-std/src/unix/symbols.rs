@@ -365,5 +365,4 @@ pub extern "C" fn getauxval(_val: u64) -> u64 {
 /// # Safety
 /// Just a symbol that's necessary
 #[no_mangle]
-#[cfg(feature = "symbols")]
 pub unsafe fn rust_eh_personality() {}
