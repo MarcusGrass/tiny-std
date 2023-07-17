@@ -1,6 +1,8 @@
 // Got this from `musl` gotta see if I can find it in the kernel source
 pub const AUX_CNT: usize = 42;
 
+pub use linux_rust_bindings::aux::*;
+
 transparent_bitflags! {
     pub struct AuxValue: usize {
         const DEFAULT = 0;

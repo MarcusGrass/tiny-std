@@ -2,7 +2,6 @@
 #![no_main]
 #![allow(dead_code)]
 
-use rusl::platform::AuxValue;
 use tiny_std::io::Read;
 use tiny_std::process::{Environment, Stdio};
 
@@ -86,18 +85,13 @@ fn test_spawn_with_args() {
 }
 
 unsafe fn test_aux_values() {
-    let page_size = tiny_std::start::get_aux_value(AuxValue::AT_PAGESZ).unwrap();
-    assert_eq!(4096, page_size);
     // 16 random bytes
-    let random = tiny_std::start::get_aux_value(AuxValue::AT_RANDOM).unwrap() as *const u128;
-    let _val = random.read();
-    let uid = tiny_std::start::get_aux_value(AuxValue::AT_UID).unwrap();
-    let gid = tiny_std::start::get_aux_value(AuxValue::AT_GID).unwrap();
+    let random = tiny_std::elf::aux::get_random();
+    assert_ne!(0u128, random.unwrap());
+    let uid = tiny_std::elf::aux::get_uid();
+    let gid = tiny_std::elf::aux::get_gid();
     assert_eq!(1000, uid);
     assert_eq!(1000, gid);
-    // TODO: Fix VDSO for aarch64
-    #[cfg(not(target_arch = "aarch64"))]
-    let _vdso = tiny_std::start::get_aux_value(AuxValue::AT_SYSINFO_EHDR).unwrap();
 }
 
 fn test_time() {

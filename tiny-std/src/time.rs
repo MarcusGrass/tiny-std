@@ -214,7 +214,7 @@ fn sub_ts_checked_dur(lhs: TimeSpec, rhs: TimeSpec) -> Option<Duration> {
 #[inline]
 #[cfg(feature = "vdso")]
 fn get_monotonic_time() -> TimeSpec {
-    if let Some(vdso_get_time) = unsafe { crate::start::VDSO_CLOCK_GET_TIME } {
+    if let Some(vdso_get_time) = unsafe { crate::elf::vdso::VDSO_CLOCK_GET_TIME } {
         let mut ts = core::mem::MaybeUninit::<TimeSpec>::zeroed();
         vdso_get_time(
             rusl::platform::ClockId::CLOCK_MONOTONIC.bits(),
@@ -230,7 +230,7 @@ fn get_monotonic_time() -> TimeSpec {
 #[inline]
 #[cfg(feature = "vdso")]
 fn get_real_time() -> TimeSpec {
-    if let Some(vdso_get_time) = unsafe { crate::start::VDSO_CLOCK_GET_TIME } {
+    if let Some(vdso_get_time) = unsafe { crate::elf::vdso::VDSO_CLOCK_GET_TIME } {
         let mut ts = core::mem::MaybeUninit::<TimeSpec>::zeroed();
         vdso_get_time(
             rusl::platform::ClockId::CLOCK_REALTIME.bits(),

@@ -358,5 +358,12 @@ pub extern "C" fn _Unwind_Resume() -> ! {
 #[no_mangle]
 #[cfg(target_arch = "aarch64")]
 pub extern "C" fn getauxval(_val: u64) -> u64 {
-    panic!("This is a bug, the extern `C` function `getauxval` was invoked, we don't use the `C` implementation here, but code using it was generated. implementation here, but code using it was generated.")
+    panic!("This is a bug, the extern `C` function `getauxval` was invoked, we don't use the `C` implementation here, but code using it was generated.")
 }
+
+/// Skip lang item feature which will never stabilize and just put the symbol in
+/// # Safety
+/// Just a symbol that's necessary
+#[no_mangle]
+#[cfg(feature = "symbols")]
+pub unsafe fn rust_eh_personality() {}

@@ -33,23 +33,23 @@ macro_rules! transparent_bitflags {
                 $vis const $Flag: Self = Self($value);
             )*
 
-            #[inline]
-            #[allow(dead_code)]
             #[must_use]
+            #[inline(always)]
+            #[allow(dead_code)]
             $vis const fn bits(&self) -> $T {
                 self.0
             }
 
             #[inline]
-            #[allow(dead_code)]
             #[must_use]
+            #[allow(dead_code)]
             $vis const fn empty() -> Self {
                 Self::DEFAULT
             }
 
             #[inline]
-            #[allow(dead_code)]
             #[must_use]
+            #[allow(dead_code)]
             $vis fn contains(&self, other: Self) -> bool {
                 self.0 & other.0 != Self::DEFAULT.0
             }

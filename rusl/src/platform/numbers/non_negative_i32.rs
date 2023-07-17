@@ -13,6 +13,12 @@ impl core::fmt::Display for NonNegativeI32 {
     }
 }
 
+impl Default for NonNegativeI32 {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
 impl NonNegativeI32 {
     pub const ZERO: Self = Self(0);
 
@@ -34,8 +40,15 @@ impl NonNegativeI32 {
         }
     }
 
+    /// Const constructor which panics on error, useful for constructing constants, as
+    /// the compilation will make sure this is correct and safe.
+    /// If used outside of a const context however, this will just panic on failure, which
+    /// sucks, if not in const, then run `try_new`.
+    /// # Panics
+    /// Only when constructing a negative i32, don't use this function outside of a const context.
     #[inline]
-    pub(crate) const fn comptime_checked_new(val: i32) -> Self {
+    #[must_use]
+    pub const fn comptime_checked_new(val: i32) -> Self {
         assert!(
             val >= 0,
             "Tried to comptime create a NonNegativeI32 from a value less than zero"
