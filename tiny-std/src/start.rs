@@ -1,8 +1,5 @@
 //! Support for starting a `Rust` program without libc dependencies
 
-use crate::env::ENV;
-use crate::process::exit;
-
 // Binary entrypoint
 #[cfg(all(feature = "start", feature = "symbols", target_arch = "x86_64"))]
 core::arch::global_asm!(
@@ -38,6 +35,7 @@ core::arch::global_asm!(
 
 /// Called with a pointer to the top of the stack
 #[no_mangle]
+#[cfg(feature = "symbols")]
 unsafe extern "C" fn __proxy_main(stack_ptr: *const u8, _dynv: *const usize) {
     // Fist 8 bytes is a u64 with the number of arguments
     let argc = *(stack_ptr as *const u64);
@@ -66,9 +64,9 @@ unsafe extern "C" fn __proxy_main(stack_ptr: *const u8, _dynv: *const usize) {
         crate::elf::aux::AUX_VALUES = aux;
     }
 
-    ENV.arg_c = argc;
-    ENV.arg_v = argv;
-    ENV.env_p = envp;
+    crate::env::ENV.arg_c = argc;
+    crate::env::ENV.arg_v = argv;
+    crate::env::ENV.env_p = envp;
 
     #[cfg(feature = "vdso")]
     {
@@ -100,9 +98,10 @@ unsafe extern "C" fn __proxy_main(stack_ptr: *const u8, _dynv: *const usize) {
         }
     }
     let code = main();
-    exit(code);
+    crate::process::exit(code);
 }
 
+#[cfg(feature = "symbols")]
 extern "Rust" {
     // The user's main
     fn main() -> i32;
