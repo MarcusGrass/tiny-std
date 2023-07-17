@@ -274,7 +274,8 @@ where
     let size = guard_sz + stack_sz;
 
     let tsm = unsafe { Tsm::init::<T>() };
-    let df_ptr: Box<dyn FnOnce()> = Box::new(move || {
+
+    let df = move || {
         unsafe {
             // Run the function, if it panics, goto #[panic_handler].
             let func_ret = func();
@@ -297,13 +298,13 @@ where
             // Also dealloc the local storage for this thread, nobody needs that anymore
             dealloc(get_tls_ptr().cast(), Layout::new::<ThreadLocalStorage>());
         }
-    });
+    };
     // We need to double box here because
     // 1. We need to access through a box, because we can't cast into a *mut dyn FnOnce(), because
     // fat pointer.
     // 2. We can't refer to the box we create by address on the stack, because we will risk accessing
     // it after this part of the stack is destroyed/overwritten/whatever.
-    let raw_df = Box::into_raw(Box::new(df_ptr));
+    let (raw_df_fn,raw_df_data) = onwed_split_fn_once(df);
 
     let map_ptr = unsafe {
         mmap(
@@ -323,8 +324,8 @@ where
     stack -= core::mem::size_of::<StartArgs>();
     let args = stack as *mut StartArgs;
     unsafe {
-        (*args).start_func = thread_go as _;
-        (*args).start_arg = raw_df as usize;
+        (*args).start_func = raw_df_fn as _;
+        (*args).start_arg = raw_df_data as usize;
     }
 
     let tls = Box::into_raw(Box::new(ThreadLocalStorage {
@@ -356,6 +357,21 @@ where
         _pd: PhantomData::default(),
     })
 }
+
+unsafe fn onwed_split_fn_once<T, F: FnOnce() -> T>(f: F) -> (unsafe extern "C" fn(), *mut u8) {
+    let t = trampoline::<F>;
+    let d: *mut u8 = Box::into_raw(Box::new(f)) as *mut u8;
+    (t, d)
+}
+
+unsafe extern "C" fn trampoline<T, F>(raw_data: *mut c_void)
+where
+    F: FnOnce() -> T,
+{
+    let user_data = unsafe { Box::from_raw(raw_data as *mut F) };
+    user_data(result);
+}
+
 
 #[repr(C)]
 struct StartArgs {
