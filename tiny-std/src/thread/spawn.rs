@@ -3,7 +3,6 @@ use alloc::boxed::Box;
 use core::alloc::Layout;
 use core::arch::global_asm;
 use core::cell::UnsafeCell;
-use core::ffi::c_void;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
@@ -301,7 +300,7 @@ where
             dealloc(get_tls_ptr().cast(), Layout::new::<ThreadLocalStorage>());
         }
     };
-    let (trampoline, fn_caller) = unsafe { onwed_split_fn_once(df) };
+    let (start_fn, fn_caller) = unsafe { onwed_split_fn_once(df) };
     // We need to double box here because
     // 1. We need to access through a box, because we can't cast into a *mut dyn FnOnce(), because
     // fat pointer.
@@ -326,7 +325,6 @@ where
     stack -= core::mem::size_of::<StartArgs>();
     let args = stack as *mut StartArgs;
     unsafe {
-        (*args).start_func = trampoline;
         (*args).start_arg = fn_caller;
     }
 
@@ -344,7 +342,7 @@ where
     #[allow(clippy::cast_possible_truncation)]
     unsafe {
         __clone(
-            start_fn as _,
+            start_fn,
             stack,
             flags.bits() as i32,
             args as _,
@@ -361,32 +359,23 @@ where
 }
 
 #[inline]
-unsafe fn onwed_split_fn_once<T, F: FnOnce() -> T>(f: F) -> (usize, usize) {
-    let t = trampoline::<T, F>;
+unsafe fn onwed_split_fn_once<F: FnOnce()>(f: F) -> (usize, usize) {
+    let t = start_fn::<F>;
     let d = Box::into_raw(Box::new(f));
     (t as usize, d as usize)
 }
 
-unsafe extern "C" fn trampoline<T, F>(raw_data: *mut c_void) -> i32
-    where
-        F: FnOnce() -> T,
-{
-    let user_data = unsafe { Box::from_raw(raw_data.cast::<F>()) };
-    (user_data)();
-    0
-}
-
 #[repr(C)]
 struct StartArgs {
-    start_func: usize,
     start_arg: usize,
 }
 
-unsafe extern "C" fn start_fn(ptr: *mut StartArgs) -> i32 {
+unsafe extern "C" fn start_fn<F: FnOnce()>(ptr: *mut StartArgs) -> i32 {
     let args = ptr.read();
-    let func = args.start_func as *const ();
-    let run = core::mem::transmute::<*const (), fn(*const c_void) -> i32>(func);
-    (run)(args.start_arg as _)
+    let func = args.start_arg as *mut F;
+    let boxed_run = Box::from_raw(func);
+    (boxed_run)();
+    0
 }
 
 extern "C" {
