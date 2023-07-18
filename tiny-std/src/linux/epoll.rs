@@ -69,7 +69,7 @@ impl EpollDriver {
     /// Waits for any registered `fd` to become ready.
     /// The `timeout` can at most be `i32::MAX` milliseconds
     /// # Errors
-    /// Os errors occuring during wait, or a timeout that is too long
+    /// Os errors occurring during wait, or a timeout that is too long
     #[inline]
     #[allow(clippy::cast_possible_wrap)]
     pub fn wait(&self, event_buf: &mut [EpollEvent], timeout: EpollTimeout) -> Result<usize> {
@@ -86,5 +86,23 @@ impl EpollDriver {
             EpollTimeout::NoWait => rusl::select::epoll_wait(self.epoll_fd.0, event_buf, 0)?,
         };
         Ok(num_ready)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusl::platform::STDIN;
+
+    #[test]
+    fn test_epoll_driver() {
+        let drive = EpollDriver::create(true).unwrap();
+        drive.register(STDIN, 1, EpollEventMask::EPOLLOUT).unwrap();
+        let mut buf = [EpollEvent::new(0, EpollEventMask::empty())];
+        drive
+            .wait(&mut buf, EpollTimeout::WaitMillis(1_000))
+            .unwrap();
+        assert_eq!(1, buf[0].get_data());
+        assert!(buf[0].get_events().contains(EpollEventMask::EPOLLOUT));
     }
 }
