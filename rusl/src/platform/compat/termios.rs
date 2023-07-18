@@ -123,8 +123,8 @@ pub(crate) mod tio_shim {
 
         #[test]
         fn test_macro_compat() {
-            assert_eq!(TIOCGPTN, 0x80045430);
-            assert_eq!(TIOCSPTLCK, 0x40045431);
+            assert_eq!(TIOCGPTN, 0x8004_5430);
+            assert_eq!(TIOCSPTLCK, 0x4004_5431);
         }
     }
 }

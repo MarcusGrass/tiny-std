@@ -20,14 +20,14 @@ fn test_clone3_vfork() {
             }
             Err(e) => panic!("Test failure {e}"),
         };
-        if child != 0 {
+        if child == 0 {
+            exit(0);
+        } else {
             let pidfd = pidfd.assume_init();
             // Pidfd is ready to read on complete
             let done_when = PollFd::new(pidfd, PollEvents::POLLOUT);
             let completed = ppoll(&mut [done_when], None, None).unwrap();
             assert_eq!(1, completed);
-        } else {
-            exit(0);
         }
     }
 }
@@ -49,14 +49,14 @@ fn test_clone3_pidfd() {
             }
             Err(e) => panic!("Test failure {e}"),
         };
-        if child != 0 {
+        if child == 0 {
+            exit(0);
+        } else {
             let pidfd = pidfd.assume_init();
             // Pidfd is ready to read on complete
             let done_when = PollFd::new(pidfd, PollEvents::POLLOUT | PollEvents::POLLIN);
             let completed = ppoll(&mut [done_when], None, None).unwrap();
             assert_eq!(1, completed);
-        } else {
-            exit(0);
         }
     }
 }

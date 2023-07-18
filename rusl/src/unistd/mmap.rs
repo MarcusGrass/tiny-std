@@ -53,6 +53,8 @@ mod tests {
     use super::*;
 
     #[test]
+    // We're using the truncation in the test
+    #[allow(clippy::cast_possible_truncation)]
     fn test_basic_alloc() {
         unsafe {
             let size = 4096;
@@ -68,14 +70,14 @@ mod tests {
             )
             .unwrap();
             let slice_stack: &mut [u8] = core::slice::from_raw_parts_mut(stack as _, size);
-            for i in 0..slice_stack.len() {
+            for (i, val) in slice_stack.iter_mut().enumerate() {
                 // The memory should be zeroed
-                assert_eq!(0, slice_stack[i]);
+                assert_eq!(0, *val);
                 // The memory should be writeable
-                slice_stack[i] = i as u8;
+                *val = i as u8;
             }
-            for i in 0..slice_stack.len() {
-                assert_eq!(i as u8, slice_stack[i]);
+            for (i, val) in slice_stack.iter().enumerate() {
+                assert_eq!(i as u8, *val);
             }
             munmap(stack, sz).unwrap();
         }

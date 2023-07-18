@@ -128,7 +128,7 @@ mod tests {
     fn rewrite_single() {
         let bc = get_chars(8);
         if let ByteChars::One(b) = bc {
-            assert_eq!('8', b as char)
+            assert_eq!('8', b as char);
         } else {
             panic!("Bad match");
         }

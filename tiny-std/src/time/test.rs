@@ -31,7 +31,7 @@ fn instant_add_sub_cmp() {
     assert_eq!(diff, (later - first).unwrap());
     assert_eq!(diff, later.duration_since(first).unwrap());
     assert!((first - later).is_none());
-    assert!(first.duration_since(later).is_none())
+    assert!(first.duration_since(later).is_none());
 }
 
 #[test]
@@ -42,5 +42,5 @@ fn system_time_add_sub_cmp() {
     assert_eq!(diff, (later - first).unwrap());
     assert_eq!(diff, later.duration_since(first).unwrap());
     assert!((first - later).is_none());
-    assert!(first.duration_since(later).is_none())
+    assert!(first.duration_since(later).is_none());
 }

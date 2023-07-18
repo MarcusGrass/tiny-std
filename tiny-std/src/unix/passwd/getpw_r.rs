@@ -238,7 +238,7 @@ nvidia-persis";
         let my_num = "-5";
         assert!(try_parse_num(my_num.as_bytes()).is_err());
         // u64::Max
-        assert!(try_parse_num("18446744073709551615".as_bytes()).is_err())
+        assert!(try_parse_num("18446744073709551615".as_bytes()).is_err());
     }
 
     #[test]

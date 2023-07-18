@@ -126,7 +126,7 @@ fn can_create_and_delete_dir() {
         }
     }
     crate::fs::remove_dir(tgt).unwrap();
-    assert!(metadata(tgt).is_err())
+    assert!(metadata(tgt).is_err());
 }
 
 #[test]
@@ -137,25 +137,23 @@ fn can_open_and_read_dir() {
     for entry in it {
         let entry = entry.unwrap();
         match entry.file_name().unwrap() {
-            "." => assert_eq!(FileType::Directory, entry.file_type()),
-            ".." => assert_eq!(FileType::Directory, entry.file_type()),
-            "dummy_file1.txt" => assert_eq!(FileType::RegularFile, entry.file_type()),
-            "dummy_file2.txt" => assert_eq!(FileType::RegularFile, entry.file_type()),
-            "dummy_dir" => assert_eq!(FileType::Directory, entry.file_type()),
+            "." | ".." | "dummy_dir" => assert_eq!(FileType::Directory, entry.file_type()),
+            "dummy_file1.txt" | "dummy_file2.txt" => {
+                assert_eq!(FileType::RegularFile, entry.file_type());
+            }
             n => panic!("Unexpected entry found {n}"),
         }
         unsafe {
             let unix_name = entry.file_unix_name().unwrap();
-            if unix_name == UnixStr::from_str_unchecked(".\0") {
+            if unix_name == UnixStr::from_str_unchecked(".\0")
+                || unix_name == UnixStr::from_str_unchecked("..\0")
+                || unix_name == UnixStr::from_str_unchecked("dummy_dir\0")
+            {
                 assert_eq!(FileType::Directory, entry.file_type());
-            } else if unix_name == UnixStr::from_str_unchecked("..\0") {
-                assert_eq!(FileType::Directory, entry.file_type());
-            } else if unix_name == UnixStr::from_str_unchecked("dummy_file1.txt\0") {
+            } else if unix_name == UnixStr::from_str_unchecked("dummy_file1.txt\0")
+                || unix_name == UnixStr::from_str_unchecked("dummy_file2.txt\0")
+            {
                 assert_eq!(FileType::RegularFile, entry.file_type());
-            } else if unix_name == UnixStr::from_str_unchecked("dummy_file2.txt\0") {
-                assert_eq!(FileType::RegularFile, entry.file_type());
-            } else if unix_name == UnixStr::from_str_unchecked("dummy_dir\0") {
-                assert_eq!(FileType::Directory, entry.file_type());
             } else {
                 panic!("Unexpected entry found")
             }
@@ -176,7 +174,7 @@ fn create_read_and_delete_dir_with_a_lot_of_files() {
 
     let create_files = 512;
     for i in 0..create_files {
-        let owned_path = std::format!("test-files/fs/dir-test2/test-file{}.txt\0", i);
+        let owned_path = std::format!("test-files/fs/dir-test2/test-file{i}.txt\0");
         let path = owned_path.as_str();
         let mut f = OpenOptions::new()
             .create_new(true)
@@ -204,7 +202,7 @@ fn create_read_and_delete_dir_with_a_lot_of_files() {
             }
             let expect_num = num.parse::<i32>().unwrap();
             let mut buf = [0u8; 256];
-            let expect_write = std::format!("Test write {}", expect_num);
+            let expect_write = std::format!("Test write {expect_num}");
             let expect_write_bytes = expect_write.as_bytes();
             let mut file = entry.open_file().unwrap();
             file.read(&mut buf).unwrap();

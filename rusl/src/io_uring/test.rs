@@ -33,9 +33,7 @@ fn setup_io_poll_uring() -> Option<Fd> {
         #[allow(unused_variables)]
         Err(e) => {
             #[cfg(target_arch = "aarch64")]
-            if e.code.unwrap() != crate::error::Errno::ENOSYS {
-                panic!("{}", e);
-            }
+            assert!(e.code.unwrap() == crate::error::Errno::ENOSYS);
             return None;
         }
     };
@@ -72,6 +70,7 @@ fn uring_register_buffer() {
     unsafe { io_uring_register_buffers(uring_fd, &[ioslice]).unwrap() };
 }
 
+#[cfg_attr(target_arch = "x86_64", allow(clippy::unnecessary_wraps))]
 fn setup_ignore_enosys(entries: u32, flags: IoUringParamFlags) -> Option<IoUring> {
     let uring = setup_io_uring(entries, flags, 0, 0);
     match uring {
@@ -96,6 +95,7 @@ fn uring_setup_instance() {
 }
 
 #[test]
+#[allow(clippy::cast_sign_loss)]
 fn uring_single_read() {
     let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
@@ -115,7 +115,7 @@ fn uring_single_read() {
         )
     };
     let cqe = write_await_single_entry(&mut uring, entry, user_data);
-    assert_eq!(5, cqe.0.res, "Bad user data in cqe {:?}", cqe);
+    assert_eq!(5, cqe.0.res, "Bad user data in cqe {cqe:?}");
     assert_eq!(
         "open\n",
         core::str::from_utf8(&bytes[..cqe.0.res as usize]).unwrap()
@@ -123,6 +123,7 @@ fn uring_single_read() {
 }
 
 #[test]
+#[allow(clippy::cast_sign_loss)]
 fn uring_single_write() {
     let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
@@ -199,7 +200,7 @@ fn uring_single_close() {
     let Err(e) = close(fd) else {
         panic!("Uring close operation failed, expected `EBADF` on manual close after.")
     };
-    assert_eq!(Errno::EBADF, e.code.unwrap())
+    assert_eq!(Errno::EBADF, e.code.unwrap());
 }
 
 #[test]
@@ -384,7 +385,7 @@ fn uring_single_accept() {
     connect(conn_sock, &addr).unwrap();
     io_uring_enter(uring.fd, 0, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
     let cqe = uring.get_next_cqe().unwrap();
-    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
+    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {cqe:?}");
     assert!(cqe.0.res >= 0, "Failed res for cqe: {cqe:?}");
 }
 
@@ -400,7 +401,7 @@ fn write_await_single_entry(
     uring.flush_submission_queue();
     io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
     let cqe = uring.get_next_cqe().unwrap();
-    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
+    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {cqe:?}");
     assert!(cqe.0.res >= 0, "Failed res for cqe: {cqe:?}");
     cqe
 }
@@ -432,19 +433,19 @@ fn uring_single_timeout() {
     let start = clock_get_monotonic_time();
     io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
     let end = clock_get_monotonic_time();
-    let start_ts = (start.seconds() as i128)
+    let start_ts = i128::from(start.seconds())
         .checked_mul(1_000_000_000)
         .unwrap()
-        .checked_add(start.nanoseconds() as i128)
+        .checked_add(i128::from(start.nanoseconds()))
         .unwrap();
-    let end_ts = (end.seconds() as i128)
+    let end_ts = i128::from(end.seconds())
         .checked_mul(1_000_000_000)
         .unwrap()
-        .checked_add(end.nanoseconds() as i128)
+        .checked_add(i128::from(end.nanoseconds()))
         .unwrap();
     let diff = end_ts - start_ts;
     assert!(
-        diff >= wait_nsec as i128,
+        diff >= i128::from(wait_nsec),
         "Diff failed, start = {}, end = {}, diff = {}, wait = {}",
         start.nanoseconds(),
         end.nanoseconds(),
@@ -452,11 +453,12 @@ fn uring_single_timeout() {
         wait_nsec
     );
     let cqe = uring.get_next_cqe().unwrap();
-    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {:?}", cqe);
+    assert_eq!(user_data, cqe.0.user_data, "Bad user data in cqe {cqe:?}");
     assert_eq!(0 - ETIME, cqe.0.res, "Expected `ETIME` for cqe: {cqe:?}");
 }
 
 #[test]
+#[allow(clippy::cast_sign_loss)]
 fn uring_read_registered_buffers_and_fds() {
     let mut buf1 = [0u8; 64];
     let buf1_addr = core::ptr::addr_of_mut!(buf1);
@@ -550,6 +552,7 @@ fn uring_read_registered_buffers_and_fds() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn uring_write_registered_buffers_and_fds() {
     let content1 = b"Uring fixed write 1!\n";
     let mut buf1 = [0u8; 21];
@@ -640,7 +643,7 @@ fn uring_write_registered_buffers_and_fds() {
                     assert_eq!(
                         b"Uring fixed write 1!\n", &mut buf,
                         "bad match on cqe {cqe:?}"
-                    )
+                    );
                 }
                 2 => {
                     let fd = open(path2, OpenFlags::O_RDONLY).unwrap();
@@ -649,13 +652,13 @@ fn uring_write_registered_buffers_and_fds() {
                     assert_eq!(
                         b"Uring fixed write 2!\n", &mut buf,
                         "bad match on cqe {cqe:?}"
-                    )
+                    );
                 }
                 3 => {
                     let fd = open(path3, OpenFlags::O_RDONLY).unwrap();
                     let mut buf = [0u8; 21];
                     read(fd, &mut buf).unwrap();
-                    assert_eq!(b"Uring fixed write 3!\n", &buf3, "bad match on cqe {cqe:?}")
+                    assert_eq!(b"Uring fixed write 3!\n", &buf3, "bad match on cqe {cqe:?}");
                 }
                 _ => panic!("Bad user data on cqe {cqe:?}"),
             }
@@ -745,11 +748,10 @@ fn uring_multi_linked_crud() {
     for _ in 0..5 {
         let cqe = uring.get_next_cqe().unwrap();
         assert!(cqe.0.res >= 0);
-        match cqe.0.user_data {
-            STAT_FILE_DATA => unsafe {
+        if cqe.0.user_data == STAT_FILE_DATA {
+            unsafe {
                 assert_eq!(0, (*statx_uninit.as_ptr()).0.stx_size);
-            },
-            _ => {}
+            }
         }
     }
 }

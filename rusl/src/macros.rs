@@ -136,6 +136,6 @@ macro_rules! errno_or_throw {
 #[macro_export]
 macro_rules! expect_errno {
     ($errno: expr, $res: expr) => {
-        assert_eq!($errno, crate::errno_or_throw!($res));
+        assert_eq!($errno, $crate::errno_or_throw!($res));
     };
 }
