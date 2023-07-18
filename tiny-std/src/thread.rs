@@ -1,4 +1,4 @@
-/// We'll need symbols to set up a panic_handler, and alloc to run threads.
+/// We'll need symbols to set up a `panic_handler`, and alloc to run threads.
 /// We also need to set tls, which is done in `start`
 #[cfg(all(feature = "start", feature = "symbols", feature = "alloc"))]
 pub(crate) mod spawn;

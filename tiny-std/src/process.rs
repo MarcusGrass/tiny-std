@@ -98,7 +98,7 @@ impl Command {
             self.env = Environment::Provided(ProvidedEnvironment {
                 vars: vec![],
                 envp: Envp(vec![core::ptr::null()]),
-            })
+            });
         };
         #[cfg(not(feature = "start"))]
         if !matches!(self.env, Environment::None) {

@@ -5,12 +5,16 @@ pub(crate) static mut AUX_VALUES: AuxValues = AuxValues::zeroed();
 
 /// Get the main thread group id
 #[inline]
+#[must_use]
+#[allow(clippy::cast_possible_truncation)]
 pub fn get_gid() -> GidT {
     unsafe { AUX_VALUES.at_gid as GidT }
 }
 
 /// Get the main thread user id
 #[inline]
+#[must_use]
+#[allow(clippy::cast_possible_truncation)]
 pub fn get_uid() -> UidT {
     unsafe { AUX_VALUES.at_uid as UidT }
 }
@@ -19,6 +23,7 @@ pub fn get_uid() -> UidT {
 /// Could call this something like `session-id` to make it more clear that repeated calls
 /// won't yield different values.
 #[inline]
+#[must_use]
 pub fn get_random() -> Option<u128> {
     unsafe {
         let random_addr = AUX_VALUES.at_random;
@@ -81,6 +86,7 @@ impl AuxValues {
     }
 
     #[inline(always)]
+    #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
     pub(crate) unsafe fn from_auxv(auxv: *const usize) -> Self {
         let mut collected = Self::zeroed();
         let mut i = 0;
@@ -97,7 +103,7 @@ impl AuxValues {
                     rusl::platform::AT_SECURE => collected.at_secure = *(auxv.add(i + 1)),
                     rusl::platform::AT_RANDOM => collected.at_random = *(auxv.add(i + 1)),
                     rusl::platform::AT_SYSINFO_EHDR => {
-                        collected.at_sysinfo_ehdr = *(auxv.add(i + 1))
+                        collected.at_sysinfo_ehdr = *(auxv.add(i + 1));
                     }
                     _ => {}
                 }

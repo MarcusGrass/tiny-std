@@ -5,6 +5,7 @@ use rusl::platform::{
 };
 
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 pub(crate) unsafe fn relocate_symbols(dynv: *const usize, aux: &AuxValues) {
     if dynv as usize != 0 {
         // Static-pie linked (or dynamic but who would do that?)
@@ -48,6 +49,7 @@ pub(crate) struct DynSection {
 impl DynSection {
     /// Function works just like getting aux-values, value is at key + 1
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     pub(crate) unsafe fn init_from_dynv(dynv: *const usize) -> Self {
         let mut ds = Self {
             rel: 0,
@@ -76,6 +78,7 @@ impl DynSection {
     }
 
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub(crate) unsafe fn relocate(&self, base_addr: usize) {
         // Relocate all `rel`-entries
         for i in 0..(self.rel_sz / core::mem::size_of::<Elf64Rel>()) {
@@ -101,7 +104,7 @@ impl DynSection {
 
 #[inline(always)]
 const fn relative_type(tp: u64) -> u64 {
-    tp & 0x7fffffff
+    tp & 0x7fff_ffff
 }
 
 #[inline(always)]

@@ -3,7 +3,8 @@
 #![allow(
     clippy::let_underscore_untyped,
     clippy::module_name_repetitions,
-    clippy::similar_names
+    clippy::similar_names,
+    clippy::inline_always
 )]
 #[cfg(feature = "alloc")]
 extern crate alloc;

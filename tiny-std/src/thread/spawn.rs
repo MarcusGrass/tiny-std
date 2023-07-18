@@ -66,11 +66,11 @@ impl<T: Sized> Drop for JoinHandle<T> {
 /// Struct wrapping the pointer containing thread shared memory.
 /// Shared between parent and child thread.
 /// Raw memory mapping of a struct with members:
-/// 1. AtomicBool, sync ptr
-/// 2. AtomicU32, futex ptr
+/// 1. `AtomicBool`, sync ptr
+/// 2. `AtomicU32`, futex ptr
 /// 3. This struct's layout size (usize)
 /// 4. This struct's layout align (usize)
-/// 5. Some return value wrapped in an UnsafeCell
+/// 5. Some return value wrapped in an `UnsafeCell`
 /// This is useful because we don't need to allocate/deallocate/dereference
 /// 3 separate pointers, we just chunk them into one with the proper alignment.
 /// Ideally this would be a pointer to a struct and not just raw bytes, but since
@@ -99,6 +99,7 @@ impl Tsm {
             core::mem::align_of::<usize>(),
         );
 
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn init<T>() -> Self {
         let layout = Self::layout_thread_shared_memory::<T>();
         let ptr = alloc::alloc::alloc(layout);
@@ -139,6 +140,7 @@ impl Tsm {
     }
 
     #[inline]
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn get_futex(self) -> &'static AtomicU32 {
         self.0
             .add(Self::FUTEX_OFFSET)
@@ -148,6 +150,7 @@ impl Tsm {
     }
 
     #[inline]
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn get_layout(self) -> Layout {
         let size = self.0.add(Self::SELF_SZ_OFFSET).cast::<usize>().read();
         let align = self.0.add(Self::SELF_ALIGN_OFFSET).cast::<usize>().read();
@@ -353,7 +356,7 @@ where
     }
     Ok(JoinHandle {
         tsm,
-        _pd: PhantomData::default(),
+        _pd: PhantomData,
     })
 }
 

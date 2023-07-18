@@ -6,98 +6,98 @@
 //!
 //! The code is licensed under MIT and the license can be found in the above repo, also reproduced
 //! below:
-//!
-//! ==============================================================================
-//! compiler-builtins License
-//! ==============================================================================
-//!
-//! The compiler-builtins crate is dual licensed under both the University of
-//! Illinois "BSD-Like" license and the MIT license.  As a user of this code you may
-//! choose to use it under either license.  As a contributor, you agree to allow
-//! your code to be used under both.
-//!
-//! Full text of the relevant licenses is included below.
-//!
-//! ==============================================================================
-//!
-//! University of Illinois/NCSA
-//! Open Source License
-//!
-//! Copyright (c) 2009-2016 by the contributors listed in CREDITS.TXT
-//!
-//! All rights reserved.
-//!
-//! Developed by:
-//!
-//! LLVM Team
-//!
-//! University of Illinois at Urbana-Champaign
-//!
-//! http://llvm.org
-//!
-//! Permission is hereby granted, free of charge, to any person obtaining a copy of
-//! this software and associated documentation files (the "Software"), to deal with
-//! the Software without restriction, including without limitation the rights to
-//! use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-//! of the Software, and to permit persons to whom the Software is furnished to do
-//! so, subject to the following conditions:
-//!
-//! * Redistributions of source code must retain the above copyright notice,
-//! this list of conditions and the following disclaimers.
-//!
-//! * Redistributions in binary form must reproduce the above copyright notice,
-//! this list of conditions and the following disclaimers in the
-//! documentation and/or other materials provided with the distribution.
-//!
-//! * Neither the names of the LLVM Team, University of Illinois at
-//! Urbana-Champaign, nor the names of its contributors may be used to
-//! endorse or promote products derived from this Software without specific
-//! prior written permission.
-//!
-//! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-//! FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-//! CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//! LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//! OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
-//! SOFTWARE.
-//!
-//! ==============================================================================
-//!
-//! Copyright (c) 2009-2015 by the contributors listed in CREDITS.TXT
-//!
-//! Permission is hereby granted, free of charge, to any person obtaining a copy
-//! of this software and associated documentation files (the "Software"), to deal
-//! in the Software without restriction, including without limitation the rights
-//! to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//! copies of the Software, and to permit persons to whom the Software is
-//! furnished to do so, subject to the following conditions:
-//!
-//! The above copyright notice and this permission notice shall be included in
-//! all copies or substantial portions of the Software.
-//!
-//! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//! AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//! LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//! OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//! THE SOFTWARE.
-//!
-//! ==============================================================================
-//! Copyrights and Licenses for Third Party Software Distributed with LLVM:
-//! ==============================================================================
-//! The LLVM software contains code written by third parties.  Such software will
-//! have its own individual LICENSE.TXT file in the directory in which it appears.
-//! This file will describe the copyrights, license, and restrictions which apply
-//! to that code.
-//!
-//! The disclaimer of warranty in the University of Illinois Open Source License
-//! applies to all code in the LLVM Distribution, and nothing in any of the
-//! other licenses gives permission to use the names of the LLVM Team or the
-//! University of Illinois to endorse or promote products derived from this
-//! Software.
-//!
+//
+// ==============================================================================
+// compiler-builtins License
+// ==============================================================================
+//
+// The compiler-builtins crate is dual licensed under both the University of
+// Illinois "BSD-Like" license and the MIT license.  As a user of this code you may
+// choose to use it under either license.  As a contributor, you agree to allow
+// your code to be used under both.
+//
+// Full text of the relevant licenses is included below.
+//
+// ==============================================================================
+//
+// University of Illinois/NCSA
+// Open Source License
+//
+// Copyright (c) 2009-2016 by the contributors listed in CREDITS.TXT
+//
+// All rights reserved.
+//
+// Developed by:
+//
+// LLVM Team
+//
+// University of Illinois at Urbana-Champaign
+//
+// http://llvm.org
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal with
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+// of the Software, and to permit persons to whom the Software is furnished to do
+// so, subject to the following conditions:
+//
+// * Redistributions of source code must retain the above copyright notice,
+// this list of conditions and the following disclaimers.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+// this list of conditions and the following disclaimers in the
+// documentation and/or other materials provided with the distribution.
+//
+// * Neither the names of the LLVM Team, University of Illinois at
+// Urbana-Champaign, nor the names of its contributors may be used to
+// endorse or promote products derived from this Software without specific
+// prior written permission.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
+// SOFTWARE.
+//
+// ==============================================================================
+//
+// Copyright (c) 2009-2015 by the contributors listed in CREDITS.TXT
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+// ==============================================================================
+// Copyrights and Licenses for Third Party Software Distributed with LLVM:
+// ==============================================================================
+// The LLVM software contains code written by third parties.  Such software will
+// have its own individual LICENSE.TXT file in the directory in which it appears.
+// This file will describe the copyrights, license, and restrictions which apply
+// to that code.
+//
+// The disclaimer of warranty in the University of Illinois Open Source License
+// applies to all code in the LLVM Distribution, and nothing in any of the
+// other licenses gives permission to use the names of the LLVM Team or the
+// University of Illinois to endorse or promote products derived from this
+// Software.
+//
 
 const WORD_SIZE: usize = core::mem::size_of::<usize>();
 const WORD_MASK: usize = WORD_SIZE - 1;
@@ -150,6 +150,7 @@ pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
 
 #[no_mangle]
 #[inline(always)]
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 pub unsafe extern "C" fn memset(s: *mut u8, c: core::ffi::c_int, n: usize) -> *mut u8 {
     set_bytes(s, c as u8, n);
     s
@@ -162,7 +163,7 @@ unsafe fn compare_bytes(s1: *const u8, s2: *const u8, n: usize) -> i32 {
         let a = *s1.add(i);
         let b = *s2.add(i);
         if a != b {
-            return a as i32 - b as i32;
+            return i32::from(a) - i32::from(b);
         }
         i += 1;
     }
@@ -182,10 +183,11 @@ unsafe fn copy_forward(mut dest: *mut u8, mut src: *const u8, mut n: usize) {
     }
 
     #[inline(always)]
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn copy_forward_aligned_words(dest: *mut u8, src: *const u8, n: usize) {
-        let mut dest_usize = dest as *mut usize;
+        let mut dest_usize = dest.cast::<usize>();
         let mut src_usize = src as *mut usize;
-        let dest_end = dest.add(n) as *mut usize;
+        let dest_end = dest.add(n).cast::<usize>();
 
         while dest_usize < dest_end {
             *dest_usize = *src_usize;
@@ -194,12 +196,13 @@ unsafe fn copy_forward(mut dest: *mut u8, mut src: *const u8, mut n: usize) {
         }
     }
 
-    /// Both x86_64 and aarch support mem-unaligned
+    /// Both `x86_64` and aarch support mem-unaligned
     #[inline(always)]
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn copy_forward_misaligned_words(dest: *mut u8, src: *const u8, n: usize) {
-        let mut dest_usize = dest as *mut usize;
+        let mut dest_usize = dest.cast::<usize>();
         let mut src_usize = src as *mut usize;
-        let dest_end = dest.add(n) as *mut usize;
+        let dest_end = dest.add(n).cast::<usize>();
 
         while dest_usize < dest_end {
             *dest_usize = read_usize_unaligned(src_usize);
@@ -234,7 +237,7 @@ unsafe fn copy_forward(mut dest: *mut u8, mut src: *const u8, mut n: usize) {
 unsafe fn read_usize_unaligned(x: *const usize) -> usize {
     // Do not use `core::ptr::read_unaligned` here, since it calls `copy_nonoverlapping` which
     // is translated to memcpy in LLVM.
-    let x_read = (x as *const [u8; core::mem::size_of::<usize>()]).read();
+    let x_read = x.cast::<[u8; 8]>().read();
     core::mem::transmute(x_read)
 }
 
@@ -253,10 +256,11 @@ unsafe fn copy_backward(dest: *mut u8, src: *const u8, mut n: usize) {
     }
 
     #[inline(always)]
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn copy_backward_aligned_words(dest: *mut u8, src: *const u8, n: usize) {
-        let mut dest_usize = dest as *mut usize;
+        let mut dest_usize = dest.cast::<usize>();
         let mut src_usize = src as *mut usize;
-        let dest_start = dest.sub(n) as *mut usize;
+        let dest_start = dest.sub(n).cast::<usize>();
 
         while dest_start < dest_usize {
             dest_usize = dest_usize.sub(1);
@@ -266,10 +270,11 @@ unsafe fn copy_backward(dest: *mut u8, src: *const u8, mut n: usize) {
     }
 
     #[inline(always)]
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn copy_backward_misaligned_words(dest: *mut u8, src: *const u8, n: usize) {
-        let mut dest_usize = dest as *mut usize;
+        let mut dest_usize = dest.cast::<usize>();
         let mut src_usize = src as *mut usize;
-        let dest_start = dest.sub(n) as *mut usize;
+        let dest_start = dest.sub(n).cast::<usize>();
 
         while dest_start < dest_usize {
             dest_usize = dest_usize.sub(1);
@@ -316,6 +321,7 @@ unsafe fn set_bytes(mut s: *mut u8, c: u8, mut n: usize) {
     }
 
     #[inline(always)]
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn set_bytes_words(s: *mut u8, c: u8, n: usize) {
         let mut broadcast = c as usize;
         let mut bits = 8;
@@ -324,8 +330,8 @@ unsafe fn set_bytes(mut s: *mut u8, c: u8, mut n: usize) {
             bits *= 2;
         }
 
-        let mut s_usize = s as *mut usize;
-        let end = s.add(n) as *mut usize;
+        let mut s_usize = s.cast::<usize>();
+        let end = s.add(n).cast::<usize>();
 
         while s_usize < end {
             *s_usize = broadcast;
@@ -349,8 +355,8 @@ unsafe fn set_bytes(mut s: *mut u8, c: u8, mut n: usize) {
     set_bytes_bytes(s, c, n);
 }
 
-#[allow(non_snake_case)]
 #[no_mangle]
+#[allow(non_snake_case)]
 pub extern "C" fn _Unwind_Resume() -> ! {
     crate::process::exit(1)
 }
@@ -365,4 +371,4 @@ pub extern "C" fn getauxval(_val: u64) -> u64 {
 /// # Safety
 /// Just a symbol that's necessary
 #[no_mangle]
-pub unsafe fn rust_eh_personality() {}
+pub unsafe extern "C" fn rust_eh_personality() {}

@@ -24,7 +24,11 @@ pub enum VarError {
     NotUnicode(Utf8Error),
 }
 
-pub fn var<P: AsUnixStr>(ident: P) -> Result<&'static str, VarError> {
+/// Get a variable for this process' environment with the provided `key`.
+/// # Errors
+/// 1. Value is not in the environment
+/// 2. Value exists but is not utf-8
+pub fn var<P: AsUnixStr>(key: P) -> Result<&'static str, VarError> {
     let mut env_ptr = unsafe { ENV.env_p };
     while !env_ptr.is_null() {
         unsafe {
@@ -33,7 +37,7 @@ pub fn var<P: AsUnixStr>(ident: P) -> Result<&'static str, VarError> {
             if var_ptr.is_null() {
                 return Err(VarError::Missing);
             }
-            let match_up_to = ident.match_up_to(var_ptr);
+            let match_up_to = key.match_up_to(var_ptr);
             if match_up_to != 0 {
                 // Next is '='
                 if var_ptr.add(match_up_to + 1).read() == b'=' {
@@ -50,6 +54,8 @@ pub fn var<P: AsUnixStr>(ident: P) -> Result<&'static str, VarError> {
     Err(VarError::Missing)
 }
 
+#[must_use]
+#[allow(clippy::cast_possible_truncation)]
 pub fn args() -> Args {
     Args {
         ind: 0,
@@ -57,6 +63,8 @@ pub fn args() -> Args {
     }
 }
 
+#[must_use]
+#[allow(clippy::cast_possible_truncation)]
 pub fn args_os() -> ArgsOs {
     ArgsOs {
         ind: 0,

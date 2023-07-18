@@ -36,17 +36,22 @@ core::arch::global_asm!(
 /// Called with a pointer to the top of the stack
 #[no_mangle]
 #[cfg(feature = "symbols")]
+#[allow(
+    clippy::used_underscore_binding,
+    clippy::cast_ptr_alignment,
+    clippy::cast_possible_truncation
+)]
 unsafe extern "C" fn __proxy_main(stack_ptr: *const u8, _dynv: *const usize) {
     // Fist 8 bytes is a u64 with the number of arguments
-    let argc = *(stack_ptr as *const u64);
+    let argc = *stack_ptr.cast::<u64>();
     // Directly followed by those arguments, bump pointer by 8
-    let argv = stack_ptr.add(8) as *const *const u8;
+    let argv = stack_ptr.add(8).cast::<*const u8>();
     let ptr_size = core::mem::size_of::<usize>();
     // Directly followed by a pointer to the environment variables, it's just a null terminated string.
     // This isn't specified in Posix and is not great for portability, but we're targeting Linux so it's fine
     let env_offset = 8 + argc as usize * ptr_size + ptr_size;
     // Bump pointer by combined offset
-    let envp = stack_ptr.add(env_offset) as *const *const u8;
+    let envp = stack_ptr.add(env_offset).cast::<*const u8>();
     #[cfg(feature = "aux")]
     {
         let mut null_offset = 0;
@@ -57,7 +62,7 @@ unsafe extern "C" fn __proxy_main(stack_ptr: *const u8, _dynv: *const usize) {
             }
             null_offset += 1;
         }
-        let addr = envp.add(null_offset) as *const usize;
+        let addr = envp.add(null_offset).cast::<usize>();
         let aux_v_ptr = addr.add(1);
         let aux = crate::elf::aux::AuxValues::from_auxv(aux_v_ptr);
         crate::elf::dynlink::relocate_symbols(_dynv, &aux);

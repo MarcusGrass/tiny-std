@@ -3,7 +3,7 @@ use core::mem::MaybeUninit;
 use rusl::platform::{ElfHeader, ElfSymbol, SectionHeader, TimeSpec};
 use rusl::string::unix_str::UnixStr;
 
-/// VDSO dynamically provided function pointer to CLOCK_GET_TIME
+/// VDSO dynamically provided function pointer to `CLOCK_GET_TIME`
 pub(crate) static mut VDSO_CLOCK_GET_TIME: Option<extern "C" fn(i32, *mut TimeSpec) -> i32> = None;
 
 pub(crate) unsafe fn init_vdso_get_time() {
@@ -31,24 +31,27 @@ const CLOCK_GETTIME_NAME: &[u8] = b"__vdso_clock_gettime\0";
 /// 5. Align the offset, transmute to appropriate `extern fn`
 /// See [Linux vdso docs](https://man7.org/linux/man-pages/man7/vdso.7.html)
 /// See also [Linux elf docs](https://man7.org/linux/man-pages/man5/elf.5.html)
+#[allow(clippy::cast_possible_truncation)]
 unsafe fn find_vdso_clock_get_time(
     vdso: *const u8,
 ) -> Option<extern "C" fn(i32, *mut TimeSpec) -> i32> {
     // Elf specifies LE bytes for some fields, this could be an issue
     let mut elf_ptr = MaybeUninit::<ElfHeader>::uninit();
     vdso.copy_to(
-        elf_ptr.as_mut_ptr() as *mut u8,
+        elf_ptr.as_mut_ptr().cast::<u8>(),
         core::mem::size_of::<ElfHeader>(),
     );
     let header = elf_ptr.assume_init();
     let mut dyn_syms = None;
     // Pointer to the start of the section header
-    let section_start = vdso.add(header.0.e_shoff as usize) as *const SectionHeader;
+    let section_start = vdso
+        .add(header.0.e_shoff as usize)
+        .cast::<rusl::platform::SectionHeader>();
     // Should always be defined, otherwise bail
-    let name_section = if header.0.e_shstrndx != 0 {
-        section_start.add(header.0.e_shstrndx as usize).read()
-    } else {
+    let name_section = if header.0.e_shstrndx == 0 {
         return None;
+    } else {
+        section_start.add(header.0.e_shstrndx as usize).read()
     };
 
     // Name offset/"alias"
@@ -80,6 +83,7 @@ unsafe fn find_vdso_clock_get_time(
 }
 
 #[inline]
+#[allow(clippy::cast_possible_truncation)]
 unsafe fn match_name(
     search_for: &[u8],
     candidate_section: &SectionHeader,
@@ -95,6 +99,7 @@ unsafe fn match_name(
 }
 
 #[inline]
+#[allow(clippy::cast_possible_truncation)]
 unsafe fn find_dynstr_st_name_offset_of(
     search_for: &[u8],
     dyn_str_section: &SectionHeader,
@@ -109,7 +114,8 @@ unsafe fn find_dynstr_st_name_offset_of(
         ));
         let first_sym = UnixStr::from_ptr(start);
         if search_for == first_sym.as_slice() {
-            return Some(offset as u32);
+            // The offset should always fit in a u32, could unwrap_unchecked here
+            return u32::try_from(offset).ok();
         }
         offset += first_sym.len();
     }
@@ -122,6 +128,7 @@ struct FnPtrInfo {
 }
 
 #[inline]
+#[allow(clippy::cast_possible_truncation)]
 unsafe fn find_dynsym_ptr_of_name_offset(
     st_name: u32,
     dynsym: &SectionHeader,
@@ -135,7 +142,7 @@ unsafe fn find_dynsym_ptr_of_name_offset(
         );
         let start = vdso.add(search_addr);
         let mut sym_h = MaybeUninit::<ElfSymbol>::uninit();
-        start.copy_to(sym_h.as_mut_ptr() as _, core::mem::size_of::<ElfSymbol>());
+        start.copy_to(sym_h.as_mut_ptr().cast(), core::mem::size_of::<ElfSymbol>());
         let sym = sym_h.assume_init();
         if sym.0.st_name == st_name {
             // Maybe bail if the type is incorrect, should be `STT_FUNC`, can be found by inspecting
@@ -158,7 +165,7 @@ fn align(offset: usize, alignment: usize) -> usize {
 #[inline]
 #[allow(dead_code)]
 fn info_to_type(st_info: u8) -> u32 {
-    (st_info as u32) & 0xf
+    u32::from(st_info) & 0xf
 }
 
 #[inline]
