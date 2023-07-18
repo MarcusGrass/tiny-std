@@ -3,7 +3,6 @@ use alloc::boxed::Box;
 use core::alloc::Layout;
 use core::arch::global_asm;
 use core::cell::UnsafeCell;
-use core::ffi::c_void;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
@@ -277,7 +276,7 @@ where
     let size = guard_sz + stack_sz;
 
     let tsm = unsafe { Tsm::init::<T>() };
-    let df_ptr: Box<dyn FnOnce()> = Box::new(move || {
+    let df = move || {
         unsafe {
             // Run the function, if it panics, goto #[panic_handler].
             let func_ret = func();
@@ -300,13 +299,13 @@ where
             // Also dealloc the local storage for this thread, nobody needs that anymore
             dealloc(get_tls_ptr().cast(), Layout::new::<ThreadLocalStorage>());
         }
-    });
+    };
+    let (start_fn, fn_caller) = unsafe { onwed_split_fn_once(df) };
     // We need to double box here because
     // 1. We need to access through a box, because we can't cast into a *mut dyn FnOnce(), because
     // fat pointer.
     // 2. We can't refer to the box we create by address on the stack, because we will risk accessing
     // it after this part of the stack is destroyed/overwritten/whatever.
-    let raw_df = Box::into_raw(Box::new(df_ptr));
 
     let map_ptr = unsafe {
         mmap(
@@ -326,8 +325,7 @@ where
     stack -= core::mem::size_of::<StartArgs>();
     let args = stack as *mut StartArgs;
     unsafe {
-        (*args).start_func = thread_go as _;
-        (*args).start_arg = raw_df as usize;
+        (*args).start_arg = fn_caller;
     }
 
     let tls = Box::into_raw(Box::new(ThreadLocalStorage {
@@ -344,7 +342,7 @@ where
     #[allow(clippy::cast_possible_truncation)]
     unsafe {
         __clone(
-            start_fn as _,
+            start_fn,
             stack,
             flags.bits() as i32,
             args as _,
@@ -360,26 +358,23 @@ where
     })
 }
 
+#[inline]
+unsafe fn onwed_split_fn_once<F: FnOnce()>(f: F) -> (usize, usize) {
+    let t = start_fn::<F>;
+    let d = Box::into_raw(Box::new(f));
+    (t as usize, d as usize)
+}
+
 #[repr(C)]
 struct StartArgs {
-    start_func: usize,
     start_arg: usize,
 }
 
-unsafe extern "C" fn start_fn(ptr: *mut StartArgs) -> i32 {
+unsafe extern "C" fn start_fn<F: FnOnce()>(ptr: *mut StartArgs) -> i32 {
     let args = ptr.read();
-    let func = args.start_func as *const ();
-    let run = core::mem::transmute::<*const (), fn(*const c_void) -> i32>(func);
-    (run)(args.start_arg as _)
-}
-
-/// We need a c-style fn ptr here
-extern "C" fn thread_go(ptr: *const c_void) -> i32 {
-    unsafe {
-        // We need a rust-style fn ptr here
-        let bb_fn: Box<Box<dyn FnOnce()>> = Box::from_raw(ptr as *mut Box<dyn FnOnce()>);
-        (bb_fn)();
-    }
+    let func = args.start_arg as *mut F;
+    let boxed_run = Box::from_raw(func);
+    (boxed_run)();
     0
 }
 
