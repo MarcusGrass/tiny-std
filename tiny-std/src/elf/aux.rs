@@ -3,16 +3,21 @@ use rusl::platform::{GidT, UidT};
 /// A vector of dynamic values supplied by the OS
 pub(crate) static mut AUX_VALUES: AuxValues = AuxValues::zeroed();
 
+/// Get the main thread group id
 #[inline]
 pub fn get_gid() -> GidT {
     unsafe { AUX_VALUES.at_gid as GidT }
 }
 
+/// Get the main thread user id
 #[inline]
 pub fn get_uid() -> UidT {
     unsafe { AUX_VALUES.at_uid as UidT }
 }
 
+/// Get 16 random bytes of data, run-specific, i.e. does not change between calls.
+/// Could call this something like `session-id` to make it more clear that repeated calls
+/// won't yield different values.
 #[inline]
 pub fn get_random() -> Option<u128> {
     unsafe {

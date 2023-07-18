@@ -10,11 +10,12 @@ pub const UNIX_TIME: SystemTime = SystemTime(TimeSpec::new_zeroed());
 /// Some monotonic, ever increasing, instant in time. Cannot be manipulated and is only good
 /// for comparing elapsed time.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct MonotonicInstant(TimeSpec);
+pub struct MonotonicInstant(pub(crate) TimeSpec);
 
 const NANOS_A_SECOND: i64 = 1_000_000_000;
 
 impl MonotonicInstant {
+    pub const ZERO: MonotonicInstant = MonotonicInstant(TimeSpec::new_zeroed());
     /// Create a new instant
     #[inline]
     #[must_use]
