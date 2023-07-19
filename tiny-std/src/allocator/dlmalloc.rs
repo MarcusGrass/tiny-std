@@ -1864,6 +1864,7 @@ fn syscall_free(ptr: *mut u8, size: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::unix::random::Prng;
 
     // Prime the allocator with some allocations such that there will be free
     // chunks in the treemap
@@ -1899,5 +1900,117 @@ mod tests {
             let max_request_size = a.max_request() - 1;
             assert_eq!(a.inner_malloc(max_request_size), ptr::null_mut());
         }
+    }
+
+    #[test]
+    fn smoke() {
+        let mut a = Dlmalloc::new();
+        unsafe {
+            let ptr = a.malloc(1, 1);
+            assert!(!ptr.is_null());
+            *ptr = 9;
+            assert_eq!(*ptr, 9);
+            a.free(ptr);
+
+            let ptr = a.malloc(1, 1);
+            assert!(!ptr.is_null());
+            *ptr = 10;
+            assert_eq!(*ptr, 10);
+            a.free(ptr);
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn stress() {
+        use alloc::vec::Vec;
+        let mut a = Dlmalloc::new();
+        let mut rng = Prng::new_time_seeded();
+        let mut ptrs = Vec::new();
+        let max = 1_000;
+        unsafe {
+            for _ in 0..max {
+                let free = ptrs.len() > 0
+                    && ((ptrs.len() < 10_000 && weighted_bool(&mut rng, 3))
+                        || random_bool(&mut rng));
+                if free {
+                    let idx = random_gen_range(&mut rng, 0, ptrs.len());
+                    let (ptr, _size, _align) = ptrs.swap_remove(idx);
+                    a.free(ptr);
+                    continue;
+                }
+
+                if ptrs.len() > 0 && weighted_bool(&mut rng, 100) {
+                    let idx = random_gen_range(&mut rng, 0, ptrs.len());
+                    let (ptr, size, align) = ptrs.swap_remove(idx);
+                    let new_size = if random_bool(&mut rng) {
+                        random_gen_range(&mut rng, size, size * 2)
+                    } else if size > 10 {
+                        random_gen_range(&mut rng, size / 2, size)
+                    } else {
+                        continue;
+                    };
+                    let mut tmp = Vec::new();
+                    for i in 0..cmp::min(size, new_size) {
+                        tmp.push(*ptr.offset(i as isize));
+                    }
+                    let ptr = a.realloc(ptr, size, align, new_size);
+                    assert!(!ptr.is_null());
+                    for (i, byte) in tmp.iter().enumerate() {
+                        assert_eq!(*byte, *ptr.offset(i as isize));
+                    }
+                    ptrs.push((ptr, new_size, align));
+                }
+
+                let size = if random_bool(&mut rng) {
+                    random_gen_range(&mut rng, 1, 128)
+                } else {
+                    random_gen_range(&mut rng, 1, 128 * 1024)
+                };
+                let align = if weighted_bool(&mut rng, 10) {
+                    1 << random_gen_range(&mut rng, 3, 8)
+                } else {
+                    8
+                };
+
+                let zero = weighted_bool(&mut rng, 50);
+                let ptr = if zero {
+                    a.calloc(size, align)
+                } else {
+                    a.malloc(size, align)
+                };
+                for i in 0..size {
+                    if zero {
+                        assert_eq!(*ptr.offset(i as isize), 0);
+                    }
+                    *ptr.offset(i as isize) = 0xce;
+                }
+                ptrs.push((ptr, size, align));
+            }
+        }
+    }
+
+    fn weighted_bool(prng: &mut Prng, weight: u64) -> bool {
+        let max = u64::MAX / weight;
+        let next = prng.next_u64();
+        next < max
+    }
+
+    fn random_bool(prng: &mut Prng) -> bool {
+        prng.next_u64() & 1 == 0
+    }
+
+    fn random_gen_range(prng: &mut Prng, low: usize, high: usize) -> usize {
+        let lf = low as f64;
+        let hf = high as f64;
+        let res = if low == 0 {
+            let transform = hf / u64::MAX as f64;
+            (prng.next_u64() as f64 * transform) as usize
+        } else {
+            let space = hf - lf;
+            let transform = space / u64::MAX as f64;
+            (prng.next_u64() as f64 * transform + space) as usize
+        };
+        res
     }
 }

@@ -140,7 +140,7 @@ fn thread_shared_memory_sequential_count() {
 }
 
 fn thread_shared_memory_parallel_count() {
-    let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
+    let cnt = alloc::sync::Arc::new(tiny_std::sync::RwLock::new(0));
     let run_for = THREAD_LOOP_COUNT;
     let mut handles = Vec::with_capacity(run_for);
     for _ in 0..run_for {
@@ -158,7 +158,7 @@ fn thread_shared_memory_parallel_count() {
 }
 
 fn thread_shared_memory_parallel_count_no_join() {
-    let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
+    let cnt = alloc::sync::Arc::new(tiny_std::sync::RwLock::new(0));
     let run_for = THREAD_LOOP_COUNT;
     for _ in 0..run_for {
         let cnt_c = cnt.clone();
@@ -171,7 +171,7 @@ fn thread_shared_memory_parallel_count_no_join() {
 }
 
 fn thread_shared_memory_parallel_count_panics() {
-    let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
+    let cnt = alloc::sync::Arc::new(tiny_std::sync::RwLock::new(0));
     let run_for = THREAD_LOOP_COUNT;
     let mut handles = Vec::with_capacity(run_for);
     for _ in 0..run_for {
@@ -190,7 +190,7 @@ fn thread_shared_memory_parallel_count_panics() {
 }
 
 fn thread_shared_memory_parallel_count_panics_no_join() {
-    let cnt = alloc::sync::Arc::new(tiny_std::rwlock::RwLock::new(0));
+    let cnt = alloc::sync::Arc::new(tiny_std::sync::RwLock::new(0));
     let run_for = THREAD_LOOP_COUNT;
     for _ in 0..run_for {
         let cnt_c = cnt.clone();
