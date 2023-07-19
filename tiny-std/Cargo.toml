@@ -11,6 +11,8 @@ default = ["alloc"]
 # With an allocator, needs to be provided,
 alloc = ["rusl/alloc"]
 
+allocator-provided = ["alloc"]
+
 # Pulls in all features to make an executable that works as expected (env etc), std-incompatible
 executable = ["start", "symbols", "aux", "vdso"]
 
