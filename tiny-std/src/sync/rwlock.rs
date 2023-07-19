@@ -27,26 +27,19 @@
 //! DEALINGS IN THE SOFTWARE.
 //!
 //! ---
+use crate::sync::{futex_wait_fast, NotSend};
 use core::cell::UnsafeCell;
 use core::fmt;
-use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 use core::sync::atomic::AtomicU32;
 use core::sync::atomic::Ordering::{Acquire, Relaxed, Release};
-use rusl::error::Errno;
-use rusl::futex::{futex_wait, futex_wake};
-use rusl::platform::FutexFlags;
+use rusl::futex::futex_wake;
 
 pub struct RwLock<T: ?Sized> {
     inner: InnerLock,
     data: UnsafeCell<T>,
 }
-
-#[derive(Default)]
-struct NotSend(PhantomData<*const ()>);
-
-unsafe impl Sync for NotSend {}
 
 unsafe impl<T: ?Sized + Send> Send for RwLock<T> {}
 unsafe impl<T: ?Sized + Send + Sync> Sync for RwLock<T> {}
@@ -80,7 +73,7 @@ impl<'rwlock, T: ?Sized> RwLockReadGuard<'rwlock, T> {
         RwLockReadGuard {
             data: NonNull::new_unchecked(lock.data.get()),
             inner_lock: &lock.inner,
-            _not_send: NotSend::default(),
+            _not_send: NotSend::new(),
         }
     }
 }
@@ -100,7 +93,7 @@ impl<'rwlock, T: ?Sized> RwLockWriteGuard<'rwlock, T> {
     unsafe fn new(lock: &'rwlock RwLock<T>) -> RwLockWriteGuard<'rwlock, T> {
         RwLockWriteGuard {
             lock,
-            _not_send: NotSend::default(),
+            _not_send: NotSend::new(),
         }
     }
 }
@@ -441,7 +434,7 @@ impl InnerLock {
 
     fn wake_writer(&self) -> bool {
         self.writer_notify.fetch_add(1, Release);
-        rusl::futex::futex_wake(&self.writer_notify, 1).unwrap() != 0
+        futex_wake(&self.writer_notify, 1).unwrap() != 0
         // Note that FreeBSD and DragonFlyBSD don't tell us whether they woke
         // up any threads or not, and always return `false` here. That still
         // results in correct behaviour: it just means readers get woken up as
@@ -539,28 +532,6 @@ impl<T: ?Sized> Drop for RwLockWriteGuard<'_, T> {
         // SAFETY: the conditions of `RwLockWriteGuard::new` were satisfied when created.
         unsafe {
             self.lock.inner.write_unlock();
-        }
-    }
-}
-
-#[inline]
-pub(crate) fn futex_wait_fast(futex: &AtomicU32, expect: u32) {
-    loop {
-        if futex.load(Relaxed) != expect {
-            return;
-        }
-        match futex_wait(futex, expect, FutexFlags::PRIVATE, None) {
-            Ok(_) => {
-                return;
-            }
-            Err(e) => {
-                if let Some(code) = e.code {
-                    if code == Errno::EINTR {
-                    } else {
-                        return;
-                    }
-                }
-            }
         }
     }
 }
