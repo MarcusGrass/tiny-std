@@ -2,6 +2,12 @@
 // source at ftp://g.oswego.edu/pub/misc/malloc.c
 //
 // The original source was written by Doug Lea and released to the public domain
+// This exerpt comes from
+// https://github.com/alexcrichton/dlmalloc-rs
+// Licensed under MIT, license found here:
+// https://github.com/alexcrichton/dlmalloc-rs/blob/e72134720f977404b76e113403c46e9758468ef7/LICENSE-MIT
+// Copied at https://github.com/alexcrichton/dlmalloc-rs/tree/f352ad5ea6546b95809dc154e9cf195fc740bc3e
+// then changed to fit this project.
 
 use core::cmp;
 use core::mem;
