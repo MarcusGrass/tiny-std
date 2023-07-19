@@ -600,9 +600,8 @@ impl Dlmalloc {
                     (*sp).base = tbase;
                     (*sp).size += tsize;
                     return self.prepend_alloc(tbase, oldbase, size);
-                } else {
-                    self.add_segment(tbase, tsize, flags);
                 }
+                self.add_segment(tbase, tsize, flags);
             }
         }
 
@@ -878,15 +877,14 @@ impl Dlmalloc {
                 self.dv = p;
                 Chunk::set_size_and_pinuse_of_free_chunk(p, dsize);
                 return;
-            } else {
-                let nsize = Chunk::size(next);
-                psize += nsize;
-                self.unlink_chunk(next, nsize);
-                Chunk::set_size_and_pinuse_of_free_chunk(p, psize);
-                if p == self.dv {
-                    self.dvsize = psize;
-                    return;
-                }
+            }
+            let nsize = Chunk::size(next);
+            psize += nsize;
+            self.unlink_chunk(next, nsize);
+            Chunk::set_size_and_pinuse_of_free_chunk(p, psize);
+            if p == self.dv {
+                self.dvsize = psize;
+                return;
             }
         }
         self.insert_chunk(p, psize);
@@ -1242,19 +1240,17 @@ impl Dlmalloc {
                     (*chunkc).next = tc;
                     (*chunk).parent = ptr::null_mut();
                     break;
-                } else {
-                    let c = &mut (*t).child[(k >> mem::size_of::<usize>() * 8 - 1) & 1];
-                    k <<= 1;
-                    if c.is_null() {
-                        *c = chunk;
-                        (*chunk).parent = t;
-                        (*chunkc).next = chunkc;
-                        (*chunkc).prev = chunkc;
-                        break;
-                    } else {
-                        t = *c;
-                    }
                 }
+                let c = &mut (*t).child[(k >> (mem::size_of::<usize>() * 8 - 1)) & 1];
+                k <<= 1;
+                if c.is_null() {
+                    *c = chunk;
+                    (*chunk).parent = t;
+                    (*chunkc).next = chunkc;
+                    (*chunkc).prev = chunkc;
+                    break;
+                }
+                t = *c;
             }
         } else {
             self.mark_treemap(idx);
@@ -1352,12 +1348,10 @@ impl Dlmalloc {
             if r.is_null() {
                 self.clear_treemap((*chunk).index);
             }
+        } else if (*xp).child[0] == chunk {
+            (*xp).child[0] = r;
         } else {
-            if (*xp).child[0] == chunk {
-                (*xp).child[0] = r;
-            } else {
-                (*xp).child[1] = r;
-            }
+            (*xp).child[1] = r;
         }
 
         if !r.is_null() {
@@ -1409,35 +1403,33 @@ impl Dlmalloc {
         // Consolidate forward if we can
         if Chunk::cinuse(next) {
             Chunk::set_free_with_pinuse(p, psize, next);
+        } else if next == self.top {
+            self.topsize += psize;
+            let tsize = self.topsize;
+            self.top = p;
+            (*p).head = tsize | PINUSE;
+            if p == self.dv {
+                self.dv = ptr::null_mut();
+                self.dvsize = 0;
+            }
+            if self.should_trim(tsize) {
+                self.sys_trim(0);
+            }
+            return;
+        } else if next == self.dv {
+            self.dvsize += psize;
+            let dsize = self.dvsize;
+            self.dv = p;
+            Chunk::set_size_and_pinuse_of_free_chunk(p, dsize);
+            return;
         } else {
-            if next == self.top {
-                self.topsize += psize;
-                let tsize = self.topsize;
-                self.top = p;
-                (*p).head = tsize | PINUSE;
-                if p == self.dv {
-                    self.dv = ptr::null_mut();
-                    self.dvsize = 0;
-                }
-                if self.should_trim(tsize) {
-                    self.sys_trim(0);
-                }
+            let nsize = Chunk::size(next);
+            psize += nsize;
+            self.unlink_chunk(next, nsize);
+            Chunk::set_size_and_pinuse_of_free_chunk(p, psize);
+            if p == self.dv {
+                self.dvsize = psize;
                 return;
-            } else if next == self.dv {
-                self.dvsize += psize;
-                let dsize = self.dvsize;
-                self.dv = p;
-                Chunk::set_size_and_pinuse_of_free_chunk(p, dsize);
-                return;
-            } else {
-                let nsize = Chunk::size(next);
-                psize += nsize;
-                self.unlink_chunk(next, nsize);
-                Chunk::set_size_and_pinuse_of_free_chunk(p, psize);
-                if p == self.dv {
-                    self.dvsize = psize;
-                    return;
-                }
             }
         }
 
