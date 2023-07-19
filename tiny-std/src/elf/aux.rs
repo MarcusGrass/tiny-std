@@ -28,7 +28,12 @@ pub fn get_random() -> Option<u128> {
     unsafe {
         let random_addr = AUX_VALUES.at_random;
         if random_addr != 0 {
-            return Some(*(random_addr as *const u128));
+            // This pointer isn't necessarily aligned properly for a u128
+            let random_bytes = random_addr as *const u8;
+            let unbounded_slice = core::slice::from_raw_parts(random_bytes, 16);
+            return Some(u128::from_ne_bytes(
+                unbounded_slice.try_into().unwrap_unchecked(),
+            ));
         }
         None
     }

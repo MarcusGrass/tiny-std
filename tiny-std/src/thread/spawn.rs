@@ -13,7 +13,7 @@ use rusl::platform::{CloneFlags, MapAdditionalFlags, MapRequiredFlag, MemoryProt
 use rusl::unistd::mmap;
 
 use crate::error::Result;
-use crate::rwlock::futex_wait_fast;
+use crate::sync::rwlock::futex_wait_fast;
 
 pub struct JoinHandle<T: Sized> {
     tsm: Tsm,

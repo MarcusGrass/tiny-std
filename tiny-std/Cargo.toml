@@ -11,6 +11,10 @@ default = ["alloc"]
 # With an allocator, needs to be provided,
 alloc = ["rusl/alloc"]
 
+allocator-provided = []
+
+global-allocator = ["allocator-provided"]
+
 # Pulls in all features to make an executable that works as expected (env etc), std-incompatible
 executable = ["start", "symbols", "aux", "vdso"]
 
@@ -25,6 +29,8 @@ symbols = []
 aux = ["start"]
 # Try to pull in get_time through the VDSO in the program entrypoint
 vdso = ["aux"]
+
+threaded = ["alloc", "start"]
 
 [dependencies]
 rusl = { path = "../rusl", default-features = false }

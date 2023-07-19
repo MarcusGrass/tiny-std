@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! bail_on_below_zero {
     ($res: expr, $out_line: expr) => {
-        if $res > usize::MAX - 256 {
+        if $crate::platform::is_syscall_error($res) {
             // Flip the errno
             return Err($crate::Error::with_code($out_line, 0 - $res as i32));
         }

@@ -372,3 +372,11 @@ pub extern "C" fn getauxval(_val: u64) -> u64 {
 /// Just a symbol that's necessary
 #[no_mangle]
 pub unsafe extern "C" fn rust_eh_personality() {}
+
+/// Panic handler
+#[panic_handler]
+#[cfg(not(feature = "threaded"))]
+pub fn on_panic(info: &core::panic::PanicInfo) -> ! {
+    unix_print::unix_eprintln!("Main thread panicked: {}", info);
+    rusl::process::exit(1)
+}

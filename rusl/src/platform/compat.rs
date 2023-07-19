@@ -66,6 +66,16 @@ pub const STDIN: Fd = NonNegativeI32::comptime_checked_new(0);
 pub const STDOUT: Fd = NonNegativeI32::comptime_checked_new(1);
 pub const STDERR: Fd = NonNegativeI32::comptime_checked_new(2);
 
+const LINUX_ERROR_RESV: usize = 4095;
+const SYSCALL_ERR_THRESHOLD: usize = usize::MAX - LINUX_ERROR_RESV;
+
+#[must_use]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub const fn is_syscall_error(res: usize) -> bool {
+    res > SYSCALL_ERR_THRESHOLD
+}
+
 /// For this to be syscall compatible, the generated i32 needs to be downgraded to u8
 transparent_bitflags! {
     pub struct DirType: u8 {

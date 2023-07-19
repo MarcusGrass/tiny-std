@@ -1,37 +1,7 @@
-#![no_std]
-#![no_main]
-#![allow(dead_code)]
-
 use tiny_std::io::Read;
 use tiny_std::process::{Environment, Stdio};
 
-/// Panic handler
-#[panic_handler]
-pub fn on_panic(info: &core::panic::PanicInfo) -> ! {
-    unix_print::unix_eprintln!("Panicked {info}");
-    tiny_std::process::exit(1)
-}
-
-#[no_mangle]
-pub fn main() -> i32 {
-    let v = tiny_std::env::var("HOME").unwrap();
-    assert_eq!("/home/gramar", v);
-    let mut args = tiny_std::env::args();
-    args.next();
-    let arg = args.next().unwrap().unwrap();
-    assert_eq!("dummy_arg", arg);
-    let mut os_args = tiny_std::env::args_os();
-    let os_arg = os_args.next().unwrap();
-    assert_eq!("dummy_arg", os_arg.as_str().unwrap());
-    test_spawn_no_args();
-    test_spawn_with_args();
-    unsafe { test_aux_values() };
-    test_time();
-    0
-}
-
-#[no_mangle]
-fn test_spawn_no_args() {
+pub fn spawn_no_args() {
     //
     let mut proc = tiny_std::process::spawn::<0, &str, &str, ()>(
         "/usr/bin/uname\0",
@@ -58,8 +28,7 @@ fn test_spawn_no_args() {
     );
 }
 
-#[no_mangle]
-fn test_spawn_with_args() {
+pub fn spawn_with_args() {
     let mut proc_with_arg = tiny_std::process::spawn::<3, _, _, ()>(
         "/usr/bin/uname\0",
         ["/usr/bin/uname\0", "-a\0", "\0"],
@@ -82,23 +51,4 @@ fn test_spawn_with_args() {
     assert!(content.starts_with("Linux"));
     assert!(content.len() > 64);
     assert_eq!(0, exit);
-}
-
-unsafe fn test_aux_values() {
-    // 16 random bytes
-    let random = tiny_std::elf::aux::get_random();
-    assert_ne!(0u128, random.unwrap());
-    let uid = tiny_std::elf::aux::get_uid();
-    let gid = tiny_std::elf::aux::get_gid();
-    assert_eq!(1000, uid);
-    assert_eq!(1000, gid);
-}
-
-fn test_time() {
-    let now = tiny_std::time::Instant::now();
-    let later = tiny_std::time::Instant::now();
-    assert!(later > now);
-    let now = tiny_std::time::SystemTime::now();
-    let later = tiny_std::time::SystemTime::now();
-    assert!(later > now);
 }

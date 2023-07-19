@@ -1,0 +1,11 @@
+[package]
+name = "threaded-main"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+test-lib = { path = "../test-lib", features = ["threaded"] }
+tiny-std = { path = "../../tiny-std", features = ["executable", "threaded", "global-allocator"] }
+unix-print = "0.1.0"

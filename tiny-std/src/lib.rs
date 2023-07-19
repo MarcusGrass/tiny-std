@@ -11,6 +11,8 @@ extern crate alloc;
 
 pub use rusl::string::unix_str::*;
 
+#[cfg(feature = "allocator-provided")]
+pub mod allocator;
 pub mod elf;
 #[cfg(feature = "start")]
 pub mod env;
@@ -20,9 +22,9 @@ pub mod io;
 pub mod linux;
 pub mod net;
 pub mod process;
-pub mod rwlock;
 #[cfg(feature = "start")]
 pub mod start;
+pub mod sync;
 pub mod thread;
 pub mod time;
 pub mod unix;

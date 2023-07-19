@@ -77,7 +77,7 @@ unsafe extern "C" fn __proxy_main(stack_ptr: *const u8, _dynv: *const usize) {
     {
         crate::elf::vdso::init_vdso_get_time();
     }
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "threaded")]
     {
         // To be able to get the thread tls in the panic handler we need to set up
         // thread local storage for the main thread. But we shouldn't dealloc this thread's stack
