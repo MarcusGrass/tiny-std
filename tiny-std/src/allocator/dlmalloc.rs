@@ -8,6 +8,84 @@ use core::mem;
 use core::ptr;
 use sc::syscall;
 
+#[cfg(feature = "global-allocator")]
+#[global_allocator]
+static GLOBAL_ALLOC: GlobalDlMalloc = GlobalDlMalloc::new();
+
+#[cfg(all(feature = "global-allocator", feature = "threaded"))]
+struct GlobalDlMalloc(crate::sync::RwLock<Dlmalloc>);
+
+#[cfg(all(feature = "global-allocator", feature = "threaded"))]
+impl GlobalDlMalloc {
+    const fn new() -> Self {
+        Self(crate::sync::RwLock::new(Dlmalloc::new()))
+    }
+}
+
+#[cfg(all(feature = "global-allocator", feature = "threaded"))]
+unsafe impl core::alloc::GlobalAlloc for GlobalDlMalloc {
+
+    #[inline]
+    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        self.0.write().malloc(layout.size(), layout.align())
+    }
+
+    #[inline]
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
+        self.0.write().free(ptr)
+    }
+
+    #[inline]
+    unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
+        self.0.write().calloc(layout.size(), layout.align())
+    }
+
+    #[inline]
+    unsafe fn realloc(&self, ptr: *mut u8, layout: core::alloc::Layout, new_size: usize) -> *mut u8 {
+        self.0.write().realloc(ptr, layout.size(), layout.align(), new_size)
+    }
+}
+
+#[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
+struct GlobalDlMalloc(Dlmalloc);
+
+#[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
+impl GlobalDlMalloc {
+    const fn new() -> Self {
+        Self(Dlmalloc::new())
+    }
+}
+
+#[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
+unsafe impl core::alloc::GlobalAlloc for GlobalDlMalloc {
+
+    #[inline]
+    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        self.0.malloc(layout.size(), layout.align())
+    }
+
+    #[inline]
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
+        self.0.free(ptr)
+    }
+
+    #[inline]
+    unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
+        self.0.calloc(layout.size(), layout.align())
+    }
+
+    #[inline]
+    unsafe fn realloc(&self, ptr: *mut u8, layout: core::alloc::Layout, new_size: usize) -> *mut u8 {
+        self.0.realloc(ptr, layout.size(), layout.align(), new_size)
+    }
+}
+
+#[cfg(feature = "global-allocator")]
+unsafe impl Sync for GlobalDlMalloc {}
+
+#[cfg(feature = "global-allocator")]
+unsafe impl Send for GlobalDlMalloc {}
+
 pub struct Dlmalloc {
     smallmap: u32,
     treemap: u32,
