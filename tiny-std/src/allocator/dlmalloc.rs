@@ -739,7 +739,7 @@ impl Dlmalloc {
     // Only call this with power-of-two alignment and alignment >
     // `Self::MALLOC_ALIGNMENT`
     #[allow(clippy::missing_safety_doc, clippy::cast_ptr_alignment)]
-    pub unsafe fn memalign(&mut self, mut alignment: usize, bytes: usize) -> *mut u8 {
+    unsafe fn memalign(&mut self, mut alignment: usize, bytes: usize) -> *mut u8 {
         if alignment < Self::MIN_CHUNK_SIZE {
             alignment = Self::MIN_CHUNK_SIZE;
         }
