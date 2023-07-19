@@ -3,14 +3,9 @@
 version = 3
 
 [[package]]
-name = "compiler_builtins"
-version = "0.1.86"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dae98c88e576098d7ab13ebcb40cc43e5114b2beafe61a87cda9200649ff205"
-
-[[package]]
 name = "linux-rust-bindings"
 version = "0.1.0"
+source = "git+https://github.com/MarcusGrass/linux-rust-bindings?rev=3b64f3e389717632d9100a0300e9224e9a1d2fdc#3b64f3e389717632d9100a0300e9224e9a1d2fdc"
 
 [[package]]
 name = "rusl"
@@ -28,6 +23,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "010e18bd3bfd1d45a7e666b236c78720df0d9a7698ebaa9c1c559961eb60a38b"
 
 [[package]]
+name = "test-lib"
+version = "0.1.0"
+dependencies = [
+ "rusl",
+ "tiny-std",
+ "unix-print",
+]
+
+[[package]]
 name = "tiny-std"
 version = "0.1.0"
 dependencies = [
@@ -43,14 +47,4 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c50e1866b3de196f1329f6a805771eee750651c83bbebd5dff159e5f033cc16f"
 dependencies = [
  "sc",
-]
-
-[[package]]
-name = "uring-runner"
-version = "0.1.0"
-dependencies = [
- "compiler_builtins",
- "rusl",
- "tiny-std",
- "unix-print",
 ]

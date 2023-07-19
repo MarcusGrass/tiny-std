@@ -3,16 +3,6 @@
 version = 3
 
 [[package]]
-name = "alloc-main"
-version = "0.1.0"
-dependencies = [
- "rusl",
- "sc",
- "tiny-std",
- "unix-print",
-]
-
-[[package]]
 name = "linux-rust-bindings"
 version = "0.1.0"
 source = "git+https://github.com/MarcusGrass/linux-rust-bindings?rev=3b64f3e389717632d9100a0300e9224e9a1d2fdc#3b64f3e389717632d9100a0300e9224e9a1d2fdc"
@@ -31,6 +21,24 @@ name = "sc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "010e18bd3bfd1d45a7e666b236c78720df0d9a7698ebaa9c1c559961eb60a38b"
+
+[[package]]
+name = "test-lib"
+version = "0.1.0"
+dependencies = [
+ "rusl",
+ "tiny-std",
+ "unix-print",
+]
+
+[[package]]
+name = "threaded-main"
+version = "0.1.0"
+dependencies = [
+ "test-lib",
+ "tiny-std",
+ "unix-print",
+]
 
 [[package]]
 name = "tiny-std"

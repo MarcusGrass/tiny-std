@@ -1,26 +1,8 @@
-#![no_std]
-#![no_main]
-#![allow(dead_code)]
-extern crate alloc;
-
 use alloc::vec::Vec;
 use core::time::Duration;
+use crate::run_test;
 
-macro_rules! run_test {
-    ($func: expr) => {{
-        unix_print::unix_print!("Running test {} ... ", stringify!($func));
-        let __start = tiny_std::time::MonotonicInstant::now();
-        $func();
-        let __elapsed = __start.elapsed().as_secs_f32();
-        unix_print::unix_println!("[OK] - {:.3} seconds", __elapsed);
-    }};
-}
-
-#[no_mangle]
-pub fn main() -> i32 {
-    unix_print::unix_eprintln!("Starting alloc main");
-    run_test!(test_read_env);
-    run_test!(test_cmd_no_args);
+pub(crate) fn run_threaded_tests() {
     run_test!(thread_panics);
     run_test!(thread_parallel_compute);
     run_test!(thread_shared_memory_sequential_count);
@@ -28,21 +10,6 @@ pub fn main() -> i32 {
     run_test!(thread_shared_memory_parallel_count_no_join);
     run_test!(thread_shared_memory_parallel_count_panics);
     run_test!(thread_shared_memory_parallel_count_panics_no_join);
-    0
-}
-
-fn test_read_env() {
-    let v = tiny_std::env::var("HOME").unwrap();
-    assert_eq!("/home/gramar", v);
-}
-
-#[allow(dead_code)]
-fn test_cmd_no_args() {
-    let mut chld = tiny_std::process::Command::new("/usr/bin/uname")
-        .unwrap()
-        .spawn()
-        .unwrap();
-    chld.wait().unwrap();
 }
 
 fn thread_panics() {
@@ -60,7 +27,7 @@ fn thread_parallel_compute() {
             tiny_std::thread::sleep(Duration::from_millis(2)).unwrap();
             15
         })
-        .unwrap();
+            .unwrap();
         handles.push(handle);
     }
     let mut sum = 0;
@@ -89,7 +56,7 @@ fn thread_shared_memory_parallel_count() {
         let handle = tiny_std::thread::spawn(move || {
             *cnt_c.write() += 1;
         })
-        .unwrap();
+            .unwrap();
         handles.push(handle);
     }
     for handle in handles {
@@ -106,7 +73,7 @@ fn thread_shared_memory_parallel_count_no_join() {
         let _handle = tiny_std::thread::spawn(move || {
             *cnt_c.write() += 1;
         })
-        .unwrap();
+            .unwrap();
     }
     while *cnt.read() < run_for {}
 }
@@ -121,7 +88,7 @@ fn thread_shared_memory_parallel_count_panics() {
             *cnt_c.write() += 1;
             panic!("Die")
         })
-        .unwrap();
+            .unwrap();
         handles.push(handle);
     }
     for handle in handles {
@@ -139,7 +106,7 @@ fn thread_shared_memory_parallel_count_panics_no_join() {
             *cnt_c.write() += 1;
             panic!("Die")
         })
-        .unwrap();
+            .unwrap();
     }
     while run_for > *cnt.read() {}
     assert_eq!(run_for, *cnt.read());

@@ -30,7 +30,7 @@ aux = ["start"]
 # Try to pull in get_time through the VDSO in the program entrypoint
 vdso = ["aux"]
 
-threaded = []
+threaded = ["alloc", "start"]
 
 [dependencies]
 rusl = { path = "../rusl", default-features = false }

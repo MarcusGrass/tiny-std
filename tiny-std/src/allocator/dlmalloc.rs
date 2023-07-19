@@ -16,6 +16,12 @@ static GLOBAL_ALLOC: GlobalDlMalloc = GlobalDlMalloc::new();
 struct GlobalDlMalloc(crate::sync::RwLock<Dlmalloc>);
 
 #[cfg(all(feature = "global-allocator", feature = "threaded"))]
+unsafe impl Sync for GlobalDlMalloc {}
+
+#[cfg(all(feature = "global-allocator", feature = "threaded"))]
+unsafe impl Send for GlobalDlMalloc {}
+
+#[cfg(all(feature = "global-allocator", feature = "threaded"))]
 impl GlobalDlMalloc {
     const fn new() -> Self {
         Self(crate::sync::RwLock::new(Dlmalloc::new()))
@@ -24,7 +30,6 @@ impl GlobalDlMalloc {
 
 #[cfg(all(feature = "global-allocator", feature = "threaded"))]
 unsafe impl core::alloc::GlobalAlloc for GlobalDlMalloc {
-
     #[inline]
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         self.0.write().malloc(layout.size(), layout.align())
@@ -41,50 +46,61 @@ unsafe impl core::alloc::GlobalAlloc for GlobalDlMalloc {
     }
 
     #[inline]
-    unsafe fn realloc(&self, ptr: *mut u8, layout: core::alloc::Layout, new_size: usize) -> *mut u8 {
-        self.0.write().realloc(ptr, layout.size(), layout.align(), new_size)
+    unsafe fn realloc(
+        &self,
+        ptr: *mut u8,
+        layout: core::alloc::Layout,
+        new_size: usize,
+    ) -> *mut u8 {
+        self.0
+            .write()
+            .realloc(ptr, layout.size(), layout.align(), new_size)
     }
 }
 
 #[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
-struct GlobalDlMalloc(Dlmalloc);
+struct GlobalDlMalloc;
 
 #[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
 impl GlobalDlMalloc {
     const fn new() -> Self {
-        Self(Dlmalloc::new())
+        Self
     }
 }
 
 #[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
-unsafe impl core::alloc::GlobalAlloc for GlobalDlMalloc {
+static mut ST_DL_MALLOC: Dlmalloc = Dlmalloc::new();
 
+#[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
+unsafe impl core::alloc::GlobalAlloc for GlobalDlMalloc {
     #[inline]
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        self.0.malloc(layout.size(), layout.align())
+        ST_DL_MALLOC.malloc(layout.size(), layout.align())
     }
 
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
-        self.0.free(ptr)
+        ST_DL_MALLOC.free(ptr)
     }
 
     #[inline]
     unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
-        self.0.calloc(layout.size(), layout.align())
+        ST_DL_MALLOC.calloc(layout.size(), layout.align())
     }
 
     #[inline]
-    unsafe fn realloc(&self, ptr: *mut u8, layout: core::alloc::Layout, new_size: usize) -> *mut u8 {
-        self.0.realloc(ptr, layout.size(), layout.align(), new_size)
+    unsafe fn realloc(
+        &self,
+        ptr: *mut u8,
+        layout: core::alloc::Layout,
+        new_size: usize,
+    ) -> *mut u8 {
+        ST_DL_MALLOC.realloc(ptr, layout.size(), layout.align(), new_size)
     }
 }
 
-#[cfg(feature = "global-allocator")]
-unsafe impl Sync for GlobalDlMalloc {}
-
-#[cfg(feature = "global-allocator")]
-unsafe impl Send for GlobalDlMalloc {}
+#[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
+unsafe impl Sync for Dlmalloc {}
 
 pub struct Dlmalloc {
     smallmap: u32,
