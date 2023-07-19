@@ -24,6 +24,7 @@ pub struct Dlmalloc {
     least_addr: *mut u8,
     release_checks: usize,
 }
+
 unsafe impl Send for Dlmalloc {}
 
 // TODO: document this
@@ -36,6 +37,8 @@ const TREEBIN_SHIFT: usize = 8;
 const DEFAULT_GRANULARITY: usize = 64 * 1024;
 const DEFAULT_TRIM_THRESHOLD: usize = 2 * 1024 * 1024;
 const MAX_RELEASE_CHECK_RATE: usize = 4095;
+
+const PAGE_SIZE: usize = 4096;
 
 #[repr(C)]
 struct Chunk {
@@ -106,6 +109,62 @@ impl Dlmalloc {
             trim_check: 0,
             least_addr: 0 as *mut _,
             release_checks: 0,
+        }
+    }
+    /// Allocates `size` bytes with `align` align.
+    ///
+    /// Returns a null pointer if allocation fails. Returns a valid pointer
+    /// otherwise.
+    ///
+    /// Safety and contracts are largely governed by the `GlobalAlloc::alloc`
+    /// method contracts.
+    #[inline]
+    pub unsafe fn malloc(&mut self, size: usize, align: usize) -> *mut u8 {
+        if align <= self.malloc_alignment() {
+            self.inner_malloc(size)
+        } else {
+            self.memalign(align, size)
+        }
+    }
+
+    /// Same as `malloc`, except if the allocation succeeds it's guaranteed to
+    /// point to `size` bytes of zeros.
+    #[inline]
+    pub unsafe fn calloc(&mut self, size: usize, align: usize) -> *mut u8 {
+        let ptr = self.malloc(size, align);
+        if !ptr.is_null() && self.calloc_must_clear(ptr) {
+            ptr::write_bytes(ptr, 0, size);
+        }
+        ptr
+    }
+
+    /// Reallocates `ptr`, a previous allocation with `old_size` and
+    /// `old_align`, to have `new_size` and the same alignment as before.
+    ///
+    /// Returns a null pointer if the memory couldn't be reallocated, but `ptr`
+    /// is still valid. Returns a valid pointer and frees `ptr` if the request
+    /// is satisfied.
+    ///
+    /// Safety and contracts are largely governed by the `GlobalAlloc::realloc`
+    /// method contracts.
+    #[inline]
+    pub unsafe fn realloc(
+        &mut self,
+        ptr: *mut u8,
+        old_size: usize,
+        old_align: usize,
+        new_size: usize,
+    ) -> *mut u8 {
+        if old_align <= self.malloc_alignment() {
+            self.inner_realloc(ptr, new_size)
+        } else {
+            let res = self.malloc(new_size, old_align);
+            if !res.is_null() {
+                let size = cmp::min(old_size, new_size);
+                ptr::copy_nonoverlapping(ptr, res, size);
+                self.free(ptr);
+            }
+            res
         }
     }
 }
@@ -230,11 +289,11 @@ impl Dlmalloc {
         }
     }
 
-    pub unsafe fn calloc_must_clear(&self, ptr: *mut u8) -> bool {
-        !self.system_allocator.allocates_zeros() || !Chunk::mmapped(Chunk::from_mem(ptr))
+    unsafe fn calloc_must_clear(&self, ptr: *mut u8) -> bool {
+        !Chunk::mmapped(Chunk::from_mem(ptr))
     }
 
-    pub unsafe fn malloc(&mut self, size: usize) -> *mut u8 {
+    unsafe fn inner_malloc(&mut self, size: usize) -> *mut u8 {
         self.check_malloc_state();
 
         let nb;
@@ -430,7 +489,7 @@ impl Dlmalloc {
         return ptr::null_mut();
     }
 
-    pub unsafe fn realloc(&mut self, oldmem: *mut u8, bytes: usize) -> *mut u8 {
+    unsafe fn inner_realloc(&mut self, oldmem: *mut u8, bytes: usize) -> *mut u8 {
         if bytes >= self.max_request() {
             return ptr::null_mut();
         }
@@ -441,7 +500,7 @@ impl Dlmalloc {
             self.check_inuse_chunk(newp);
             return Chunk::to_mem(newp);
         }
-        let ptr = self.malloc(bytes);
+        let ptr = self.inner_malloc(bytes);
         if !ptr.is_null() {
             let oc = Chunk::size(oldp) - self.overhead_for(oldp);
             ptr::copy_nonoverlapping(oldmem, ptr, cmp::min(oc, bytes));
@@ -562,7 +621,7 @@ impl Dlmalloc {
     }
 
     fn mmap_align(&self, a: usize) -> usize {
-        align_up(a, self.system_allocator.page_size())
+        align_up(a, PAGE_SIZE)
     }
 
     // Only call this with power-of-two alignment and alignment >
@@ -576,7 +635,7 @@ impl Dlmalloc {
         }
         let nb = self.request2size(bytes);
         let req = nb + alignment + self.min_chunk_size() - self.chunk_overhead();
-        let mem = self.malloc(req);
+        let mem = self.inner_malloc(req);
         if mem.is_null() {
             return mem;
         }
@@ -638,10 +697,7 @@ impl Dlmalloc {
             let prevsize = (*p).prev_foot;
             if Chunk::mmapped(p) {
                 psize += prevsize + self.mmap_foot_pad();
-                if self
-                    .system_allocator
-                    .free((p as *mut u8).offset(-(prevsize as isize)), psize)
-                {
+                if syscall_free((p as *mut u8).offset(-(prevsize as isize)), psize) {
                     self.footprint -= psize;
                 }
                 return;
@@ -1171,10 +1227,7 @@ impl Dlmalloc {
 
             if Chunk::mmapped(p) {
                 psize += prevsize + self.mmap_foot_pad();
-                if self
-                    .system_allocator
-                    .free((p as *mut u8).offset(-(prevsize as isize)), psize)
-                {
+                if syscall_free((p as *mut u8).offset(-(prevsize as isize)), psize) {
                     self.footprint -= psize;
                 }
                 return;
@@ -1255,15 +1308,10 @@ impl Dlmalloc {
                 debug_assert!(!sp.is_null());
 
                 if !Segment::is_extern(sp) {
-                    if Segment::can_release_part(&self.system_allocator, sp) {
-                        if (*sp).size >= extra && !self.has_segment_link(sp) {
-                            let newsize = (*sp).size - extra;
-                            if self
-                                .system_allocator
-                                .free_part((*sp).base, (*sp).size, newsize)
-                            {
-                                released = extra;
-                            }
+                    if (*sp).size >= extra && !self.has_segment_link(sp) {
+                        let newsize = (*sp).size - extra;
+                        if syscall_free_part((*sp).base, (*sp).size, newsize) {
+                            released = extra;
                         }
                     }
                 }
@@ -1311,7 +1359,7 @@ impl Dlmalloc {
             let next = (*sp).next;
             nsegs += 1;
 
-            if Segment::can_release_part(&self.system_allocator, sp) && !Segment::is_extern(sp) {
+            if !Segment::is_extern(sp) {
                 let p = self.align_as_chunk(base);
                 let psize = Chunk::size(p);
                 // We can unmap if the first chunk holds the entire segment and
@@ -1327,7 +1375,7 @@ impl Dlmalloc {
                     } else {
                         self.unlink_large_chunk(tp);
                     }
-                    if self.system_allocator.free(base, size) {
+                    if syscall_free(base, size) {
                         released += size;
                         self.footprint -= size;
                         // unlink our obsolete record
@@ -1421,7 +1469,7 @@ impl Dlmalloc {
         );
         debug_assert!(p as *mut u8 >= self.least_addr);
         debug_assert!(!self.is_small(sz));
-        debug_assert_eq!(align_up(len, self.system_allocator.page_size()), len);
+        debug_assert_eq!(align_up(len, PAGE_SIZE), len);
         debug_assert_eq!((*Chunk::plus_offset(p, sz)).head, Chunk::fencepost_head());
         debug_assert_eq!(
             (*Chunk::plus_offset(p, sz + mem::size_of::<usize>())).head,
@@ -1766,10 +1814,6 @@ impl Segment {
         (*seg).flags & EXTERN != 0
     }
 
-    unsafe fn can_release_part(system_allocator: &A, seg: *mut Segment) -> bool {
-        system_allocator.can_release_part((*seg).flags >> 1)
-    }
-
     unsafe fn sys_flags(seg: *mut Segment) -> u32 {
         (*seg).flags >> 1
     }
@@ -1783,7 +1827,7 @@ impl Segment {
     }
 }
 
-unsafe fn syscall_alloc(size: usize) -> (*mut u8, usize, u32) {
+fn syscall_alloc(size: usize) -> (*mut u8, usize, u32) {
     let addr = unsafe { syscall!(MMAP, 0, size, 2 | 1, 0x0020 | 0x0002, -1isize, 0) as isize };
     if addr < 0 {
         (ptr::null_mut(), 0, 0)
@@ -1792,7 +1836,7 @@ unsafe fn syscall_alloc(size: usize) -> (*mut u8, usize, u32) {
     }
 }
 
-unsafe fn syscall_remap(ptr: *mut u8, oldsize: usize, newsize: usize, can_move: bool) -> *mut u8 {
+fn syscall_remap(ptr: *mut u8, oldsize: usize, newsize: usize, can_move: bool) -> *mut u8 {
     let flags = if can_move { 1 } else { 0 };
     let ptr = unsafe { syscall!(MREMAP, ptr, oldsize, newsize, flags) as isize };
     if ptr < 0 {
@@ -1802,19 +1846,33 @@ unsafe fn syscall_remap(ptr: *mut u8, oldsize: usize, newsize: usize, can_move: 
     }
 }
 
+fn syscall_free_part(ptr: *mut u8, oldsize: usize, newsize: usize) -> bool {
+    unsafe {
+        let rc = syscall!(MREMAP, ptr, oldsize, newsize, 0) as isize;
+        if rc >= 0 {
+            return true;
+        }
+
+        syscall!(MUNMAP, ptr.offset(newsize as isize), oldsize - newsize) == 0
+    }
+}
+
+fn syscall_free(ptr: *mut u8, size: usize) -> bool {
+    unsafe { syscall!(MUNMAP, ptr, size) == 0 }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use System;
 
     // Prime the allocator with some allocations such that there will be free
     // chunks in the treemap
-    unsafe fn setup_treemap<A: Allocator>(a: &mut Dlmalloc<A>) {
+    unsafe fn setup_treemap(a: &mut Dlmalloc) {
         let large_request_size = NSMALLBINS * (1 << SMALLBIN_SHIFT);
         assert!(!a.is_small(large_request_size));
-        let large_request1 = a.malloc(large_request_size);
+        let large_request1 = a.inner_malloc(large_request_size);
         assert_ne!(large_request1, ptr::null_mut());
-        let large_request2 = a.malloc(large_request_size);
+        let large_request2 = a.inner_malloc(large_request_size);
         assert_ne!(large_request2, ptr::null_mut());
         a.free(large_request1);
         assert_ne!(a.treemap, 0);
@@ -1824,22 +1882,22 @@ mod tests {
     // Test allocating, with a non-empty treemap, a specific size that used to
     // trigger an integer overflow bug
     fn treemap_alloc_overflow_minimal() {
-        let mut a = Dlmalloc::new(System::new());
+        let mut a = Dlmalloc::new();
         unsafe {
             setup_treemap(&mut a);
             let min_idx31_size = (0xc000 << TREEBIN_SHIFT) - a.chunk_overhead() + 1;
-            assert_ne!(a.malloc(min_idx31_size), ptr::null_mut());
+            assert_ne!(a.inner_malloc(min_idx31_size), ptr::null_mut());
         }
     }
 
     #[test]
     // Test allocating the maximum request size with a non-empty treemap
     fn treemap_alloc_max() {
-        let mut a = Dlmalloc::new(System::new());
+        let mut a = Dlmalloc::new();
         unsafe {
             setup_treemap(&mut a);
             let max_request_size = a.max_request() - 1;
-            assert_eq!(a.malloc(max_request_size), ptr::null_mut());
+            assert_eq!(a.inner_malloc(max_request_size), ptr::null_mut());
         }
     }
 }

@@ -1,1 +1,1 @@
-mod dlmalloc;
+pub mod dlmalloc;
