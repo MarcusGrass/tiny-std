@@ -1,5 +1,5 @@
-use tiny_std::process::{Environment, Stdio};
 use tiny_std::io::Read;
+use tiny_std::process::{Environment, Stdio};
 
 pub fn spawn_no_args() {
     //
@@ -16,7 +16,7 @@ pub fn spawn_no_args() {
         None,
         None,
     )
-        .unwrap();
+    .unwrap();
     let exit = proc.wait().unwrap();
     assert_eq!(0, exit);
     let mut out = proc.stdout.unwrap();
@@ -42,7 +42,7 @@ pub fn spawn_with_args() {
         None,
         None,
     )
-        .unwrap();
+    .unwrap();
     let exit = proc_with_arg.wait().unwrap();
     let mut err = proc_with_arg.stdout.unwrap();
     let mut bytes = [0u8; 256];

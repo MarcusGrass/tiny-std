@@ -6,7 +6,7 @@ extern crate alloc;
 mod with_alloc;
 
 #[cfg(feature = "alloc")]
-use with_alloc::{spawn_with_args, spawn_no_args};
+use with_alloc::{spawn_no_args, spawn_with_args};
 
 #[cfg(not(feature = "alloc"))]
 mod no_alloc;
@@ -15,7 +15,7 @@ mod no_alloc;
 mod threaded;
 
 #[cfg(not(feature = "alloc"))]
-use no_alloc::{spawn_with_args, spawn_no_args};
+use no_alloc::{spawn_no_args, spawn_with_args};
 
 #[macro_export]
 macro_rules! run_test {
@@ -60,7 +60,6 @@ fn get_args() {
     let os_arg = os_args.next().unwrap();
     assert_eq!("dummy_arg", os_arg.as_str().unwrap());
 }
-
 
 fn get_aux_values() {
     // 16 random bytes

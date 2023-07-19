@@ -13,10 +13,7 @@ pub(crate) fn spawn_no_args() {
     let mut out = proc.stdout.unwrap();
     let mut string = String::new();
     out.read_to_string(&mut string).unwrap();
-    assert_eq!(
-        "Linux\n",
-        string,
-    );
+    assert_eq!("Linux\n", string,);
 }
 
 pub(crate) fn spawn_with_args() {

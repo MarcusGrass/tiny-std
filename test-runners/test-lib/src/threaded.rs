@@ -1,6 +1,6 @@
+use crate::run_test;
 use alloc::vec::Vec;
 use core::time::Duration;
-use crate::run_test;
 
 pub(crate) fn run_threaded_tests() {
     run_test!(thread_panics);
@@ -27,7 +27,7 @@ fn thread_parallel_compute() {
             tiny_std::thread::sleep(Duration::from_millis(2)).unwrap();
             15
         })
-            .unwrap();
+        .unwrap();
         handles.push(handle);
     }
     let mut sum = 0;
@@ -56,7 +56,7 @@ fn thread_shared_memory_parallel_count() {
         let handle = tiny_std::thread::spawn(move || {
             *cnt_c.write() += 1;
         })
-            .unwrap();
+        .unwrap();
         handles.push(handle);
     }
     for handle in handles {
@@ -73,7 +73,7 @@ fn thread_shared_memory_parallel_count_no_join() {
         let _handle = tiny_std::thread::spawn(move || {
             *cnt_c.write() += 1;
         })
-            .unwrap();
+        .unwrap();
     }
     while *cnt.read() < run_for {}
 }
@@ -88,7 +88,7 @@ fn thread_shared_memory_parallel_count_panics() {
             *cnt_c.write() += 1;
             panic!("Die")
         })
-            .unwrap();
+        .unwrap();
         handles.push(handle);
     }
     for handle in handles {
@@ -106,7 +106,7 @@ fn thread_shared_memory_parallel_count_panics_no_join() {
             *cnt_c.write() += 1;
             panic!("Die")
         })
-            .unwrap();
+        .unwrap();
     }
     while run_for > *cnt.read() {}
     assert_eq!(run_for, *cnt.read());
