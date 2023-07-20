@@ -1,0 +1,21 @@
+name: "CI"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+jobs:
+  clippy:
+    # Want to run this on aarch64 but https://github.com/actions/runner-images/issues/5631
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu
+          components: clippy
+      - name: Check formatting
+        run: ./.github/fmt.sh

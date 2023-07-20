@@ -13,3 +13,5 @@
 11. [ ] Implement file copy, should probably copy mode
 12. [ ] Figure out whether it should be possible to run start without `aux`, since that configuration
 makes static-pie binaries not work properly.
+13. [ ] Figure out whether there's a comparable `no_std`, `no-libc` allocator that's more suitable 
+for applications that can be threaded.  
