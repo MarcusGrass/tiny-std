@@ -48,10 +48,10 @@ fn run_minimal_feature_set() {
 
 fn get_env() {
     let v = tiny_std::env::var("HOME").unwrap();
-    if matches!(tiny_std::env::var("CI"), Err(tiny_std::env::VarError::Missing)) {
-        assert_eq!("/home/gramar", v);
-    } else {
+    if is_ci() {
         assert_eq!("/home/runner", v);
+    } else {
+        assert_eq!("/home/gramar", v);
     }
 }
 
@@ -71,8 +71,21 @@ fn get_aux_values() {
     assert_ne!(0u128, random.unwrap());
     let uid = tiny_std::elf::aux::get_uid();
     let gid = tiny_std::elf::aux::get_gid();
-    assert_eq!(1000, uid);
-    assert_eq!(1000, gid);
+    if is_ci() {
+        assert!(
+            uid > 1000,
+            "Expected uid to be above 1000 on CI, got {}",
+            uid
+        );
+        assert!(
+            gid > 1000,
+            "Expected gid to be above 1000 on CI, got {}",
+            gid
+        );
+    } else {
+        assert_eq!(1000, uid);
+        assert_eq!(1000, gid);
+    }
 }
 
 fn get_time() {
@@ -82,4 +95,11 @@ fn get_time() {
     let now = tiny_std::time::SystemTime::now();
     let later = tiny_std::time::SystemTime::now();
     assert!(later > now);
+}
+
+fn is_ci() -> bool {
+    !matches!(
+        tiny_std::env::var("CI"),
+        Err(tiny_std::env::VarError::Missing)
+    )
 }
