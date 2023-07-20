@@ -5,6 +5,7 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 mod with_alloc;
 
+use core::time::Duration;
 #[cfg(feature = "alloc")]
 use with_alloc::{spawn_no_args, spawn_with_args};
 
@@ -82,9 +83,11 @@ fn get_aux_values() {
 
 fn get_time() {
     let now = tiny_std::time::Instant::now();
+    tiny_std::thread::sleep(Duration::from_micros(10)).unwrap();
     let later = tiny_std::time::Instant::now();
     assert!(later > now, "Expected {later:?} to be after {now:?}");
     let now = tiny_std::time::SystemTime::now();
+    tiny_std::thread::sleep(Duration::from_micros(10)).unwrap();
     let later = tiny_std::time::SystemTime::now();
     assert!(later > now, "Expected {later:?} to be after {now:?}");
 }
