@@ -12,11 +12,11 @@ use crate::platform::{
     AddressFamily, Fd, IoSlice, IoSliceMut, IoUring, IoUringCompletionQueueEntry,
     IoUringEnterFlags, IoUringParamFlags, IoUringParams, IoUringSQEFlags,
     IoUringSubmissionQueueEntry, Mode, OpenFlags, RenameFlags, SocketAddress, SocketType,
-    StatxFlags, StatxMask, TimeSpec, AT_REMOVEDIR, STDERR, STDIN, STDOUT,
+    StatxFlags, StatxMask, TimeSpec, STDERR, STDIN, STDOUT,
 };
 use crate::string::unix_str::UnixStr;
 use crate::time::clock_get_monotonic_time;
-use crate::unistd::{close, open, open_mode, read, stat, unlink, unlink_flags};
+use crate::unistd::{close, open, open_mode, read, stat, unlink, unlink_flags, UnlinkFlags};
 
 #[test]
 fn uring_setup() {
@@ -310,7 +310,7 @@ fn uring_single_mkdir_at() {
     if let Err(e) = stat(new_dir_path) {
         assert_eq!(Errno::ENOENT, e.code.unwrap());
     } else {
-        unlink_flags(new_dir_path, AT_REMOVEDIR).unwrap();
+        unlink_flags(new_dir_path, UnlinkFlags::at_removedir()).unwrap();
     }
     let user_data = 1000;
     let entry = unsafe {
@@ -682,7 +682,7 @@ fn uring_multi_linked_crud() {
     };
     let dir_path = unsafe { UnixStr::from_str_unchecked("test-files/io_uring/multi-dir\0") };
     if stat(dir_path).is_ok() {
-        unlink_flags(dir_path, AT_REMOVEDIR).unwrap();
+        unlink_flags(dir_path, UnlinkFlags::at_removedir()).unwrap();
     }
     let file_path =
         unsafe { UnixStr::from_str_unchecked("test-files/io_uring/multi-dir/new_file.txt\0") };
