@@ -19,7 +19,7 @@ pub use setuid::setuid;
 pub use stat::{stat, stat_fd, statat};
 pub use swapon::swapon;
 pub use uname::uname;
-pub use unlink::{rmdir, unlink, unlink_at, unlink_flags};
+pub use unlink::{rmdir, unlink, unlink_at, unlink_flags, UnlinkFlags};
 pub use unshare::unshare;
 pub use write::write;
 

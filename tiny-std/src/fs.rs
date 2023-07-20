@@ -6,9 +6,10 @@ use core::mem::MaybeUninit;
 
 use rusl::error::Errno;
 pub use rusl::platform::Mode;
-use rusl::platform::{Dirent, OpenFlags, Stat, AT_REMOVEDIR, NULL_BYTE};
+use rusl::platform::{Dirent, OpenFlags, Stat, NULL_BYTE};
 use rusl::string::strlen::{buf_strlen, strlen};
 use rusl::string::unix_str::{AsUnixStr, UnixStr};
+use rusl::unistd::UnlinkFlags;
 
 use crate::error::Error;
 use crate::error::Result;
@@ -417,9 +418,13 @@ impl Directory {
                 let fname = sub_dir.file_unix_name()?;
                 let next = Self::open_at(self.0 .0, fname)?;
                 next.remove_all()?;
-                rusl::unistd::unlink_at(self.0 .0, fname, AT_REMOVEDIR.value())?;
+                rusl::unistd::unlink_at(self.0 .0, fname, UnlinkFlags::at_removedir())?;
             } else {
-                rusl::unistd::unlink_at(self.0 .0, sub_dir.file_unix_name()?, 0)?;
+                rusl::unistd::unlink_at(
+                    self.0 .0,
+                    sub_dir.file_unix_name()?,
+                    UnlinkFlags::empty(),
+                )?;
             }
         }
         Ok(())
@@ -573,7 +578,7 @@ impl<'a> DirEntry<'a> {
 /// OS errors relating to file access/permissions
 #[inline]
 pub fn remove_dir<P: AsUnixStr>(path: P) -> Result<()> {
-    rusl::unistd::unlink_flags(path, AT_REMOVEDIR)?;
+    rusl::unistd::unlink_flags(path, UnlinkFlags::at_removedir())?;
     Ok(())
 }
 
