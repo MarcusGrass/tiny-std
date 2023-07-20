@@ -1,4 +1,5 @@
 use crate::run_test;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::time::Duration;
 
@@ -10,6 +11,7 @@ pub(crate) fn run_threaded_tests() {
     run_test!(thread_shared_memory_parallel_count_no_join);
     run_test!(thread_shared_memory_parallel_count_panics);
     run_test!(thread_shared_memory_parallel_count_panics_no_join);
+    run_test!(thread_alloc_and_do_some_work);
 }
 
 fn thread_panics() {
@@ -110,4 +112,25 @@ fn thread_shared_memory_parallel_count_panics_no_join() {
     }
     while run_for > *cnt.read() {}
     assert_eq!(run_for, *cnt.read());
+}
+
+fn thread_alloc_and_do_some_work() {
+    let mut handles = Vec::with_capacity(THREAD_LOOP_COUNT);
+    for _ in 0..THREAD_LOOP_COUNT {
+        let handle = tiny_std::thread::spawn(|| {
+            let v = core::hint::black_box(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+            let mut cnt = 0;
+            for val in v {
+                cnt += val;
+            }
+            cnt
+        })
+        .unwrap();
+        handles.push(handle);
+    }
+    let mut sum = 0;
+    for h in handles {
+        sum += h.join().unwrap();
+    }
+    assert_eq!(THREAD_LOOP_COUNT * 55, sum);
 }
