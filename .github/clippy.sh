@@ -1,4 +1,5 @@
 #!/bin/sh
+set -ex
 cargo clippy -p rusl --no-default-features -- -D warnings
 cargo clippy -p rusl --no-default-features --tests -- -D warnings
 cargo clippy -p rusl -- -D warnings

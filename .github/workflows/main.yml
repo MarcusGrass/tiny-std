@@ -7,7 +7,7 @@ on:
   pull_request: {}
 
 jobs:
-  clippy:
+  lint:
     # Want to run this on aarch64 but https://github.com/actions/runner-images/issues/5631
     runs-on: ubuntu-latest
     steps:
@@ -19,3 +19,5 @@ jobs:
           components: clippy
       - name: Check formatting
         run: ./.github/fmt.sh
+      - name: Check clippy
+        run: ./.github/clippy.sh
