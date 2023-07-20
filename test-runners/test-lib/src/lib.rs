@@ -83,10 +83,10 @@ fn get_aux_values() {
 fn get_time() {
     let now = tiny_std::time::Instant::now();
     let later = tiny_std::time::Instant::now();
-    assert!(later > now);
+    assert!(later > now, "Expected {later:?} to be after {now:?}");
     let now = tiny_std::time::SystemTime::now();
     let later = tiny_std::time::SystemTime::now();
-    assert!(later > now);
+    assert!(later > now, "Expected {later:?} to be after {now:?}");
 }
 
 fn is_ci() -> bool {
