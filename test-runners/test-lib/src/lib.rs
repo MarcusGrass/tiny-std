@@ -5,6 +5,7 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 mod with_alloc;
 
+use core::time::Duration;
 #[cfg(feature = "alloc")]
 use with_alloc::{spawn_no_args, spawn_with_args};
 
@@ -48,7 +49,11 @@ fn run_minimal_feature_set() {
 
 fn get_env() {
     let v = tiny_std::env::var("HOME").unwrap();
-    assert_eq!("/home/gramar", v);
+    if is_ci() {
+        assert_eq!("/home/runner", v);
+    } else {
+        assert_eq!("/home/gramar", v);
+    }
 }
 
 fn get_args() {
@@ -67,15 +72,29 @@ fn get_aux_values() {
     assert_ne!(0u128, random.unwrap());
     let uid = tiny_std::elf::aux::get_uid();
     let gid = tiny_std::elf::aux::get_gid();
-    assert_eq!(1000, uid);
-    assert_eq!(1000, gid);
+    if is_ci() {
+        assert!(uid > 0, "Expected uid to be above 0 on CI, got {}", uid);
+        assert!(gid > 0, "Expected gid to be above 0 on CI, got {}", gid);
+    } else {
+        assert_eq!(1000, uid);
+        assert_eq!(1000, gid);
+    }
 }
 
 fn get_time() {
     let now = tiny_std::time::Instant::now();
+    tiny_std::thread::sleep(Duration::from_micros(10)).unwrap();
     let later = tiny_std::time::Instant::now();
-    assert!(later > now);
+    assert!(later > now, "Expected {later:?} to be after {now:?}");
     let now = tiny_std::time::SystemTime::now();
+    tiny_std::thread::sleep(Duration::from_micros(10)).unwrap();
     let later = tiny_std::time::SystemTime::now();
-    assert!(later > now);
+    assert!(later > now, "Expected {later:?} to be after {now:?}");
+}
+
+fn is_ci() -> bool {
+    !matches!(
+        tiny_std::env::var("CI"),
+        Err(tiny_std::env::VarError::Missing)
+    )
 }
