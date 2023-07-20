@@ -21,3 +21,15 @@ jobs:
         run: ./.github/fmt.sh
       - name: Check clippy
         run: ./.github/clippy.sh
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu
+      - name: Run tests
+        run: ./.github/test.sh
+      - name: Run test runners
+        run: ./.github/runners.sh
