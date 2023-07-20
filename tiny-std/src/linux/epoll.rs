@@ -103,6 +103,6 @@ mod tests {
             .wait(&mut buf, EpollTimeout::WaitMillis(1_000))
             .unwrap();
         assert_eq!(1, buf[0].get_data());
-        assert!(buf[0].get_events().contains(EpollEventMask::EPOLLOUT));
+        assert!(buf[0].get_events().contains(EpollEventMask::EPOLLOUT), "Expected EPOLLOUT, got {:?}", buf[0].get_events());
     }
 }
