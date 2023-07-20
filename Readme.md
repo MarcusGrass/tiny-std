@@ -21,20 +21,19 @@ you likely have an allocator present, although tiny-std will in my testing at le
 2. Minimal fs coverage
 3. Minimal spawn coverage
 4. Minimal unix socket support
+5. Minimal threading support
+6. Experimental io_uring support
 
 # Wanted features (in no particular order)
 
-1. An allocator, currently [dl-malloc-rs](https://github.com/alexcrichton/dlmalloc-rs) can be rewritten no-libc
-   pretty easily [as is done here](https://github.com/marcusGrass/dlmalloc-rs)
-2. An RwLock, lifting that from rust-std is possible but the code footprint is pretty large
-3. Signal handling by signalfd
-4. Threading would be nice, but reinventing that particular wheel will likely explode code footprint 
+1. Signal handling by signalfd
+2. Threading would be nice, but reinventing that particular wheel will likely explode code footprint 
 and be hard to get right.
-5. io-uring fs operations
+3. io-uring fs operations
 
 ## License
 
-The project is licensed under [MPL-2.0](LICENSE).
+This project and any contributions are licensed under [MPL-2.0](LICENSE).
 A lot of code is directly lifted from rust-std, not mentioning the API which is meant to be similar/compatible
 as much as possible with rust-std, that's licensed under MIT and can be found
 here [rust-std-MIT](tiny-std/STDLIB_LICENSE).
