@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -ex
 cd test-runners
 cd no-alloc-main
 RUSTFLAGS='-C panic=abort -C link-arg=-nostartfiles' cargo r --target x86_64-unknown-linux-gnu -- dummy_arg

@@ -1,4 +1,5 @@
 #!/bin/sh
+set -ex
 cargo test -p rusl --no-default-features -- --test-threads=1
 cargo test -p rusl -- --test-threads=1
 
