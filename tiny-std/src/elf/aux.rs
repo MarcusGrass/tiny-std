@@ -1,4 +1,5 @@
 use rusl::platform::{GidT, UidT};
+use rusl::string::unix_str::UnixStr;
 
 /// A vector of dynamic values supplied by the OS
 pub(crate) static mut AUX_VALUES: AuxValues = AuxValues::zeroed();
@@ -39,6 +40,19 @@ pub fn get_random() -> Option<u128> {
     }
 }
 
+/// Get the pathname used to execute the program
+#[inline]
+#[must_use]
+pub fn get_exec_fn() -> Option<&'static UnixStr> {
+    unsafe {
+        let fn_addr = AUX_VALUES.at_execfn;
+        if fn_addr != 0 {
+            return Some(UnixStr::from_ptr(fn_addr as *const u8));
+        }
+        None
+    }
+}
+
 /// Some selected aux-values, needs to be kept small since they're collected
 /// before symbol relocation on static-pie-linked binaries, which means rustc
 /// will emit `memset` on a zeroed allocation of over 256 bytes, which we won't be able
@@ -72,6 +86,9 @@ pub(crate) struct AuxValues {
 
     /// Address of the vdso
     pub(crate) at_sysinfo_ehdr: usize,
+
+    /// A pointer to a string containing the pathname used to execute the program
+    pub(crate) at_execfn: usize,
 }
 
 impl AuxValues {
@@ -87,6 +104,7 @@ impl AuxValues {
             at_random: 0,
             at_secure: 0,
             at_sysinfo_ehdr: 0,
+            at_execfn: 0,
         }
     }
 
@@ -110,6 +128,7 @@ impl AuxValues {
                     rusl::platform::AT_SYSINFO_EHDR => {
                         collected.at_sysinfo_ehdr = *(auxv.add(i + 1));
                     }
+                    rusl::platform::AT_EXECFN => collected.at_execfn = *(auxv.add(i + 1)),
                     _ => {}
                 }
             }

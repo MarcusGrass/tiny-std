@@ -64,6 +64,48 @@ impl File {
     pub fn set_nonblocking(&self) -> Result<()> {
         self.0.set_nonblocking()
     }
+
+    /// Get file metadata for this open `File`
+    /// # Errors
+    /// Os errors making the stat-syscall
+    #[inline]
+    pub fn metadata(&self) -> Result<Metadata> {
+        let stat = rusl::unistd::stat_fd(self.as_raw_fd())?;
+        Ok(Metadata(stat))
+    }
+
+    /// Copies `src` to `dest`, can be used to move files.
+    /// Will overwrite anything currently at `dest`.
+    /// Returns a handle to the new file.
+    /// # Errors
+    /// Os errors relating to file access
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    pub fn copy<P: AsUnixStr>(&self, dest: P) -> Result<Self> {
+        let this_metadata = self.metadata()?;
+        let dest = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .mode(this_metadata.mode())
+            .open(dest)?;
+        let mut offset = 0;
+        // We don't have to care about sign loss on the st_size, it's always positive.
+        let mut remaining = this_metadata.0.st_size as u64 - offset;
+        while remaining > 0 {
+            let w = rusl::unistd::copy_file_range(
+                self.as_raw_fd(),
+                offset,
+                dest.as_raw_fd(),
+                offset,
+                remaining as usize,
+            )?;
+            if w == 0 {
+                return Ok(dest);
+            }
+            offset += w as u64;
+            remaining = this_metadata.0.st_size as u64 - offset;
+        }
+        Ok(dest)
+    }
 }
 
 impl File {
@@ -168,6 +210,26 @@ impl Metadata {
 pub fn metadata<P: AsUnixStr>(path: P) -> Result<Metadata> {
     let res = rusl::unistd::stat(path)?;
     Ok(Metadata(res))
+}
+
+/// Renames `src` to `dest`, can be used to move files or directories.
+/// Will overwrite anything currently at `dest`.
+/// # Errors
+/// Os errors relating to file access
+#[inline]
+pub fn rename(src: impl AsUnixStr, dest: impl AsUnixStr) -> Result<()> {
+    rusl::unistd::rename(src, dest)?;
+    Ok(())
+}
+
+/// Copies the file at `src`, to the `dest`, overwriting anything at `dest`.
+/// Returns a handle to the new file.
+/// # Errors
+/// See [`File::copy`]
+#[inline]
+pub fn copy_file(src: impl AsUnixStr, dest: impl AsUnixStr) -> Result<File> {
+    let src_file = File::open(&src)?;
+    src_file.copy(dest)
 }
 
 /// Checks if anything exists at the provided path.

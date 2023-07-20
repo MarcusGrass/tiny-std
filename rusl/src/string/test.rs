@@ -1,6 +1,6 @@
 use crate::platform::NULL_BYTE;
 use crate::string::strlen::{buf_strlen, strlen};
-use crate::string::unix_str::AsUnixStr;
+use crate::string::unix_str::{AsUnixStr, UnixStr};
 
 #[test]
 #[cfg(not(feature = "alloc"))]
@@ -106,4 +106,11 @@ fn can_check_buf_strlen() {
     assert_eq!(10, buf_strlen(test).unwrap());
     let bad = b"10_000_000";
     assert!(buf_strlen(bad).is_err());
+}
+
+#[test]
+fn can_const_instantiate_unix_str() {
+    // Const eval would fail here.
+    const MY_CONST_UNIX_STR: &UnixStr = UnixStr::from_str_checked("Hello!\0");
+    assert_eq!(MY_CONST_UNIX_STR, UnixStr::from_str_checked("Hello!\0"));
 }

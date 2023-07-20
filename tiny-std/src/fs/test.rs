@@ -300,3 +300,49 @@ fn file_exists_when_exists() {
     crate::fs::remove_file(tgt).unwrap();
     assert!(!crate::fs::exists(tgt).unwrap());
 }
+
+#[test]
+fn file_can_be_moved() {
+    const EXPECT_CONTENT: &[u8; 17] = b"Move my content!\n";
+    let mut orig_buf = [0u8; EXPECT_CONTENT.len()];
+    let mut src_buf = [0u8; EXPECT_CONTENT.len()];
+    let mut dest_buf = [0u8; EXPECT_CONTENT.len()];
+    let tgt = "test-files/fs/test_move_orig.txt\0";
+    File::open(tgt).unwrap().read_exact(&mut orig_buf).unwrap();
+    assert_eq!(EXPECT_CONTENT, &orig_buf);
+    let src = "test-files/fs/tmp_test_move_cp.txt\0";
+    let md = metadata(tgt).unwrap();
+    #[cfg(target_arch = "x86_64")]
+    let file = { crate::fs::copy_file(tgt, src).unwrap() };
+    #[cfg(target_arch = "aarch64")]
+    let file = {
+        // Getting enosys from cross here
+        let mut exp_c = *EXPECT_CONTENT;
+        rw_copy_exact(tgt, &mut exp_c, src)
+    };
+    let md2 = metadata(src).unwrap();
+    assert_eq!(md2.mode(), file.metadata().unwrap().mode());
+    assert_eq!(md.mode(), md2.mode());
+    File::open(src).unwrap().read_exact(&mut src_buf).unwrap();
+    assert_eq!(EXPECT_CONTENT, &src_buf);
+    let dest = "test-files/fs/tmp_test_move_moved.txt\0";
+    crate::fs::rename(src, dest).unwrap();
+    assert!(!crate::fs::exists(src).unwrap());
+    File::open(dest).unwrap().read_exact(&mut dest_buf).unwrap();
+    assert_eq!(EXPECT_CONTENT, &dest_buf);
+}
+
+#[cfg(target_arch = "aarch64")]
+fn rw_copy_exact(src: &str, buf: &mut [u8], dst: &str) -> File {
+    let src_md = metadata(src).unwrap();
+    let mut src = File::open(src).unwrap();
+    src.read_exact(buf).unwrap();
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .mode(src_md.mode())
+        .open(dst)
+        .unwrap();
+    file.write_all(buf).unwrap();
+    file
+}
