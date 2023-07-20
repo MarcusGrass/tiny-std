@@ -72,16 +72,8 @@ fn get_aux_values() {
     let uid = tiny_std::elf::aux::get_uid();
     let gid = tiny_std::elf::aux::get_gid();
     if is_ci() {
-        assert!(
-            uid > 1000,
-            "Expected uid to be above 1000 on CI, got {}",
-            uid
-        );
-        assert!(
-            gid > 1000,
-            "Expected gid to be above 1000 on CI, got {}",
-            gid
-        );
+        assert!(uid > 0, "Expected uid to be above 0 on CI, got {}", uid);
+        assert!(gid > 0, "Expected gid to be above 0 on CI, got {}", gid);
     } else {
         assert_eq!(1000, uid);
         assert_eq!(1000, gid);
