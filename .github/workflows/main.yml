@@ -6,6 +6,9 @@ on:
       - main
   pull_request: {}
 
+env:
+  CI: true
+
 jobs:
   lint:
     # Want to run this on aarch64 but https://github.com/actions/runner-images/issues/5631
