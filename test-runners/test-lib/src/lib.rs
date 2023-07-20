@@ -48,7 +48,11 @@ fn run_minimal_feature_set() {
 
 fn get_env() {
     let v = tiny_std::env::var("HOME").unwrap();
-    assert_eq!("/home/gramar", v);
+    if matches!(tiny_std::env::var("CI"), Err(tiny_std::env::VarError::Missing)) {
+        assert_eq!("/home/gramar", v);
+    } else {
+        assert_eq!("/home/runner", v);
+    }
 }
 
 fn get_args() {
