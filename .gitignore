@@ -3,4 +3,4 @@ target
 *.iml
 qemu*
 rusl/test-files/io_uring/moved.txt
-rusl/test-files/**/tmp_*
+**/test-files/**/tmp_*

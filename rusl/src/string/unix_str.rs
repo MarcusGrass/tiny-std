@@ -312,7 +312,7 @@ impl core::ops::Deref for UnixString {
 }
 
 #[repr(transparent)]
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct UnixStr(pub(crate) [u8]);
 
 impl UnixStr {
@@ -321,6 +321,24 @@ impl UnixStr {
     #[must_use]
     pub const unsafe fn from_str_unchecked(s: &str) -> &Self {
         core::mem::transmute(s)
+    }
+
+    /// Const instantiation of a `&UnixStr` from a `&str`.
+    /// Should only be used in a `const`-context, although `rustc` does not let me enforce this.
+    /// # Panics
+    /// This method panics since it's supposed to produce a comptime error, it's
+    /// not particularly efficient.
+    #[must_use]
+    pub const fn from_str_checked(s: &str) -> &Self {
+        match const_null_term_check(s.as_bytes()) {
+            NullTermCheckResult::NullTerminated => unsafe { core::mem::transmute(s) },
+            NullTermCheckResult::NullByteOutOfPlace => {
+                panic!("Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place");
+            }
+            NullTermCheckResult::NotNullTerminated => {
+                panic!("Tried to instantiate UnixStr from an invalid &str, not null terminated");
+            }
+        }
     }
 
     /// # Safety
@@ -520,4 +538,23 @@ fn null_terminated_ok(s: &[u8]) -> NullTermCheckResult {
         }
     }
     NullTermCheckResult::NotNullTerminated
+}
+
+#[inline]
+const fn const_null_term_check(s: &[u8]) -> NullTermCheckResult {
+    if s.is_empty() {
+        return NullTermCheckResult::NotNullTerminated;
+    }
+    let len = s.len() - 1;
+    let mut i = len;
+    if s[i] != b'\0' {
+        return NullTermCheckResult::NotNullTerminated;
+    }
+    while i > 0 {
+        i -= 1;
+        if s[i] == b'\0' {
+            return NullTermCheckResult::NullByteOutOfPlace;
+        }
+    }
+    NullTermCheckResult::NullTerminated
 }
