@@ -1,3 +1,4 @@
+use crate::platform::is_syscall_error;
 use crate::Error;
 use core::fmt::Formatter;
 use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign};
@@ -59,8 +60,11 @@ impl NonNegativeI32 {
 
     #[inline]
     #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
-    pub(crate) fn coerce_from_register(val: usize, err_msg: &'static str) -> Result<Self, Error> {
-        if val > usize::MAX - 256 {
+    pub(crate) const fn coerce_from_register(
+        val: usize,
+        err_msg: &'static str,
+    ) -> Result<Self, Error> {
+        if is_syscall_error(val) {
             let res = val as i32;
             Err(Error::with_code(err_msg, 0 - res))
         } else {
