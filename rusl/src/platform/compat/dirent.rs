@@ -56,7 +56,7 @@ impl Dirent {
             ),
             d_reclen: len,
             d_name: name,
-            d_type: DirType::from(d_type),
+            d_type: DirType(d_type),
         })
     }
 }

@@ -19,6 +19,13 @@ transparent_bitflags!(
     }
 );
 
+impl From<i32> for ClockId {
+    #[inline]
+    fn from(value: i32) -> Self {
+        ClockId(value)
+    }
+}
+
 /// `__kernel_timespec` is the type going over the syscall layer
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

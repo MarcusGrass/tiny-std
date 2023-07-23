@@ -95,7 +95,7 @@ impl SocketAddress {
     #[inline]
     #[must_use]
     pub fn family(&self) -> AddressFamily {
-        self.0.sun_family.into()
+        AddressFamily(self.0.sun_family)
     }
 
     /// Get the raw path of the socket address

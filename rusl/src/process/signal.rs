@@ -106,7 +106,7 @@ pub unsafe fn add_signal_action(
         SaSignalaction::Ign => SaSigaction { value: SIG_IGN },
         SaSignalaction::Handler(sa_handler) => {
             // TODO: Double check this
-            flags = SaMask::from(flags.bits() - SaMask::SA_SIGINFO.bits());
+            flags = SaMask(flags.bits() - SaMask::SA_SIGINFO.bits());
             SaSigaction { sa_handler }
         }
         SaSignalaction::SigAction(sa_sigaction) => {

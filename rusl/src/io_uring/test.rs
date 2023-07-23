@@ -326,7 +326,7 @@ fn uring_single_mkdir_at() {
     let stat = stat(new_dir_path).unwrap();
     assert_eq!(
         Mode::S_IFDIR,
-        Mode::from(stat.st_mode) & Mode::S_IFMT,
+        Mode(stat.st_mode) & Mode::S_IFMT,
         "Expected dir, got something else {stat:?}"
     );
 }
