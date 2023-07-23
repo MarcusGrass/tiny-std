@@ -18,7 +18,18 @@ pub fn dup2(old: Fd, new: Fd) -> crate::Result<()> {
 /// See above
 pub fn dup3(old: Fd, new: Fd, cloexec: bool) -> crate::Result<()> {
     loop {
-        let res = unsafe { syscall!(DUP3, old.0, new.0, if cloexec { OpenFlags::O_CLOEXEC.0.0 } else { 0 }) };
+        let res = unsafe {
+            syscall!(
+                DUP3,
+                old.0,
+                new.0,
+                if cloexec {
+                    OpenFlags::O_CLOEXEC.0 .0
+                } else {
+                    0
+                }
+            )
+        };
         // Trusting the systall [API](https://man7.org/linux/man-pages/man2/dup.2.html#RETURN_VALUE)
         #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
         if res as i32 == Errno::EBUSY.raw() {
@@ -31,12 +42,17 @@ pub fn dup3(old: Fd, new: Fd, cloexec: bool) -> crate::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::platform::{NonNegativeI32, STDIN};
     use super::*;
+    use crate::platform::{NonNegativeI32, STDIN};
 
     #[test]
     fn can_dup_smoke() {
         dup2(STDIN, NonNegativeI32::comptime_checked_new(999)).unwrap();
-        dup3(NonNegativeI32::comptime_checked_new(999), NonNegativeI32::comptime_checked_new(1000), true).unwrap();
+        dup3(
+            NonNegativeI32::comptime_checked_new(999),
+            NonNegativeI32::comptime_checked_new(1000),
+            true,
+        )
+        .unwrap();
     }
 }
