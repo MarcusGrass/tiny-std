@@ -3,6 +3,13 @@ name = "rusl"
 version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
+readme = "../Readme.md"
+repository = "https://github.com/MarcusGrass/tiny-std"
+homepage = "https://github.com/MarcusGrass/tiny-std"
+description = "Rust linux interface layer"
+documentation = "https://docs.rs/rusl"
+categories = ["external-ffi-bindings", "no-std", "os"]
+keywords = ["ffi", "bindings", "operating", "system", "linux"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
@@ -10,6 +17,6 @@ default = ["alloc"]
 alloc = []
 
 [dependencies]
-linux-rust-bindings = { git = "https://github.com/MarcusGrass/linux-rust-bindings", rev = "3b64f3e389717632d9100a0300e9224e9a1d2fdc", features = ["all"] }
+linux-rust-bindings = { version = "0.1.0", features = ["all"] }
 sc = "0.2.7"
 unix-print = "0.1.0"

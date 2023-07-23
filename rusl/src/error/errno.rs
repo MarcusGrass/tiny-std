@@ -1,3 +1,4 @@
+/// `NewType` wrapping some Linux error value
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Errno(i32);
 

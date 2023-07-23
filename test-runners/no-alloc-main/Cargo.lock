@@ -5,7 +5,8 @@ version = 3
 [[package]]
 name = "linux-rust-bindings"
 version = "0.1.0"
-source = "git+https://github.com/MarcusGrass/linux-rust-bindings?rev=3b64f3e389717632d9100a0300e9224e9a1d2fdc#3b64f3e389717632d9100a0300e9224e9a1d2fdc"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbe1e1086759456793fdc0b97ac3affa3f8f1706fb472df1e4e4c8b61c8a5b7b"
 
 [[package]]
 name = "no-alloc-main"
