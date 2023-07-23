@@ -9,11 +9,6 @@ pub const REL_RELATIVE: u64 = 1027;
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-#[cfg(target_pointer_width = "32")]
-pub struct ElfHeader(pub linux_rust_bindings::elf::Elf32_Ehdr);
-
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone)]
 #[cfg(target_pointer_width = "64")]
 pub struct ElfHeader(pub linux_rust_bindings::elf::Elf64_Ehdr);
 
@@ -51,27 +46,12 @@ impl EIdent {
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-#[cfg(target_pointer_width = "32")]
-pub struct SectionHeader(pub linux_rust_bindings::elf::Elf32_Shdr);
-
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone)]
 #[cfg(target_pointer_width = "64")]
 pub struct SectionHeader(pub linux_rust_bindings::elf::Elf64_Shdr);
 
 #[repr(transparent)]
-#[derive(Debug, Copy, Clone)]
-#[cfg(target_pointer_width = "32")]
-pub struct ElfDynamic(pub linux_rust_bindings::elf::Elf32_Dyn);
-
-#[repr(transparent)]
 #[cfg(target_pointer_width = "64")]
 pub struct ElfDynamic(pub linux_rust_bindings::elf::Elf64_Dyn);
-
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone)]
-#[cfg(target_pointer_width = "32")]
-pub struct ElfSymbol(pub linux_rust_bindings::elf::Elf32_Sym);
 
 #[repr(transparent)]
 #[cfg(target_pointer_width = "64")]
