@@ -20,6 +20,7 @@ impl Default for NonNegativeI32 {
 }
 
 impl NonNegativeI32 {
+    pub const MAX: Self = Self(i32::MAX);
     pub const ZERO: Self = Self(0);
 
     #[inline]

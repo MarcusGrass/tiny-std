@@ -1,7 +1,9 @@
 use std::mem::MaybeUninit;
 
 use rusl::error::Errno;
-use rusl::platform::{Clone3Args, CloneArgs, CloneFlags, Fd, PollEvents, PollFd, SignalKind};
+use rusl::platform::{
+    Clone3Args, CloneArgs, CloneFlags, Fd, PollEvents, PollFd, SignalKind, WaitPidFlags,
+};
 use rusl::process::{clone, clone3, exit, wait_pid};
 use rusl::select::ppoll;
 
@@ -73,7 +75,7 @@ fn test_regular_clone_vfork() {
         if child == 0 {
             exit(0);
         } else {
-            let res = wait_pid(child, 0).unwrap();
+            let res = wait_pid(child, WaitPidFlags::empty()).unwrap();
             assert_eq!(0, res.status);
             assert_eq!(child, res.pid);
         }

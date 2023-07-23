@@ -1,4 +1,4 @@
-use rusl::platform::{AcceptFlags, AddressFamily, SocketAddress, SocketType};
+use rusl::platform::{AcceptFlags, AddressFamily, NonNegativeI32, SocketAddress, SocketType};
 use rusl::string::unix_str::AsUnixStr;
 
 use crate::error::Result;
@@ -60,18 +60,13 @@ impl UnixListener {
     /// # Errors
     /// Various OS errors relating to permissions, and missing paths
     pub fn bind<P: AsUnixStr>(path: P, blocking: bool) -> Result<Self> {
-        const BACKLOG: i32 = if cfg!(any(target_os = "linux", target_os = "freebsd")) {
-            -1
-        } else {
-            128
-        };
         let block = blocking
             .then(SocketType::empty)
             .unwrap_or(SocketType::SOCK_NONBLOCK);
         let fd = rusl::network::socket(AddressFamily::AF_UNIX, SocketType::SOCK_STREAM | block, 0)?;
         let addr = SocketAddress::try_from_unix(path)?;
         rusl::network::bind(fd, &addr)?;
-        rusl::network::listen(fd, BACKLOG)?;
+        rusl::network::listen(fd, NonNegativeI32::MAX)?;
         Ok(Self(OwnedFd(fd)))
     }
 

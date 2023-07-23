@@ -1,3 +1,4 @@
+use crate::platform::WaitPidFlags;
 use crate::process::{exit, fork, wait_pid};
 
 #[test]
@@ -20,7 +21,7 @@ fn fork_then_wait() {
             exit(0);
         } else {
             // Parent path, waits
-            let res = wait_pid(child, 0).unwrap();
+            let res = wait_pid(child, WaitPidFlags::empty()).unwrap();
             assert_eq!(0, res.status);
             assert_eq!(child, res.pid);
         }
