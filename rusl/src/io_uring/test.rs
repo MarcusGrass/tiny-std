@@ -11,8 +11,8 @@ use crate::network::{bind, connect, listen, socket};
 use crate::platform::{
     AddressFamily, Fd, IoSlice, IoSliceMut, IoUring, IoUringCompletionQueueEntry,
     IoUringEnterFlags, IoUringParamFlags, IoUringParams, IoUringSQEFlags,
-    IoUringSubmissionQueueEntry, Mode, OpenFlags, RenameFlags, SocketAddress, SocketType,
-    StatxFlags, StatxMask, TimeSpec, STDERR, STDIN, STDOUT,
+    IoUringSubmissionQueueEntry, Mode, NonNegativeI32, OpenFlags, RenameFlags, SocketAddress,
+    SocketType, StatxFlags, StatxMask, TimeSpec, STDERR, STDIN, STDOUT,
 };
 use crate::string::unix_str::UnixStr;
 use crate::time::clock_get_monotonic_time;
@@ -367,7 +367,7 @@ fn uring_single_accept() {
         unlink(sock_path).unwrap();
     }
     bind(server_socket, &addr).unwrap();
-    listen(server_socket, 100).unwrap();
+    listen(server_socket, NonNegativeI32::comptime_checked_new(100)).unwrap();
     let user_data = 10011;
     let entry = unsafe {
         IoUringSubmissionQueueEntry::new_accept(
