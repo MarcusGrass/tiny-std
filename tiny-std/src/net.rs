@@ -1,4 +1,4 @@
-use rusl::platform::{AddressFamily, SocketAddress, SocketType};
+use rusl::platform::{AcceptFlags, AddressFamily, SocketAddress, SocketType};
 use rusl::string::unix_str::AsUnixStr;
 
 use crate::error::Result;
@@ -82,9 +82,9 @@ impl UnixListener {
     /// `EAGAIN` if this listener is set to non-blocking and there are no ready connections
     pub fn accept(&self, blocking: bool) -> Result<UnixStream> {
         let block = blocking
-            .then(SocketType::empty)
-            .unwrap_or(SocketType::SOCK_NONBLOCK);
-        let client = rusl::network::accept(self.0 .0, None, SocketType::SOCK_CLOEXEC | block)?;
+            .then(AcceptFlags::empty)
+            .unwrap_or(AcceptFlags::SOCK_NONBLOCK);
+        let client = rusl::network::accept(self.0 .0, None, AcceptFlags::SOCK_CLOEXEC | block)?;
         Ok(UnixStream(OwnedFd(client)))
     }
 }

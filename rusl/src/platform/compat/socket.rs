@@ -80,6 +80,14 @@ transparent_bitflags!(
     }
 );
 
+transparent_bitflags!(
+    pub struct AcceptFlags: SocketType {
+        const DEFAULT = SocketType::DEFAULT;
+        const SOCK_NONBLOCK = SocketType::SOCK_NONBLOCK;
+        const SOCK_CLOEXEC = SocketType::SOCK_CLOEXEC;
+    }
+);
+
 #[derive(Debug, Copy, Clone)]
 pub struct SocketArg {
     pub(crate) addr: SocketAddress,
