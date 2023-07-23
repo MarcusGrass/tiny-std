@@ -14,8 +14,6 @@ dependencies = [
 [[package]]
 name = "linux-rust-bindings"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbe1e1086759456793fdc0b97ac3affa3f8f1706fb472df1e4e4c8b61c8a5b7b"
 
 [[package]]
 name = "rusl"
