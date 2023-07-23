@@ -4,7 +4,7 @@ use crate::Error;
 /// # Safety
 /// Safe only if the pointer is null terminated
 #[must_use]
-pub unsafe fn strlen(s: *const u8) -> usize {
+pub const unsafe fn strlen(s: *const u8) -> usize {
     let mut i = 0;
     loop {
         if s.add(i).read() == 0 {
