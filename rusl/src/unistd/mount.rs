@@ -1,4 +1,4 @@
-use crate::platform::FilesystemType;
+use crate::platform::{FilesystemType, Mountflags};
 use crate::string::unix_str::AsUnixStr;
 use crate::Result;
 use sc::syscall;
@@ -13,7 +13,7 @@ pub fn mount<SRC, TGT, DATA>(
     source: SRC,
     target: TGT,
     fs_type: FilesystemType,
-    flags: u64,
+    flags: Mountflags,
     data: Option<DATA>,
 ) -> Result<()>
 where
@@ -26,13 +26,12 @@ where
             target.exec_with_self_as_ptr(|tgt| {
                 if let Some(data) = data {
                     data.exec_with_self_as_ptr(|data| {
-                        let res =
-                            syscall!(MOUNT, src, tgt, fs_type.label().0.as_ptr(), flags, data);
+                        let res = syscall!(MOUNT, src, tgt, fs_type.0, flags.bits(), data);
                         bail_on_below_zero!(res, "`MOUNT` syscall failed");
                         Ok(res)
                     })
                 } else {
-                    let res = syscall!(MOUNT, src, tgt, fs_type.label().0.as_ptr(), flags, 0);
+                    let res = syscall!(MOUNT, src, tgt, fs_type.0, flags.bits(), 0);
                     bail_on_below_zero!(res, "`MOUNT` syscall failed");
                     Ok(res)
                 }
