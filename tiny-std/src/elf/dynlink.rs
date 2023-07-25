@@ -1,5 +1,4 @@
 use crate::elf::aux::AuxValues;
-use core::hint::unreachable_unchecked;
 use rusl::platform::{
     Elf64Rel, Elf64Rela, ElfPhdr, DT_REL, DT_RELA, DT_RELASZ, DT_RELSZ, PT_DYNAMIC, REL_RELATIVE,
 };
@@ -109,13 +108,5 @@ const fn relative_type(tp: u64) -> u64 {
 
 #[inline(always)]
 unsafe fn ptr_unsafe_ref<T>(ptr: *const T) -> &'static T {
-    unwrap_unchecked(ptr.as_ref())
-}
-
-#[inline(always)]
-unsafe fn unwrap_unchecked<T>(opt: Option<T>) -> T {
-    match opt {
-        None => unreachable_unchecked(),
-        Some(val) => val,
-    }
+    unsafe { &*ptr }
 }
