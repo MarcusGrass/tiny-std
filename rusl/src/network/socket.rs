@@ -9,6 +9,6 @@ use crate::Result;
 /// See above
 #[inline]
 pub fn socket(domain: AddressFamily, options: SocketOptions, protocol: i32) -> Result<Fd> {
-    let res = unsafe { syscall!(SOCKET, domain.bits(), options.0, protocol) };
+    let res = unsafe { syscall!(SOCKET, domain.0, options.0, protocol) };
     Fd::coerce_from_register(res, "`SOCKET` syscall failed")
 }

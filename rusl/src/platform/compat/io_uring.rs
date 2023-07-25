@@ -549,7 +549,7 @@ impl IoUringSubmissionQueueEntry {
             opcode: IoUringOp::Socket as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: domain.bits() as i32,
+            fd: domain.0 as i32,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
                 off: socket_options.0 as u64,
             },
