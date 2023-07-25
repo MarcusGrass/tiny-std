@@ -34,7 +34,7 @@ impl NonNegativeI32 {
     /// # Errors
     /// Returns the supplied value
     #[inline]
-    pub fn try_new(val: i32) -> Result<Self, i32> {
+    pub const fn try_new(val: i32) -> Result<Self, i32> {
         if val >= 0 {
             Ok(Self(val))
         } else {

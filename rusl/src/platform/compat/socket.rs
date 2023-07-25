@@ -111,14 +111,14 @@ impl SocketAddress {
     /// Get the `AddressFamily` of the socket address
     #[inline]
     #[must_use]
-    pub fn family(&self) -> AddressFamily {
+    pub const fn family(&self) -> AddressFamily {
         AddressFamily(self.0.sun_family)
     }
 
     /// Get the raw path of the socket address
     #[inline]
     #[must_use]
-    pub fn path_raw(&self) -> [core::ffi::c_char; 108] {
+    pub const fn path_raw(&self) -> [core::ffi::c_char; 108] {
         self.0.sun_path
     }
 

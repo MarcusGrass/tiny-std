@@ -31,7 +31,7 @@ pub enum EpollOp {
 }
 
 impl EpollOp {
-    pub(crate) fn into_op(self) -> i32 {
+    pub(crate) const fn into_op(self) -> i32 {
         match self {
             Self::Add => linux_rust_bindings::epoll::EPOLL_CTL_ADD,
             Self::Mod => linux_rust_bindings::epoll::EPOLL_CTL_MOD,
@@ -47,7 +47,7 @@ pub struct EpollEvent(pub(crate) linux_rust_bindings::epoll::epoll_event);
 impl EpollEvent {
     #[inline]
     #[must_use]
-    pub fn new(user_data: u64, mask: EpollEventMask) -> Self {
+    pub const fn new(user_data: u64, mask: EpollEventMask) -> Self {
         Self(linux_rust_bindings::epoll::epoll_event {
             events: mask.bits(),
             data: user_data,
@@ -56,13 +56,13 @@ impl EpollEvent {
 
     #[inline]
     #[must_use]
-    pub fn get_data(&self) -> u64 {
+    pub const fn get_data(&self) -> u64 {
         self.0.data
     }
 
     #[inline]
     #[must_use]
-    pub fn get_events(&self) -> EpollEventMask {
+    pub const fn get_events(&self) -> EpollEventMask {
         EpollEventMask(self.0.events)
     }
 }

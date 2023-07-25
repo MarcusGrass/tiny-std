@@ -163,7 +163,7 @@ impl IoUringSubmissionQueueEntry {
     /// The underlying buffer needs to live at least until this `sqe` is submitted to the kernel.
     #[inline]
     #[must_use]
-    pub unsafe fn new_readv(
+    pub const unsafe fn new_readv(
         fd: Fd,
         buf_ptr: usize,
         num_buffers: u32,
@@ -189,8 +189,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -201,7 +201,7 @@ impl IoUringSubmissionQueueEntry {
     /// The underlying buffer needs to live at least until this `sqe` is completed.  
     #[inline]
     #[must_use]
-    pub unsafe fn new_readv_fixed(
+    pub const unsafe fn new_readv_fixed(
         fd: Fd,
         buf_ind: u16,
         start_read_into_addr: u64,
@@ -228,8 +228,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -240,7 +240,7 @@ impl IoUringSubmissionQueueEntry {
     /// The underlying buffer needs to live at least until this `sqe` is submitted to the kernel
     #[inline]
     #[must_use]
-    pub unsafe fn new_writev(
+    pub const unsafe fn new_writev(
         fd: Fd,
         buf_ptr: usize,
         num_buffers: u32,
@@ -266,8 +266,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -278,7 +278,7 @@ impl IoUringSubmissionQueueEntry {
     /// The underlying buffer needs to live at least until this `sqe` is completed
     #[inline]
     #[must_use]
-    pub unsafe fn new_writev_fixed(
+    pub const unsafe fn new_writev_fixed(
         fd: Fd,
         buf_ind: u16,
         start_read_into_addr: u64,
@@ -305,8 +305,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -333,7 +333,7 @@ impl IoUringSubmissionQueueEntry {
             opcode: IoUringOp::Openat as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: dir_fd.map_or(AT_FDCWD, |fd| fd.0),
+            fd: unpack_dir_fd(dir_fd),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: path.0.as_ptr() as u64,
@@ -347,8 +347,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -357,7 +357,7 @@ impl IoUringSubmissionQueueEntry {
     /// Creates a new entry that will execute an equivalent to a `close` syscall
     #[inline]
     #[must_use]
-    pub fn new_close(fd: Fd, user_data: u64, sqe_flags: IoUringSQEFlags) -> Self {
+    pub const fn new_close(fd: Fd, user_data: u64, sqe_flags: IoUringSQEFlags) -> Self {
         Self(io_uring_sqe {
             opcode: IoUringOp::Close as u8,
             flags: sqe_flags.bits(),
@@ -372,8 +372,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -398,7 +398,7 @@ impl IoUringSubmissionQueueEntry {
             opcode: IoUringOp::Statx as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: dir_fd.map_or(AT_FDCWD, |fd| fd.0),
+            fd: unpack_dir_fd(dir_fd),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
                 off: statx_ptr as u64,
             },
@@ -437,7 +437,7 @@ impl IoUringSubmissionQueueEntry {
             opcode: IoUringOp::Unlinkat as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: dir_fd.map_or(AT_FDCWD, |fd| fd.0),
+            fd: unpack_dir_fd(dir_fd),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: path.0.as_ptr() as u64,
@@ -451,8 +451,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -477,14 +477,14 @@ impl IoUringSubmissionQueueEntry {
             opcode: IoUringOp::Renameat as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: old_dir_fd.map_or(AT_FDCWD, |fd| fd.0),
+            fd: unpack_dir_fd(old_dir_fd),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
                 addr2: new_path.0.as_ptr() as u64,
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: old_path.0.as_ptr() as u64,
             },
-            len: new_dir_fd.map_or(AT_FDCWD as u32, Fd::into_u32),
+            len: unpack_dir_fd(new_dir_fd) as u32,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
                 rename_flags: flags.bits(),
             },
@@ -516,7 +516,7 @@ impl IoUringSubmissionQueueEntry {
             opcode: IoUringOp::Mkdirat as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: dir_fd.map_or(AT_FDCWD, |fd| fd.0),
+            fd: unpack_dir_fd(dir_fd),
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: path.0.as_ptr() as u64,
@@ -528,8 +528,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -596,8 +596,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -662,7 +662,11 @@ impl IoUringSubmissionQueueEntry {
             ioprio: 0,
             fd: 0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
-                off: await_completions.unwrap_or_default(),
+                off: if let Some(cmpl) = await_completions {
+                    cmpl
+                } else {
+                    0
+                },
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: ts as *const TimeSpec as u64,
@@ -680,11 +684,20 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
+    }
+}
+
+#[inline]
+const fn unpack_dir_fd(maybe_dirfd: Option<Fd>) -> i32 {
+    if let Some(maybe_dirfd) = maybe_dirfd {
+        maybe_dirfd.value()
+    } else {
+        AT_FDCWD
     }
 }
 

@@ -101,7 +101,7 @@ impl Clone3Args {
     /// Create a new instance of clone args, the minimum configuration for it to be valid is
     /// a valid set of clone flags, please see the documentation for `clone3`.
     #[must_use]
-    pub fn new(flags: CloneFlags) -> Self {
+    pub const fn new(flags: CloneFlags) -> Self {
         Self(linux_rust_bindings::sched::clone_args {
             flags: flags.bits(),
             pidfd: 0,

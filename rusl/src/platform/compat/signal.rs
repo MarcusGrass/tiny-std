@@ -139,8 +139,9 @@ pub struct SigSetT {
     __val: [MaybeUninit<u64>; 16],
 }
 
-impl Default for SigSetT {
-    fn default() -> Self {
+impl SigSetT {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             __val: [
                 MaybeUninit::new(0),
@@ -161,6 +162,12 @@ impl Default for SigSetT {
                 MaybeUninit::uninit(),
             ],
         }
+    }
+}
+
+impl Default for SigSetT {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

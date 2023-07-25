@@ -59,7 +59,7 @@ impl TimeSpec {
 
     #[inline]
     #[must_use]
-    pub fn new(seconds: i64, nanoseconds: i64) -> Self {
+    pub const fn new(seconds: i64, nanoseconds: i64) -> Self {
         Self(__kernel_timespec {
             tv_sec: seconds,
             tv_nsec: nanoseconds,
@@ -68,13 +68,13 @@ impl TimeSpec {
 
     #[inline]
     #[must_use]
-    pub fn seconds(&self) -> i64 {
+    pub const fn seconds(&self) -> i64 {
         self.0.tv_sec
     }
 
     #[inline]
     #[must_use]
-    pub fn nanoseconds(&self) -> i64 {
+    pub const fn nanoseconds(&self) -> i64 {
         self.0.tv_nsec
     }
 }
