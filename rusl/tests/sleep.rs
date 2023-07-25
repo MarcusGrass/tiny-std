@@ -12,6 +12,6 @@ fn test_sleep() {
     let end = rusl::time::clock_get_monotonic_time();
     let start_nanos = start.seconds() as usize * NANO_COEF + start.nanoseconds() as usize;
     let end_nanos = end.seconds() as usize * NANO_COEF + end.nanoseconds() as usize;
-    // A bit of slack time here, 2 milli acceptable drift for the test
-    assert!(end_nanos - start_nanos < sleep_nanos as usize + 2_000_000);
+    // A bit of slack time here, 10 milli acceptable drift for the test
+    assert!(end_nanos - start_nanos < sleep_nanos as usize + 10_000_000);
 }

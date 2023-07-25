@@ -17,11 +17,13 @@ pub const unsafe fn strlen(s: *const u8) -> usize {
 /// Gets the length up until null termination for this buffer
 /// # Errors
 /// Buffer isn't null terminated
-pub fn buf_strlen(buf: &[u8]) -> Result<usize, Error> {
-    for (ind, byte) in buf.iter().enumerate() {
-        if *byte == 0 {
+pub const fn buf_strlen(buf: &[u8]) -> Result<usize, Error> {
+    let mut ind = 0;
+    while ind < buf.len() {
+        if buf[ind] == 0 {
             return Ok(ind);
         }
+        ind += 1;
     }
     Err(Error::no_code("String isn't null terminated"))
 }
