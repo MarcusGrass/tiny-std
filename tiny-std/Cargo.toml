@@ -40,6 +40,6 @@ vdso = ["aux"]
 threaded = ["alloc", "start"]
 
 [dependencies]
-rusl = { version = "0.1.0", default-features = false }
+rusl = { path = "../rusl" , default-features = false }
 sc = "0.2.7"
 unix-print = "0.1.0"
