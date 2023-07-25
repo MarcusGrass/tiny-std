@@ -218,7 +218,7 @@ fn get_monotonic_time() -> TimeSpec {
     if let Some(vdso_get_time) = unsafe { crate::elf::vdso::VDSO_CLOCK_GET_TIME } {
         let mut ts = core::mem::MaybeUninit::<TimeSpec>::zeroed();
         vdso_get_time(
-            rusl::platform::ClockId::CLOCK_MONOTONIC.bits(),
+            rusl::platform::ClockId::CLOCK_MONOTONIC.into_i32(),
             ts.as_mut_ptr(),
         );
         unsafe {
@@ -234,7 +234,7 @@ fn get_real_time() -> TimeSpec {
     if let Some(vdso_get_time) = unsafe { crate::elf::vdso::VDSO_CLOCK_GET_TIME } {
         let mut ts = core::mem::MaybeUninit::<TimeSpec>::zeroed();
         vdso_get_time(
-            rusl::platform::ClockId::CLOCK_REALTIME.bits(),
+            rusl::platform::ClockId::CLOCK_REALTIME.into_i32(),
             ts.as_mut_ptr(),
         );
         unsafe {
