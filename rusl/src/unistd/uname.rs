@@ -17,14 +17,11 @@ pub fn uname() -> crate::Result<UtsName> {
 
 #[cfg(test)]
 mod tests {
-    use unix_print::unix_eprintln;
-
     use crate::unistd::uname::uname;
 
     #[test]
     fn test_uts_name() {
         let uts_name = uname().unwrap();
-        let host_name = uts_name.nodename().unwrap();
-        unix_eprintln!("{host_name:?}");
+        let _host_name = uts_name.nodename().unwrap();
     }
 }
