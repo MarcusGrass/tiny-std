@@ -15,3 +15,5 @@
 makes static-pie binaries not work properly.
 13. [ ] Figure out whether there's a comparable `no_std`, `no-libc` allocator that's more suitable 
 for applications that can be threaded.  
+14. [ ] Use more efficient syscall semantics, i.e. `eax` over `rax` if the return-value isn't register size.  
+15. [ ] Use type-checked builders as args for comptime error evaluation of syscalls.  

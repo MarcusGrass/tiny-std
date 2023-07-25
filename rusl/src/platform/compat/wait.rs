@@ -9,3 +9,14 @@ transparent_bitflags! {
         const WNOWAIT = linux_rust_bindings::wait::WNOWAIT;
     }
 }
+
+transparent_bitflags! {
+    pub struct WaitPidFlags: WaitFlags {
+        const DEFAULT = WaitFlags::empty();
+
+        // Return immediately if no child has exited
+        const WNOHANG = WaitFlags::WNOHANG;
+        const WUNTRACED = WaitFlags::WUNTRACED;
+        const WCONTINUED = WaitFlags::WCONTINUED;
+    }
+}

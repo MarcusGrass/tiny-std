@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use core::hint::unreachable_unchecked;
 
 use rusl::error::Errno;
-use rusl::platform::{Fd, GidT, OpenFlags, PidT, UidT, WaitFlags};
+use rusl::platform::{Fd, GidT, OpenFlags, PidT, UidT, WaitPidFlags};
 use rusl::platform::{STDERR, STDIN, STDOUT};
 #[cfg(feature = "alloc")]
 use rusl::string::unix_str::UnixString;
@@ -283,7 +283,7 @@ impl Process {
         if let Some(status) = self.status {
             return Ok(status);
         }
-        let res = rusl::process::wait_pid(self.pid, 0)?;
+        let res = rusl::process::wait_pid(self.pid, WaitPidFlags::empty())?;
         self.status = Some(res.status);
         Ok(res.status)
     }
@@ -292,7 +292,7 @@ impl Process {
         if let Some(status) = self.status {
             return Ok(Some(status));
         }
-        let res = rusl::process::wait_pid(self.pid, WaitFlags::WNOHANG.bits())?;
+        let res = rusl::process::wait_pid(self.pid, WaitPidFlags::WNOHANG)?;
         if res.pid == 0 {
             Ok(None)
         } else {

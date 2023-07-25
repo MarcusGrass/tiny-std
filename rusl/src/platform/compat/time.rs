@@ -2,22 +2,45 @@ use core::time::Duration;
 
 use linux_rust_bindings::time::__kernel_timespec;
 
-transparent_bitflags!(
-    pub struct ClockId: i32 {
-        const DEFAULT = 0;
-        const CLOCK_REALTIME = linux_rust_bindings::time::CLOCK_REALTIME;
-        const CLOCK_MONOTONIC = linux_rust_bindings::time::CLOCK_MONOTONIC;
-        const CLOCK_PROCESS_CPUTIME_ID = linux_rust_bindings::time::CLOCK_PROCESS_CPUTIME_ID;
-        const CLOCK_THREAD_CPUTIME_ID = linux_rust_bindings::time::CLOCK_THREAD_CPUTIME_ID;
-        const CLOCK_MONOTONIC_RAW = linux_rust_bindings::time::CLOCK_MONOTONIC_RAW;
-        const CLOCK_REALTIME_COARSE = linux_rust_bindings::time::CLOCK_REALTIME_COARSE;
-        const CLOCK_MONOTONIC_COARSE = linux_rust_bindings::time::CLOCK_MONOTONIC_COARSE;
-        const CLOCK_BOOTTIME = linux_rust_bindings::time::CLOCK_BOOTTIME;
-        const CLOCK_REALTIME_ALARM = linux_rust_bindings::time::CLOCK_REALTIME_ALARM;
-        const CLOCK_BOOTTIME_ALARM = linux_rust_bindings::time::CLOCK_BOOTTIME_ALARM;
-        const CLOCK_TAI = linux_rust_bindings::time::CLOCK_TAI;
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+pub struct ClockId(pub(crate) i32);
+
+impl ClockId {
+    pub const CLOCK_REALTIME: Self = Self(linux_rust_bindings::time::CLOCK_REALTIME);
+    pub const CLOCK_MONOTONIC: Self = Self(linux_rust_bindings::time::CLOCK_MONOTONIC);
+    pub const CLOCK_PROCESS_CPUTIME_ID: Self =
+        Self(linux_rust_bindings::time::CLOCK_PROCESS_CPUTIME_ID);
+    pub const CLOCK_THREAD_CPUTIME_ID: Self =
+        Self(linux_rust_bindings::time::CLOCK_THREAD_CPUTIME_ID);
+    pub const CLOCK_MONOTONIC_RAW: Self = Self(linux_rust_bindings::time::CLOCK_MONOTONIC_RAW);
+    pub const CLOCK_REALTIME_COARSE: Self = Self(linux_rust_bindings::time::CLOCK_REALTIME_COARSE);
+    pub const CLOCK_MONOTONIC_COARSE: Self =
+        Self(linux_rust_bindings::time::CLOCK_MONOTONIC_COARSE);
+    pub const CLOCK_BOOTTIME: Self = Self(linux_rust_bindings::time::CLOCK_BOOTTIME);
+    pub const CLOCK_REALTIME_ALARM: Self = Self(linux_rust_bindings::time::CLOCK_REALTIME_ALARM);
+    pub const CLOCK_BOOTTIME_ALARM: Self = Self(linux_rust_bindings::time::CLOCK_BOOTTIME_ALARM);
+    pub const CLOCK_TAI: Self = Self(linux_rust_bindings::time::CLOCK_TAI);
+
+    #[inline]
+    #[must_use]
+    pub const fn from_raw(value: i32) -> Self {
+        Self(value)
     }
-);
+
+    #[inline]
+    #[must_use]
+    pub const fn into_i32(self) -> i32 {
+        self.0
+    }
+}
+
+impl From<i32> for ClockId {
+    #[inline]
+    fn from(value: i32) -> Self {
+        ClockId(value)
+    }
+}
 
 /// `__kernel_timespec` is the type going over the syscall layer
 #[repr(transparent)]
@@ -36,7 +59,7 @@ impl TimeSpec {
 
     #[inline]
     #[must_use]
-    pub fn new(seconds: i64, nanoseconds: i64) -> Self {
+    pub const fn new(seconds: i64, nanoseconds: i64) -> Self {
         Self(__kernel_timespec {
             tv_sec: seconds,
             tv_nsec: nanoseconds,
@@ -45,13 +68,13 @@ impl TimeSpec {
 
     #[inline]
     #[must_use]
-    pub fn seconds(&self) -> i64 {
+    pub const fn seconds(&self) -> i64 {
         self.0.tv_sec
     }
 
     #[inline]
     #[must_use]
-    pub fn nanoseconds(&self) -> i64 {
+    pub const fn nanoseconds(&self) -> i64 {
         self.0.tv_nsec
     }
 }

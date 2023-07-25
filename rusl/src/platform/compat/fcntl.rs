@@ -23,27 +23,30 @@ pub const AT_REMOVEDIR: NonNegativeI32 =
 transparent_bitflags! {
     pub struct OpenFlags: NonNegativeI32 {
         const DEFAULT = NonNegativeI32::comptime_checked_new(0);
+        // Access mode
         const O_RDONLY = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_RDONLY);
         const O_WRONLY = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_WRONLY);
         const O_RDWR = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_RDWR);
+        // Creation
+        const O_CREAT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_CREAT);
+        const O_DIRECTORY = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_DIRECTORY);
+        const O_EXCL = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_EXCL);
+        const O_NOCTTY = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NOCTTY);
+        const O_NOFOLLOW = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NOFOLLOW);
+        const O_TMPFILE = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_TMPFILE);
+        const O_TRUNC = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_TRUNC);
+        // Status
         const O_APPEND = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_APPEND);
         const O_ASYNC = NonNegativeI32::comptime_checked_new(0x2000);
         const O_CLOEXEC = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_CLOEXEC);
-        const O_CREAT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_CREAT);
         const O_DIRECT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_DIRECT);
-        const O_DIRECTORY = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_DIRECTORY);
         const O_DSYNC = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_DSYNC);
-        const O_EXCL = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_EXCL);
         const O_LARGEFILE = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_LARGEFILE);
         const O_NOATIME = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NOATIME);
-        const O_NOCTTY = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NOCTTY);
-        const O_NOFOLLOW = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NOFOLLOW);
         const O_NONBLOCK = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NONBLOCK);
         const O_NDELAY = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NDELAY);
         const O_PATH = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_PATH);
         const O_SYNC = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_SYNC);
-        const O_TMPFILE = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_TMPFILE);
-        const O_TRUNC = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_TRUNC);
     }
 }
 

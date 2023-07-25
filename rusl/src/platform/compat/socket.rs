@@ -1,82 +1,99 @@
 //! These are not defined in the uapi which is a bit hairy, if they change, that's obviously
-use crate::platform::numbers::NonNegativeI32;
 /// a problem.
 use crate::string::unix_str::AsUnixStr;
 use crate::Error;
 
-transparent_bitflags! {
-    pub struct AddressFamily: u16 {
-        const DEFAULT = 0;
-        const AF_UNSPEC =	0;
-        const AF_UNIX =		1;	/* Unix domain sockets 		*/
-        const AF_LOCAL =	1;	/* POSIX name for AF_UNIX	*/
-        const AF_INET =		2;	/* Internet IP Protocol 	*/
-        const AF_AX25 =		3;	/* Amateur Radio AX.25 		*/
-        const AF_IPX =		4;	/* Novell IPX 			*/
-        const AF_APPLETALK =	5;	/* AppleTalk DDP 		*/
-        const AF_NETROM =	6;	/* Amateur Radio NET/ROM 	*/
-        const AF_BRIDGE =	7;	/* Multiprotocol bridge 	*/
-        const AF_ATMPVC =	8;	/* ATM PVCs			*/
-        const AF_X25 =		9;	/* Reserved for X.25 project 	*/
-        const AF_INET6 =	10;	/* IP version 6			*/
-        const AF_ROSE =		11;	/* Amateur Radio X.25 PLP	*/
-        #[allow(non_upper_case_globals)]
-        const AF_DECnet =	12;	/* Reserved for DECnet project	*/
-        const AF_NETBEUI =	13;	/* Reserved for 802.2LLC project*/
-        const AF_SECURITY =	14;	/* Security callback pseudo AF */
-        const AF_KEY =		15;      /* PF_KEY key management API */
-        const AF_NETLINK =	16;
-        const AF_ROUTE =	Self::AF_NETLINK.bits(); /* Alias to emulate 4.4BSD */
-        const AF_PACKET =	17;	/* Packet family		*/
-        const AF_ASH =		18;	/* Ash				*/
-        const AF_ECONET =	19;	/* Acorn Econet			*/
-        const AF_ATMSVC =	20;	/* ATM SVCs			*/
-        const AF_RDS =		21;	/* RDS sockets 			*/
-        const AF_SNA =		22;	/* Linux SNA Project (nutters!) */
-        const AF_IRDA =		23;	/* IRDA sockets			*/
-        const AF_PPPOX =	24;	/* PPPoX sockets		*/
-        const AF_WANPIPE =	25;	/* Wanpipe API Sockets */
-        const AF_LLC =		26;	/* Linux LLC			*/
-        const AF_IB =		27;	/* Native InfiniBand address	*/
-        const AF_MPLS =		28;	/* MPLS */
-        const AF_CAN =		29;	/* Controller Area Network      */
-        const AF_TIPC =		30;	/* TIPC sockets			*/
-        const AF_BLUETOOTH =	31;	/* Bluetooth sockets 		*/
-        const AF_IUCV =		32;	/* IUCV sockets			*/
-        const AF_RXRPC =	33;	/* RxRPC sockets 		*/
-        const AF_ISDN =		34;	/* mISDN sockets 		*/
-        const AF_PHONET =	35;	/* Phonet sockets		*/
-        const AF_IEEE802154 =	36;	/* IEEE802154 sockets		*/
-        const AF_CAIF =		37;	/* CAIF sockets			*/
-        const AF_ALG =		38;	/* Algorithm sockets		*/
-        const AF_NFC =		39;	/* NFC sockets			*/
-        const AF_VSOCK =	40;	/* vSockets			*/
-        const AF_KCM =		41;	/* Kernel Connection Multiplexor*/
-        const AF_QIPCRTR =	42;	/* Qualcomm IPC Router          */
-        const AF_SMC =		43;	/* smc sockets: reserve number for
-                                 * PF_SMC protocol family that
-                                 * reuses AF_INET address family
-                                 */
-        const AF_XDP =		44;	/* XDP sockets			*/
-        const AF_MCTP =		45;	/* Management component
-                                * transport protocol    */
-        const AF_MAX =		46;	/* For now.. */
+#[derive(Debug, Copy, Clone)]
+pub struct AddressFamily(pub(crate) u16);
+
+impl AddressFamily {
+    pub const AF_UNSPEC: Self = Self(0);
+    pub const AF_UNIX: Self = Self(1); /* Unix domain sockets 		*/
+    pub const AF_LOCAL: Self = Self(1); /* POSIX name for AF_UNIX	*/
+    pub const AF_INET: Self = Self(2); /* Internet IP Protocol 	*/
+    pub const AF_AX25: Self = Self(3); /* Amateur Radio AX.25 		*/
+    pub const AF_IPX: Self = Self(4); /* Novell IPX 			*/
+    pub const AF_APPLETALK: Self = Self(5); /* AppleTalk DDP 		*/
+    pub const AF_NETROM: Self = Self(6); /* Amateur Radio NET/ROM 	*/
+    pub const AF_BRIDGE: Self = Self(7); /* Multiprotocol bridge 	*/
+    pub const AF_ATMPVC: Self = Self(8); /* ATM PVCs			*/
+    pub const AF_X25: Self = Self(9); /* Reserved for X.25 project 	*/
+    pub const AF_INET6: Self = Self(10); /* IP version 6			*/
+    pub const AF_ROSE: Self = Self(11); /* Amateur Radio X.25 PLP	*/
+    #[allow(non_upper_case_globals)]
+    pub const AF_DECnet: Self = Self(12); /* Reserved for DECnet project	*/
+    pub const AF_NETBEUI: Self = Self(13); /* Reserved for 802.2LLC project*/
+    pub const AF_SECURITY: Self = Self(14); /* Security callback pseudo AF */
+    pub const AF_KEY: Self = Self(15); /* PF_KEY key management API */
+    pub const AF_NETLINK: Self = Self(16);
+    pub const AF_ROUTE: Self = Self(Self::AF_NETLINK.0); /* Alias to emulate 4.4BSD */
+    pub const AF_PACKET: Self = Self(17); /* Packet family		*/
+    pub const AF_ASH: Self = Self(18); /* Ash				*/
+    pub const AF_ECONET: Self = Self(19); /* Acorn Econet			*/
+    pub const AF_ATMSVC: Self = Self(20); /* ATM SVCs			*/
+    pub const AF_RDS: Self = Self(21); /* RDS sockets 			*/
+    pub const AF_SNA: Self = Self(22); /* Linux SNA Project (nutters!) */
+    pub const AF_IRDA: Self = Self(23); /* IRDA sockets			*/
+    pub const AF_PPPOX: Self = Self(24); /* PPPoX sockets		*/
+    pub const AF_WANPIPE: Self = Self(25); /* Wanpipe API Sockets */
+    pub const AF_LLC: Self = Self(26); /* Linux LLC			*/
+    pub const AF_IB: Self = Self(27); /* Native InfiniBand address	*/
+    pub const AF_MPLS: Self = Self(28); /* MPLS */
+    pub const AF_CAN: Self = Self(29); /* Controller Area Network      */
+    pub const AF_TIPC: Self = Self(30); /* TIPC sockets			*/
+    pub const AF_BLUETOOTH: Self = Self(31); /* Bluetooth sockets 		*/
+    pub const AF_IUCV: Self = Self(32); /* IUCV sockets			*/
+    pub const AF_RXRPC: Self = Self(33); /* RxRPC sockets 		*/
+    pub const AF_ISDN: Self = Self(34); /* mISDN sockets 		*/
+    pub const AF_PHONET: Self = Self(35); /* Phonet sockets		*/
+    pub const AF_IEEE802154: Self = Self(36); /* IEEE802154 sockets		*/
+    pub const AF_CAIF: Self = Self(37); /* CAIF sockets			*/
+    pub const AF_ALG: Self = Self(38); /* Algorithm sockets		*/
+    pub const AF_NFC: Self = Self(39); /* NFC sockets			*/
+    pub const AF_VSOCK: Self = Self(40); /* vSockets			*/
+    pub const AF_KCM: Self = Self(41); /* Kernel Connection Multiplexor*/
+    pub const AF_QIPCRTR: Self = Self(42); /* Qualcomm IPC Router          */
+    pub const AF_SMC: Self = Self(43); /* smc sockets: reserve number for
+                                        * PF_SMC protocol family that
+                                        * reuses AF_INET address family
+                                        */
+    pub const AF_XDP: Self = Self(44); /* XDP sockets			*/
+    pub const AF_MCTP: Self = Self(45); /* Management component
+                                         * transport protocol    */
+    pub const AF_MAX: Self = Self(46); /* For now.. */
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct SocketOptions(pub(crate) u32);
+
+impl SocketOptions {
+    #[inline]
+    #[must_use]
+    pub const fn new(socket_type: SocketType, socket_flags: SocketFlags) -> Self {
+        Self(socket_type.0 | socket_flags.0)
     }
+}
+
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+pub struct SocketType(pub(crate) u32);
+
+impl SocketType {
+    pub const SOCK_STREAM: Self = Self(1);
+    pub const SOCK_DGRAM: Self = Self(2);
+    pub const SOCK_RAW: Self = Self(3);
+    pub const SOCK_RDM: Self = Self(4);
+    pub const SOCK_SEQPACKET: Self = Self(5);
+    /// Deprecated
+    pub const SOCK_PACKET: Self = Self(10);
 }
 
 /// Defined in include/bits/socket_type.h actually an enum
 transparent_bitflags!(
-    pub struct SocketType: NonNegativeI32 {
-        const DEFAULT = NonNegativeI32::comptime_checked_new(0);
-        const SOCK_STREAM = NonNegativeI32::comptime_checked_new(1);
-        const SOCK_DGRAM = NonNegativeI32::comptime_checked_new(2);
-        const SOCK_RAW = NonNegativeI32::comptime_checked_new(3);
-        const SOCK_RDM = NonNegativeI32::comptime_checked_new(4);
-        const SOCK_SEQPACKET = NonNegativeI32::comptime_checked_new(5);
-        /// Deprecated
-        const SOCK_PACKET = NonNegativeI32::comptime_checked_new(10);
-        const SOCK_NONBLOCK = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NONBLOCK);
-        const SOCK_CLOEXEC = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_CLOEXEC);
+    pub struct SocketFlags: u32 {
+        const DEFAULT = 0;
+        const SOCK_NONBLOCK = linux_rust_bindings::fcntl::O_NONBLOCK as u32;
+        const SOCK_CLOEXEC = linux_rust_bindings::fcntl::O_CLOEXEC as u32;
     }
 );
 
@@ -94,14 +111,14 @@ impl SocketAddress {
     /// Get the `AddressFamily` of the socket address
     #[inline]
     #[must_use]
-    pub fn family(&self) -> AddressFamily {
-        self.0.sun_family.into()
+    pub const fn family(&self) -> AddressFamily {
+        AddressFamily(self.0.sun_family)
     }
 
     /// Get the raw path of the socket address
     #[inline]
     #[must_use]
-    pub fn path_raw(&self) -> [core::ffi::c_char; 108] {
+    pub const fn path_raw(&self) -> [core::ffi::c_char; 108] {
         self.0.sun_path
     }
 
@@ -127,7 +144,7 @@ impl SocketAddress {
             Ok(buf)
         })?;
         let addr = Self(linux_rust_bindings::socket::sockaddr_un {
-            sun_family: AddressFamily::AF_UNIX.bits(),
+            sun_family: AddressFamily::AF_UNIX.0,
             sun_path: buf,
         });
         Ok(SocketArg {

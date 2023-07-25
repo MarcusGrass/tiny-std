@@ -21,47 +21,49 @@ pub enum MapRequiredFlag {
 impl MapRequiredFlag {
     pub(crate) const fn into_flag(self) -> MapAdditionalFlags {
         MapAdditionalFlags(match self {
-            MapRequiredFlag::MapShared => linux_rust_bindings::mman::MAP_SHARED,
-            MapRequiredFlag::MapSharedValidate => linux_rust_bindings::mman::MAP_SHARED_VALIDATE,
-            MapRequiredFlag::MapPrivate => linux_rust_bindings::mman::MAP_PRIVATE,
+            MapRequiredFlag::MapShared => linux_rust_bindings::mman::MAP_SHARED as u32,
+            MapRequiredFlag::MapSharedValidate => {
+                linux_rust_bindings::mman::MAP_SHARED_VALIDATE as u32
+            }
+            MapRequiredFlag::MapPrivate => linux_rust_bindings::mman::MAP_PRIVATE as u32,
         })
     }
 }
 
 transparent_bitflags! {
-    pub struct MapAdditionalFlags: i32 {
+    pub struct MapAdditionalFlags: u32 {
         const DEFAULT = 0;
-        const MAP_TYPE = linux_rust_bindings::mman::MAP_TYPE;
-        const MAP_FIXED = linux_rust_bindings::mman::MAP_FIXED;
-        const MAP_ANONYMOUS = linux_rust_bindings::mman::MAP_ANONYMOUS;
-        const MAP_POPULATE = linux_rust_bindings::mman::MAP_POPULATE;
-        const MAP_NONBLOCK = linux_rust_bindings::mman::MAP_NONBLOCK;
-        const MAP_STACK = linux_rust_bindings::mman::MAP_STACK;
-        const MAP_HUGETLB = linux_rust_bindings::mman::MAP_HUGETLB;
-        const MAP_SYNC = linux_rust_bindings::mman::MAP_SYNC;
-        const MAP_FIXED_NOREPLACE = linux_rust_bindings::mman::MAP_FIXED_NOREPLACE;
-        const MAP_UNINITIALIZED = linux_rust_bindings::mman::MAP_UNINITIALIZED;
-        const MAP_FILE = linux_rust_bindings::mman::MAP_FILE;
-        const MAP_GROWSDOWN = linux_rust_bindings::mman::MAP_GROWSDOWN;
-        const MAP_DENYWRITE = linux_rust_bindings::mman::MAP_DENYWRITE;
-        const MAP_EXECUTABLE = linux_rust_bindings::mman::MAP_EXECUTABLE;
-        const MAP_LOCKED = linux_rust_bindings::mman::MAP_LOCKED;
-        const MAP_NORESERVE = linux_rust_bindings::mman::MAP_NORESERVE;
-        const MAP_HUGE_SHIFT = linux_rust_bindings::mman::MAP_HUGE_SHIFT;
-        const MAP_HUGE_MASK = linux_rust_bindings::mman::MAP_HUGE_MASK;
-        const MAP_HUGE_16KB = linux_rust_bindings::mman::MAP_HUGE_16KB;
-        const MAP_HUGE_64KB = linux_rust_bindings::mman::MAP_HUGE_64KB;
-        const MAP_HUGE_512KB = linux_rust_bindings::mman::MAP_HUGE_512KB;
-        const MAP_HUGE_1MB = linux_rust_bindings::mman::MAP_HUGE_1MB;
-        const MAP_HUGE_2MB = linux_rust_bindings::mman::MAP_HUGE_2MB;
-        const MAP_HUGE_8MB = linux_rust_bindings::mman::MAP_HUGE_8MB;
-        const MAP_HUGE_16MB = linux_rust_bindings::mman::MAP_HUGE_16MB;
-        const MAP_HUGE_32MB = linux_rust_bindings::mman::MAP_HUGE_32MB;
-        const MAP_HUGE_256MB = linux_rust_bindings::mman::MAP_HUGE_256MB;
-        const MAP_HUGE_512MB = linux_rust_bindings::mman::MAP_HUGE_512MB;
-        const MAP_HUGE_1GB = linux_rust_bindings::mman::MAP_HUGE_1GB;
-        const MAP_HUGE_2GB = linux_rust_bindings::mman::MAP_HUGE_2GB;
-        // Out of range, don't know how this is handled tbh
-        //const MAP_HUGE_16GB = comptime_i64_to_i32(linux_rust_bindings::mman::MAP_HUGE_16GB);
+        const MAP_TYPE = linux_rust_bindings::mman::MAP_TYPE as u32;
+        const MAP_FIXED = linux_rust_bindings::mman::MAP_FIXED as u32;
+        const MAP_ANONYMOUS = linux_rust_bindings::mman::MAP_ANONYMOUS as u32;
+        const MAP_POPULATE = linux_rust_bindings::mman::MAP_POPULATE as u32;
+        const MAP_NONBLOCK = linux_rust_bindings::mman::MAP_NONBLOCK as u32;
+        const MAP_STACK = linux_rust_bindings::mman::MAP_STACK as u32;
+        const MAP_HUGETLB = linux_rust_bindings::mman::MAP_HUGETLB as u32;
+        const MAP_SYNC = linux_rust_bindings::mman::MAP_SYNC as u32;
+        const MAP_FIXED_NOREPLACE = linux_rust_bindings::mman::MAP_FIXED_NOREPLACE as u32;
+        const MAP_UNINITIALIZED = linux_rust_bindings::mman::MAP_UNINITIALIZED as u32;
+        const MAP_FILE = linux_rust_bindings::mman::MAP_FILE as u32;
+        const MAP_GROWSDOWN = linux_rust_bindings::mman::MAP_GROWSDOWN as u32;
+        const MAP_DENYWRITE = linux_rust_bindings::mman::MAP_DENYWRITE as u32;
+        const MAP_EXECUTABLE = linux_rust_bindings::mman::MAP_EXECUTABLE as u32;
+        const MAP_LOCKED = linux_rust_bindings::mman::MAP_LOCKED as u32;
+        const MAP_NORESERVE = linux_rust_bindings::mman::MAP_NORESERVE as u32;
+        const MAP_HUGE_SHIFT = linux_rust_bindings::mman::MAP_HUGE_SHIFT as u32;
+        const MAP_HUGE_MASK = linux_rust_bindings::mman::MAP_HUGE_MASK as u32;
+        const MAP_HUGE_16KB = linux_rust_bindings::mman::MAP_HUGE_16KB as u32;
+        const MAP_HUGE_64KB = linux_rust_bindings::mman::MAP_HUGE_64KB as u32;
+        const MAP_HUGE_512KB = linux_rust_bindings::mman::MAP_HUGE_512KB as u32;
+        const MAP_HUGE_1MB = linux_rust_bindings::mman::MAP_HUGE_1MB as u32;
+        const MAP_HUGE_2MB = linux_rust_bindings::mman::MAP_HUGE_2MB as u32;
+        const MAP_HUGE_8MB = linux_rust_bindings::mman::MAP_HUGE_8MB as u32;
+        const MAP_HUGE_16MB = linux_rust_bindings::mman::MAP_HUGE_16MB as u32;
+        const MAP_HUGE_32MB = linux_rust_bindings::mman::MAP_HUGE_32MB as u32;
+        const MAP_HUGE_256MB = linux_rust_bindings::mman::MAP_HUGE_256MB as u32;
+        const MAP_HUGE_512MB = linux_rust_bindings::mman::MAP_HUGE_512MB as u32;
+        const MAP_HUGE_1GB = linux_rust_bindings::mman::MAP_HUGE_1GB as u32;
+        const MAP_HUGE_2GB = linux_rust_bindings::mman::MAP_HUGE_2GB as u32;
+        #[allow(clippy::cast_possible_truncation)]
+        const MAP_HUGE_16GB = linux_rust_bindings::mman::MAP_HUGE_16GB as u32;
     }
 }

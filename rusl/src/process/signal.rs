@@ -74,11 +74,11 @@ pub enum CatchSignal {
 impl CatchSignal {
     fn into_raw(self) -> NonNegativeI32 {
         match self {
-            CatchSignal::Int => crate::platform::SignalKind::SIGINT.bits(),
-            CatchSignal::Term => crate::platform::SignalKind::SIGTERM.bits(),
-            CatchSignal::Hup => crate::platform::SignalKind::SIGHUP.bits(),
-            CatchSignal::Segv => crate::platform::SignalKind::SIGSEGV.bits(),
-            CatchSignal::Chld => crate::platform::SignalKind::SIGCHLD.bits(),
+            CatchSignal::Int => crate::platform::SignalKind::SIGINT.0,
+            CatchSignal::Term => crate::platform::SignalKind::SIGTERM.0,
+            CatchSignal::Hup => crate::platform::SignalKind::SIGHUP.0,
+            CatchSignal::Segv => crate::platform::SignalKind::SIGSEGV.0,
+            CatchSignal::Chld => crate::platform::SignalKind::SIGCHLD.0,
         }
     }
 }
@@ -106,7 +106,7 @@ pub unsafe fn add_signal_action(
         SaSignalaction::Ign => SaSigaction { value: SIG_IGN },
         SaSignalaction::Handler(sa_handler) => {
             // TODO: Double check this
-            flags = SaMask::from(flags.bits() - SaMask::SA_SIGINFO.bits());
+            flags = SaMask(flags.bits() - SaMask::SA_SIGINFO.bits());
             SaSigaction { sa_handler }
         }
         SaSignalaction::SigAction(sa_sigaction) => {

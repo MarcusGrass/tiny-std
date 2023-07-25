@@ -73,3 +73,10 @@ transparent_bitflags! {
         const S_IFMT   = linux_rust_bindings::stat::S_IFMT as u32;
     }
 }
+
+impl From<u32> for Mode {
+    #[inline]
+    fn from(value: u32) -> Self {
+        Mode(value)
+    }
+}

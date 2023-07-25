@@ -26,7 +26,7 @@ pub struct PollFd(linux_rust_bindings::poll::pollfd);
 impl PollFd {
     #[inline]
     #[must_use]
-    pub fn new(fd: Fd, events: PollEvents) -> Self {
+    pub const fn new(fd: Fd, events: PollEvents) -> Self {
         Self(linux_rust_bindings::poll::pollfd {
             fd: fd.0,
             events: events.bits(),
@@ -34,8 +34,9 @@ impl PollFd {
         })
     }
 
+    #[inline]
     #[must_use]
-    pub fn received_events(&self) -> PollEvents {
-        self.0.revents.into()
+    pub const fn received_events(&self) -> PollEvents {
+        PollEvents(self.0.revents)
     }
 }

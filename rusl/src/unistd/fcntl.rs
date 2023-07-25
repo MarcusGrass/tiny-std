@@ -8,7 +8,7 @@ use sc::syscall;
 /// See above, relates to a bad `fd`
 pub fn fcntl_get_file_status(fd: Fd) -> Result<OpenFlags> {
     let res = unsafe { syscall!(FCNTL, fd.0, FcntlFileStatusCmd::Get.into_cmd()) };
-    Ok(OpenFlags::from(Fd::coerce_from_register(
+    Ok(OpenFlags(Fd::coerce_from_register(
         res,
         "`FCNTL` syscall failed",
     )?))

@@ -1,5 +1,4 @@
 use crate::elf::aux::AuxValues;
-use core::hint::unreachable_unchecked;
 use rusl::platform::{
     Elf64Rel, Elf64Rela, ElfPhdr, DT_REL, DT_RELA, DT_RELASZ, DT_RELSZ, PT_DYNAMIC, REL_RELATIVE,
 };
@@ -80,23 +79,31 @@ impl DynSection {
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub(crate) unsafe fn relocate(&self, base_addr: usize) {
+        // Manual loops here since for loops in debug produces iterator calls
+        // which will cause a segfault.
         // Relocate all `rel`-entries
-        for i in 0..(self.rel_sz / core::mem::size_of::<Elf64Rel>()) {
+        let mut i = 0;
+        let limit = self.rel_sz / core::mem::size_of::<Elf64Rel>();
+        while i < limit {
             let rel_ptr = ((base_addr + self.rel) as *const Elf64Rel).add(i);
             let rel = ptr_unsafe_ref(rel_ptr);
             if rel.0.r_info == relative_type(REL_RELATIVE) {
                 let rel_addr = (base_addr + rel.0.r_offset as usize) as *mut usize;
                 *rel_addr += base_addr;
             }
+            i += 1;
         }
         // Relocate all `rela`-entries
-        for i in 0..(self.rela_sz / core::mem::size_of::<Elf64Rela>()) {
+        let mut i = 0;
+        let limit = self.rela_sz / core::mem::size_of::<Elf64Rela>();
+        while i < limit {
             let rela_ptr = ((base_addr + self.rela) as *const Elf64Rela).add(i);
             let rela = ptr_unsafe_ref(rela_ptr);
             if rela.0.r_info == relative_type(REL_RELATIVE) {
                 let rel_addr = (base_addr + rela.0.r_offset as usize) as *mut usize;
                 *rel_addr = base_addr + rela.0.r_addend as usize;
             }
+            i += 1;
         }
         // Skip implementing `relr`-entries for now
     }
@@ -109,13 +116,5 @@ const fn relative_type(tp: u64) -> u64 {
 
 #[inline(always)]
 unsafe fn ptr_unsafe_ref<T>(ptr: *const T) -> &'static T {
-    unwrap_unchecked(ptr.as_ref())
-}
-
-#[inline(always)]
-unsafe fn unwrap_unchecked<T>(opt: Option<T>) -> T {
-    match opt {
-        None => unreachable_unchecked(),
-        Some(val) => val,
-    }
+    unsafe { &*ptr }
 }

@@ -31,6 +31,14 @@ you likely have an allocator present, although tiny-std will in my testing at le
 and be hard to get right.
 3. io-uring fs operations
 
+# Examples
+- [PGWM](https://github.com/MarcusGrass/pgwm) is the biggest project built with `tiny-std`.  
+At present, the minimal WM builds statically pie-linked at `790K`.  
+- Some examples of working setups for binary projects are in [test-runners](./test-runners), 
+both with and without an allocator/threading.  
+
+
+
 ## License
 
 This project and any contributions are licensed under [MPL-2.0](LICENSE).

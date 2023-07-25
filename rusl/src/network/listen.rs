@@ -1,6 +1,6 @@
 use sc::syscall;
 
-use crate::platform::Fd;
+use crate::platform::{Fd, NonNegativeI32};
 use crate::Result;
 
 /// Marks a socket as passive and allows it to accept incoming connection requests
@@ -8,8 +8,8 @@ use crate::Result;
 /// # Errors
 /// See above
 #[inline]
-pub fn listen(sock_fd: Fd, backlog: i32) -> Result<()> {
-    let res = unsafe { syscall!(LISTEN, sock_fd.0, backlog) };
+pub fn listen(sock_fd: Fd, backlog: NonNegativeI32) -> Result<()> {
+    let res = unsafe { syscall!(LISTEN, sock_fd.0, backlog.0) };
     bail_on_below_zero!(res, "`LISTEN` syscall failed");
     Ok(())
 }

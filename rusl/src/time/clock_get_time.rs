@@ -13,11 +13,7 @@ use crate::Result;
 pub fn clock_get_real_time() -> TimeSpec {
     let mut ts = core::mem::MaybeUninit::uninit();
     unsafe {
-        syscall!(
-            CLOCK_GETTIME,
-            ClockId::CLOCK_REALTIME.bits(),
-            ts.as_mut_ptr()
-        );
+        syscall!(CLOCK_GETTIME, ClockId::CLOCK_REALTIME.0, ts.as_mut_ptr());
         ts.assume_init()
     }
 }
@@ -30,11 +26,7 @@ pub fn clock_get_real_time() -> TimeSpec {
 pub fn clock_get_monotonic_time() -> TimeSpec {
     let mut ts = core::mem::MaybeUninit::uninit();
     unsafe {
-        syscall!(
-            CLOCK_GETTIME,
-            ClockId::CLOCK_MONOTONIC.bits(),
-            ts.as_mut_ptr()
-        );
+        syscall!(CLOCK_GETTIME, ClockId::CLOCK_MONOTONIC.0, ts.as_mut_ptr());
         ts.assume_init()
     }
 }
@@ -46,7 +38,7 @@ pub fn clock_get_monotonic_time() -> TimeSpec {
 #[inline]
 pub fn clock_get_time(clock_id: ClockId) -> Result<TimeSpec> {
     let mut ts = core::mem::MaybeUninit::zeroed();
-    let res = unsafe { syscall!(CLOCK_GETTIME, clock_id.bits(), ts.as_mut_ptr()) };
+    let res = unsafe { syscall!(CLOCK_GETTIME, clock_id.0, ts.as_mut_ptr()) };
     bail_on_below_zero!(res, "`CLOCK_GETTIME` syscall failed");
     Ok(unsafe { ts.assume_init() })
 }

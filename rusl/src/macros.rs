@@ -8,6 +8,8 @@ macro_rules! bail_on_below_zero {
     };
 }
 
+// Macro for creating non-strict transparent bitflags, a newtype around some value.
+// It's strict in the way that it's hard to make values that are not correct without using unsafe.
 #[macro_export]
 macro_rules! transparent_bitflags {
     (
@@ -22,8 +24,8 @@ macro_rules! transparent_bitflags {
     ) => {
         $(#[$outer])*
         #[repr(transparent)]
-        #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord, Hash)]
-        $vis struct $BitFlags($T);
+        #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+        $vis struct $BitFlags(pub(crate) $T);
 
         impl $BitFlags {
 
@@ -61,17 +63,6 @@ macro_rules! transparent_bitflags {
                 Self::empty()
             }
         }
-        impl core::fmt::Debug for $BitFlags {
-            #[allow(unreachable_patterns)]
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                match *self {
-                    $(
-                    Self::$Flag => f.write_fmt(core::format_args!("{}: {} = {}", stringify!($BitFlags), stringify!($Flag), self.0)),
-                    )*
-                    _ => f.write_fmt(core::format_args!("{}: UNKNOWN = {}", stringify!($BitFlags), self.0))
-                }
-            }
-        }
 
         impl core::ops::BitOr for $BitFlags {
             type Output = Self;
@@ -102,20 +93,6 @@ macro_rules! transparent_bitflags {
             #[inline]
             fn bitor_assign(&mut self, rhs: Self) {
                 self.0 |= rhs.0;
-            }
-        }
-
-        impl From<$T> for $BitFlags {
-            #[inline]
-            fn from(val: $T) -> Self {
-                Self(val)
-            }
-        }
-
-        impl From<$BitFlags> for $T {
-            #[inline]
-            fn from(val: $BitFlags) -> $T {
-                val.0
             }
         }
     };
