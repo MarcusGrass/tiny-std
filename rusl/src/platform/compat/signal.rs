@@ -1,46 +1,118 @@
 use crate::platform::numbers::NonNegativeI32;
 use core::mem::MaybeUninit;
 
-transparent_bitflags! {
-    pub struct SignalKind: NonNegativeI32 {
-        const DEFAULT = NonNegativeI32::comptime_checked_new(0);
-        const SIGHUP = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGHUP);
-        const SIGINT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGINT);
-        const SIGQUIT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGQUIT);
-        const SIGILL = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGILL);
-        const SIGTRAP = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGTRAP);
-        const SIGABRT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGABRT);
-        const SIGIOT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGIOT);
-        const SIGBUS = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGBUS);
-        const SIGFPE = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGFPE);
-        const SIGKILL = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGKILL);
-        const SIGUSR1 = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGUSR1);
-        const SIGSEGV = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGSEGV);
-        const SIGUSR2 = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGUSR2);
-        const SIGPIPE = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGPIPE);
-        const SIGALRM = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGALRM);
-        const SIGTERM = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGTERM);
-        const SIGSTKFLT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGSTKFLT);
-        const SIGCHLD = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGCHLD);
-        const SIGCONT = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGCONT);
-        const SIGSTOP = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGSTOP);
-        const SIGTSTP = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGTSTP);
-        const SIGTTIN = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGTTIN);
-        const SIGTTOU = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGTTOU);
-        const SIGURG = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGURG);
-        const SIGXCPU = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGXCPU);
-        const SIGXFSZ = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGXFSZ);
-        const SIGVTALRM = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGVTALRM);
-        const SIGPROF = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGPROF);
-        const SIGWINCH = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGWINCH);
-        const SIGIO = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGIO);
-        const SIGPOLL = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGPOLL);
-        const SIGPWR = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGPWR);
-        const SIGSYS = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGSYS);
-        const SIGUNUSED = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGUNUSED);
-        const SIGRTMIN = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGRTMIN);
-        const SIGSTKSZ = NonNegativeI32::comptime_checked_new(linux_rust_bindings::signal::SIGSTKSZ);
-    }
+#[derive(Debug, Copy, Clone)]
+pub struct SignalKind(pub(crate) NonNegativeI32);
+
+impl SignalKind {
+    pub const SIGHUP: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGHUP,
+    ));
+    pub const SIGINT: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGINT,
+    ));
+    pub const SIGQUIT: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGQUIT,
+    ));
+    pub const SIGILL: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGILL,
+    ));
+    pub const SIGTRAP: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGTRAP,
+    ));
+    pub const SIGABRT: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGABRT,
+    ));
+    pub const SIGIOT: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGIOT,
+    ));
+    pub const SIGBUS: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGBUS,
+    ));
+    pub const SIGFPE: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGFPE,
+    ));
+    pub const SIGKILL: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGKILL,
+    ));
+    pub const SIGUSR1: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGUSR1,
+    ));
+    pub const SIGSEGV: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGSEGV,
+    ));
+    pub const SIGUSR2: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGUSR2,
+    ));
+    pub const SIGPIPE: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGPIPE,
+    ));
+    pub const SIGALRM: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGALRM,
+    ));
+    pub const SIGTERM: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGTERM,
+    ));
+    pub const SIGSTKFLT: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGSTKFLT,
+    ));
+    pub const SIGCHLD: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGCHLD,
+    ));
+    pub const SIGCONT: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGCONT,
+    ));
+    pub const SIGSTOP: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGSTOP,
+    ));
+    pub const SIGTSTP: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGTSTP,
+    ));
+    pub const SIGTTIN: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGTTIN,
+    ));
+    pub const SIGTTOU: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGTTOU,
+    ));
+    pub const SIGURG: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGURG,
+    ));
+    pub const SIGXCPU: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGXCPU,
+    ));
+    pub const SIGXFSZ: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGXFSZ,
+    ));
+    pub const SIGVTALRM: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGVTALRM,
+    ));
+    pub const SIGPROF: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGPROF,
+    ));
+    pub const SIGWINCH: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGWINCH,
+    ));
+    pub const SIGIO: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGIO,
+    ));
+    pub const SIGPOLL: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGPOLL,
+    ));
+    pub const SIGPWR: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGPWR,
+    ));
+    pub const SIGSYS: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGSYS,
+    ));
+    pub const SIGUNUSED: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGUNUSED,
+    ));
+    pub const SIGRTMIN: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGRTMIN,
+    ));
+    pub const SIGSTKSZ: Self = Self(NonNegativeI32::comptime_checked_new(
+        linux_rust_bindings::signal::SIGSTKSZ,
+    ));
 }
 
 transparent_bitflags! {

@@ -1,4 +1,4 @@
-use crate::platform::{Fd, SignalKind, TidT};
+use crate::platform::{Fd, NonNegativeI32, SignalKind, TidT};
 
 transparent_bitflags!(
     pub struct CloneFlags: u64 {
@@ -47,14 +47,14 @@ pub struct CloneArgs {
 
 impl CloneArgs {
     #[must_use]
-    pub fn new(flags: CloneFlags) -> Self {
+    pub const fn new(flags: CloneFlags) -> Self {
         Self {
             flags,
             child_tid: core::ptr::null_mut(),
             parent_tid: core::ptr::null_mut(),
             stack: core::ptr::null_mut(),
             tls: 0,
-            exit_signal: SignalKind::empty(),
+            exit_signal: SignalKind(NonNegativeI32::comptime_checked_new(0)),
         }
     }
 
