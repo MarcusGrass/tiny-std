@@ -12,7 +12,7 @@ use crate::platform::{
     AddressFamily, Fd, IoSlice, IoSliceMut, IoUring, IoUringCompletionQueueEntry,
     IoUringEnterFlags, IoUringParamFlags, IoUringParams, IoUringSQEFlags,
     IoUringSubmissionQueueEntry, Mode, NonNegativeI32, OpenFlags, RenameFlags, SocketAddress,
-    SocketType, StatxFlags, StatxMask, TimeSpec, STDERR, STDIN, STDOUT,
+    SocketFlags, SocketOptions, SocketType, StatxFlags, StatxMask, TimeSpec, STDERR, STDIN, STDOUT,
 };
 use crate::string::unix_str::UnixStr;
 use crate::time::clock_get_monotonic_time;
@@ -343,7 +343,7 @@ fn uring_single_socket() {
     let user_data = 10001;
     let entry = IoUringSubmissionQueueEntry::new_socket(
         AddressFamily::AF_UNIX,
-        SocketType::SOCK_STREAM | SocketType::SOCK_CLOEXEC,
+        SocketOptions::new(SocketType::SOCK_STREAM, SocketFlags::SOCK_CLOEXEC),
         0,
         user_data,
         IoUringSQEFlags::empty(),
@@ -356,7 +356,12 @@ fn uring_single_accept() {
     let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
     };
-    let server_socket = socket(AddressFamily::AF_UNIX, SocketType::SOCK_STREAM, 0).unwrap();
+    let server_socket = socket(
+        AddressFamily::AF_UNIX,
+        SocketOptions::new(SocketType::SOCK_STREAM, SocketFlags::empty()),
+        0,
+    )
+    .unwrap();
     let sock_path =
         unsafe { UnixStr::from_str_unchecked("test-files/io_uring/test-sock-accept\0") };
     let addr = SocketAddress::try_from_unix(sock_path).unwrap();
@@ -373,7 +378,7 @@ fn uring_single_accept() {
         IoUringSubmissionQueueEntry::new_accept(
             server_socket,
             &addr,
-            SocketType::SOCK_CLOEXEC | SocketType::SOCK_NONBLOCK,
+            SocketFlags::SOCK_CLOEXEC | SocketFlags::SOCK_NONBLOCK,
             user_data,
             // Run as async since we know we won't be able to connect yet
             IoUringSQEFlags::IOSQE_ASYNC,
@@ -385,7 +390,12 @@ fn uring_single_accept() {
     unsafe { next_slot.write(entry) }
     uring.flush_submission_queue();
     io_uring_enter(uring.fd, 1, 0, IoUringEnterFlags::empty()).unwrap();
-    let conn_sock = socket(AddressFamily::AF_UNIX, SocketType::SOCK_STREAM, 0).unwrap();
+    let conn_sock = socket(
+        AddressFamily::AF_UNIX,
+        SocketOptions::new(SocketType::SOCK_STREAM, SocketFlags::empty()),
+        0,
+    )
+    .unwrap();
     connect(conn_sock, &addr).unwrap();
     io_uring_enter(uring.fd, 0, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
     let cqe = uring.get_next_cqe().unwrap();

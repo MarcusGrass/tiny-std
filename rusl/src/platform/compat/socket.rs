@@ -1,5 +1,4 @@
 //! These are not defined in the uapi which is a bit hairy, if they change, that's obviously
-use crate::platform::numbers::NonNegativeI32;
 /// a problem.
 use crate::string::unix_str::AsUnixStr;
 use crate::Error;
@@ -64,27 +63,37 @@ transparent_bitflags! {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct SocketOptions(pub(crate) u32);
+
+impl SocketOptions {
+    #[inline]
+    #[must_use]
+    pub const fn new(socket_type: SocketType, socket_flags: SocketFlags) -> Self {
+        Self(socket_type.0 | socket_flags.0)
+    }
+}
+
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+pub struct SocketType(pub(crate) u32);
+
+impl SocketType {
+    pub const SOCK_STREAM: Self = Self(1);
+    pub const SOCK_DGRAM: Self = Self(2);
+    pub const SOCK_RAW: Self = Self(3);
+    pub const SOCK_RDM: Self = Self(4);
+    pub const SOCK_SEQPACKET: Self = Self(5);
+    /// Deprecated
+    pub const SOCK_PACKET: Self = Self(10);
+}
+
 /// Defined in include/bits/socket_type.h actually an enum
 transparent_bitflags!(
-    pub struct SocketType: NonNegativeI32 {
-        const DEFAULT = NonNegativeI32::comptime_checked_new(0);
-        const SOCK_STREAM = NonNegativeI32::comptime_checked_new(1);
-        const SOCK_DGRAM = NonNegativeI32::comptime_checked_new(2);
-        const SOCK_RAW = NonNegativeI32::comptime_checked_new(3);
-        const SOCK_RDM = NonNegativeI32::comptime_checked_new(4);
-        const SOCK_SEQPACKET = NonNegativeI32::comptime_checked_new(5);
-        /// Deprecated
-        const SOCK_PACKET = NonNegativeI32::comptime_checked_new(10);
-        const SOCK_NONBLOCK = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_NONBLOCK);
-        const SOCK_CLOEXEC = NonNegativeI32::comptime_checked_new(linux_rust_bindings::fcntl::O_CLOEXEC);
-    }
-);
-
-transparent_bitflags!(
-    pub struct AcceptFlags: SocketType {
-        const DEFAULT = SocketType::DEFAULT;
-        const SOCK_NONBLOCK = SocketType::SOCK_NONBLOCK;
-        const SOCK_CLOEXEC = SocketType::SOCK_CLOEXEC;
+    pub struct SocketFlags: u32 {
+        const DEFAULT = 0;
+        const SOCK_NONBLOCK = linux_rust_bindings::fcntl::O_NONBLOCK as u32;
+        const SOCK_CLOEXEC = linux_rust_bindings::fcntl::O_CLOEXEC as u32;
     }
 );
 

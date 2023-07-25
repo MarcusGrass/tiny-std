@@ -12,7 +12,8 @@ use linux_rust_bindings::io_uring::{
 
 use crate::platform::{
     comptime_i32_to_u32, comptime_u32_to_u8, AddressFamily, Fd, Mode, OpenFlags, RenameFlags,
-    SocketArg, SocketType, Statx, StatxFlags, StatxMask, TimeSpec, AT_FDCWD, AT_REMOVEDIR,
+    SocketArg, SocketFlags, SocketOptions, Statx, StatxFlags, StatxMask, TimeSpec, AT_FDCWD,
+    AT_REMOVEDIR,
 };
 use crate::string::unix_str::UnixStr;
 use crate::unistd::munmap;
@@ -537,9 +538,9 @@ impl IoUringSubmissionQueueEntry {
     /// Creates a new socket. Will execute an equivalent to an `socket2` syscall.  
     #[inline]
     #[must_use]
-    pub fn new_socket(
+    pub const fn new_socket(
         domain: AddressFamily,
-        socket_type: SocketType,
+        socket_options: SocketOptions,
         protocol: u32,
         user_data: u64,
         sqe_flags: IoUringSQEFlags,
@@ -548,9 +549,9 @@ impl IoUringSubmissionQueueEntry {
             opcode: IoUringOp::Socket as u8,
             flags: sqe_flags.bits(),
             ioprio: 0,
-            fd: i32::from(domain.bits()),
+            fd: domain.bits() as i32,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
-                off: socket_type.bits().into_u64(),
+                off: socket_options.0 as u64,
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 { addr: 0 },
             len: protocol,
@@ -560,8 +561,8 @@ impl IoUringSubmissionQueueEntry {
             personality: 0,
             __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
             __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
-                __bindgen_anon_1: __BindgenUnionField::default(),
-                cmd: __BindgenUnionField::default(),
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
                 bindgen_union_field: [0; 2],
             },
         })
@@ -610,7 +611,7 @@ impl IoUringSubmissionQueueEntry {
     pub unsafe fn new_accept(
         socket: Fd,
         sockaddr: &SocketArg,
-        sock_type: SocketType,
+        socket_flags: SocketFlags,
         user_data: u64,
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
@@ -627,7 +628,7 @@ impl IoUringSubmissionQueueEntry {
             },
             len: 0,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
-                accept_flags: sock_type.bits().into_u32(),
+                accept_flags: socket_flags.0,
             },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
