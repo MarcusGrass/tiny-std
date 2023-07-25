@@ -3,6 +3,13 @@ name = "tiny-std"
 version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
+readme = "../Readme.md"
+repository = "https://github.com/MarcusGrass/tiny-std"
+homepage = "https://github.com/MarcusGrass/tiny-std"
+description = "Tiny rust stdlib for linux"
+documentation = "https://docs.rs/tiny-std"
+categories = ["external-ffi-bindings", "no-std", "os"]
+keywords = ["ffi", "bindings", "operating", "system", "linux"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -33,6 +40,6 @@ vdso = ["aux"]
 threaded = ["alloc", "start"]
 
 [dependencies]
-rusl = { path = "../rusl", default-features = false }
+rusl = { path = "../rusl" , default-features = false }
 sc = "0.2.7"
 unix-print = "0.1.0"
