@@ -997,7 +997,7 @@ impl Dlmalloc {
 
     unsafe fn segment_holding(&self, ptr: *mut u8) -> *mut Segment {
         let sp = ptr::addr_of!(self.seg);
-        let mut sp = sp as *mut Segment;
+        let mut sp = sp.cast_mut();
         while !sp.is_null() {
             if (*sp).base <= ptr && ptr < Segment::top(sp) {
                 return sp;
@@ -1463,7 +1463,7 @@ impl Dlmalloc {
 
     unsafe fn has_segment_link(&self, ptr: *mut Segment) -> bool {
         let sp = ptr::addr_of!(self.seg);
-        let mut sp = sp as *mut Segment;
+        let mut sp = sp.cast_mut();
         while !sp.is_null() {
             if Segment::holds(ptr, sp.cast::<u8>()) {
                 return true;

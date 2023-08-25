@@ -431,9 +431,9 @@ pub unsafe fn do_exec<F: PreExec>(
         }
     }
     let Err(e) = rusl::process::execve(bin, argv, envp) else {
-            // execve only returns on error.
-            unreachable_unchecked();
-        };
+        // execve only returns on error.
+        unreachable_unchecked();
+    };
     e.into()
 }
 
