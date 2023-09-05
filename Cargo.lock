@@ -17,16 +17,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rusl"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1032884db15e48ffa3ebdc669457699fdfbf750aa90000b29e302e9f8d14a09"
-dependencies = [
- "linux-rust-bindings",
- "sc",
-]
-
-[[package]]
 name = "sc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -36,25 +26,16 @@ checksum = "010e18bd3bfd1d45a7e666b236c78720df0d9a7698ebaa9c1c559961eb60a38b"
 name = "tiny-start"
 version = "0.1.0"
 dependencies = [
- "rusl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tiny-start"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55743dd33d2785c7a0c17ff35010964b06a2926277a3569f9faf86d3ff27b02a"
-dependencies = [
- "rusl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rusl",
 ]
 
 [[package]]
 name = "tiny-std"
 version = "0.1.1"
 dependencies = [
- "rusl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rusl",
  "sc",
- "tiny-start 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tiny-start",
  "unix-print",
 ]
 
