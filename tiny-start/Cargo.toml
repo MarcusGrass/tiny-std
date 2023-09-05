@@ -21,4 +21,4 @@ mem-symbols = []
 
 
 [dependencies]
-rusl = { path = "../rusl", default-features = false }
+rusl = { version = "0.1.0", default-features = false }
