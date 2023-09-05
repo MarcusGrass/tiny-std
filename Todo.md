@@ -17,3 +17,5 @@ makes static-pie binaries not work properly.
 for applications that can be threaded.  
 14. [ ] Use more efficient syscall semantics, i.e. `eax` over `rax` if the return-value isn't register size.  
 15. [ ] Use type-checked builders as args for comptime error evaluation of syscalls.  
+16. [ ] Enforce correct features for symbol relocation through a build-script (Fail compilation with 
+static relocation if `aux` feature isn't enabled, since that will result in a botched binary).  

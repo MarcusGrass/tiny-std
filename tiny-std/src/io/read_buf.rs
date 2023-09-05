@@ -130,7 +130,7 @@ impl<'a> ReadBuf<'a> {
             let uninit = n - extra_init;
             let unfilled = &mut self.uninitialized_mut()[0..uninit];
 
-            for byte in unfilled.iter_mut() {
+            for byte in &mut *unfilled {
                 byte.write(0);
             }
 

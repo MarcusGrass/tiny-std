@@ -29,11 +29,11 @@ executable = ["start", "symbols", "aux", "vdso"]
 library = ["start"]
 
 # Lib sections of things dependant of start files
-start = []
+start = ["tiny-start/start"]
 # Symbols required for properly using start parts, becomes incompatible with stdlib if activated
-symbols = []
+symbols = ["tiny-start/mem-symbols"]
 # Pull in aux values in the program entrypoint
-aux = ["start"]
+aux = ["start", "tiny-start/aux"]
 # Try to pull in get_time through the VDSO in the program entrypoint
 vdso = ["aux"]
 
@@ -41,5 +41,6 @@ threaded = ["alloc", "start"]
 
 [dependencies]
 rusl = { path = "../rusl" , default-features = false }
+tiny-start = { path = "../tiny-start", default-features = false, optional = true }
 sc = "0.2.7"
 unix-print = "0.1.0"
