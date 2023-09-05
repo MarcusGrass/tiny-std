@@ -41,11 +41,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-start"
+version = "0.1.0"
+dependencies = [
+ "rusl",
+]
+
+[[package]]
 name = "tiny-std"
 version = "0.1.0"
 dependencies = [
  "rusl",
  "sc",
+ "tiny-start",
  "unix-print",
 ]
 

@@ -42,41 +42,27 @@ core::arch::global_asm!(
     clippy::cast_possible_truncation
 )]
 unsafe extern "C" fn __proxy_main(stack_ptr: *const u8, _dynv: *const usize) {
-    // Fist 8 bytes is a u64 with the number of arguments
-    let argc = *stack_ptr.cast::<u64>();
-    // Directly followed by those arguments, bump pointer by 8
-    let argv = stack_ptr.add(8).cast::<*const u8>();
-    let ptr_size = core::mem::size_of::<usize>();
-    // Directly followed by a pointer to the environment variables, it's just a null terminated string.
-    // This isn't specified in Posix and is not great for portability, but we're targeting Linux so it's fine
-    let env_offset = 8 + argc as usize * ptr_size + ptr_size;
-    // Bump pointer by combined offset
-    let envp = stack_ptr.add(env_offset).cast::<*const u8>();
     #[cfg(feature = "aux")]
     {
-        let mut null_offset = 0;
-        loop {
-            let val = *(envp.add(null_offset));
-            if val as usize == 0 {
-                break;
-            }
-            null_offset += 1;
-        }
-        let addr = envp.add(null_offset).cast::<usize>();
-        let aux_v_ptr = addr.add(1);
-        let aux = crate::elf::aux::AuxValues::from_auxv(aux_v_ptr);
-        crate::elf::dynlink::relocate_symbols(_dynv, &aux);
+        let (env, aux) = tiny_start::start::resolve(stack_ptr, _dynv);
+        crate::env::ENV.arg_c = env.arg_c;
+        crate::env::ENV.arg_v = env.arg_v;
+        crate::env::ENV.env_p = env.env_p;
         crate::elf::aux::AUX_VALUES = aux;
     }
-
-    crate::env::ENV.arg_c = argc;
-    crate::env::ENV.arg_v = argv;
-    crate::env::ENV.env_p = envp;
+    #[cfg(not(feature = "aux"))]
+    {
+        let env = tiny_start::start::resolve(stack_ptr, _dynv);
+        crate::env::ENV.arg_c = env.arg_c;
+        crate::env::ENV.arg_v = env.arg_v;
+        crate::env::ENV.env_p = env.env_p;
+    }
 
     #[cfg(feature = "vdso")]
     {
         crate::elf::vdso::init_vdso_get_time();
     }
+
     #[cfg(feature = "threaded")]
     {
         // To be able to get the thread tls in the panic handler we need to set up
