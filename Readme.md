@@ -2,6 +2,15 @@
 
 Like a bad, probably buggy, tiny standard library for Linux.
 
+## NOTICE: Broken v0.1.0 on stable >= 1.72 / nightly >= 08-17
+Some update to rustc between 2023-08-16 and 2023-08-17 caused miscompilations of 
+tiny-std resulting in infinite recursion on calls to `memset`, which the compiler 
+inserts sometimes as part of optimization [a bit more details here](https://github.com/rust-lang/rust/issues/115225#issuecomment-1705196246).  
+This was fixed in v0.1.1 with no API-changes by breaking code sensitive to rewrites into 
+a separate crate with a `#![no_builtins]`.  
+
+Therefore, version `0.1.0` was yanked from crates.io.
+
 ## When it's appropriate
 If you are actually trying to do something solid,
 checkout [Rustix](https://github.com/bytecodealliance/rustix) or [Relibc](https://github.com/redox-os/relibc).  
