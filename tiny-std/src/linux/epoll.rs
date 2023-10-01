@@ -92,29 +92,22 @@ impl EpollDriver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusl::platform::STDIN;
+    use rusl::platform::STDOUT;
 
     #[test]
     fn test_epoll_driver() {
         let drive = EpollDriver::create(true).unwrap();
-        drive.register(STDIN, 1, EpollEventMask::EPOLLOUT).unwrap();
+        drive.register(STDOUT, 1, EpollEventMask::EPOLLOUT).unwrap();
+        println!("Dummy out");
         let mut buf = [EpollEvent::new(0, EpollEventMask::empty())];
         drive
             .wait(&mut buf, EpollTimeout::WaitMillis(1_000))
             .unwrap();
         assert_eq!(1, buf[0].get_data());
-        if std::env::var("CI").is_ok() {
-            assert!(
-                buf[0].get_events().contains(EpollEventMask::EPOLLHUP),
-                "Expected EPOLLHUP, got {:?}",
-                buf[0].get_events()
-            );
-        } else {
-            assert!(
-                buf[0].get_events().contains(EpollEventMask::EPOLLOUT),
-                "Expected EPOLLOUT, got {:?}",
-                buf[0].get_events()
-            );
-        }
+        assert!(
+            buf[0].get_events().contains(EpollEventMask::EPOLLOUT),
+            "Expected EPOLLOUT, got {:?}",
+            buf[0].get_events()
+        );
     }
 }

@@ -14,11 +14,11 @@ const TEST_1_CONTENT: &str = "Hello world!
 
 #[test]
 fn can_read_null_term_path() {
-    let path = "test-files/fs/test1.txt\0";
+    let path = UnixStr::try_from_str("test-files/fs/test1.txt\0").unwrap();
     can_read_using_file_at_path(path);
 }
 
-fn can_read_using_file_at_path(path: &str) {
+fn can_read_using_file_at_path(path: &UnixStr) {
     let mut file = File::open(path).unwrap();
     let mut buf = [0; 128];
     let content_len = file.read(&mut buf).unwrap();
@@ -29,7 +29,7 @@ fn can_read_using_file_at_path(path: &str) {
 #[test]
 #[cfg(feature = "alloc")]
 fn can_read_to_vec() {
-    let path = "test-files/fs/test1.txt";
+    let path = UnixStr::try_from_str("test-files/fs/test1.txt\0").unwrap();
     let mut opts = crate::fs::OpenOptions::new();
     opts.read(true);
     let mut file = File::open(path).unwrap();
@@ -43,7 +43,7 @@ fn can_read_to_vec() {
 #[test]
 #[cfg(feature = "alloc")]
 fn can_read_to_string() {
-    let path = "test-files/fs/test1.txt";
+    let path = UnixStr::try_from_str("test-files/fs/test1.txt\0").unwrap();
     let mut opts = crate::fs::OpenOptions::new();
     opts.read(true);
     let mut file = File::open(path).unwrap();
@@ -56,12 +56,12 @@ fn can_read_to_string() {
 
 #[test]
 fn can_stat() {
-    let dir = "";
+    let dir = UnixStr::EMPTY;
     let dir_meta = metadata(dir).unwrap();
     assert!(dir_meta.is_dir());
     assert!(!dir_meta.is_symlink());
     assert!(!dir_meta.is_file());
-    let path = "src/fs/test.rs\0";
+    let path = UnixStr::try_from_str("src/fs/test.rs\0").unwrap();
     let file_meta = metadata(path).unwrap();
     assert!(!file_meta.is_dir());
     assert!(!file_meta.is_symlink());
@@ -70,7 +70,7 @@ fn can_stat() {
 
 #[test]
 fn can_create_read_and_write_file() {
-    let tgt = "test-files/fs/test_create_read1.txt\0";
+    let tgt = UnixStr::try_from_str("test-files/fs/test_create_read1.txt\0").unwrap();
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
@@ -91,7 +91,7 @@ fn can_create_read_and_write_file() {
 
 #[test]
 fn can_create_and_delete_file() {
-    let tgt = "test-files/fs/test_create_delete1.txt\0";
+    let tgt = UnixStr::try_from_str("test-files/fs/test_create_delete1.txt\0").unwrap();
     let file = OpenOptions::new()
         .write(true)
         .create(true)
@@ -112,7 +112,7 @@ fn can_create_and_delete_file() {
 
 #[test]
 fn can_create_and_delete_dir() {
-    let tgt = "test-files/fs/dir-test\0";
+    let tgt = UnixStr::try_from_str("test-files/fs/dir-test\0").unwrap();
     if metadata(tgt).is_ok() {
         crate::fs::remove_dir(tgt).unwrap();
     }
@@ -131,7 +131,7 @@ fn can_create_and_delete_dir() {
 
 #[test]
 fn can_open_and_read_dir() {
-    let tgt = "test-files/fs/dir-test1\0";
+    let tgt = UnixStr::try_from_str("test-files/fs/dir-test1\0").unwrap();
     let dir = crate::fs::Directory::open(tgt).unwrap();
     let it = dir.read();
     for entry in it {
@@ -165,7 +165,7 @@ fn can_open_and_read_dir() {
 
 #[test]
 fn create_read_and_delete_dir_with_a_lot_of_files() {
-    let tgt = "test-files/fs/dir-test2\0";
+    let tgt = UnixStr::try_from_str("test-files/fs/dir-test2\0").unwrap();
     if metadata(tgt).is_ok() {
         crate::fs::remove_dir_all(tgt).unwrap();
     } else {
@@ -179,7 +179,7 @@ fn create_read_and_delete_dir_with_a_lot_of_files() {
         let mut f = OpenOptions::new()
             .create_new(true)
             .write(true)
-            .open(path)
+            .open(UnixStr::try_from_str(path).unwrap())
             .unwrap();
         f.write(std::format!("Test write {i}").as_bytes()).unwrap();
     }
@@ -218,17 +218,37 @@ fn create_read_and_delete_dir_with_a_lot_of_files() {
 
 #[test]
 fn can_create_remove_dir_all() {
-    let base = "test-files/fs/dir-test3\0";
-    if metadata(base).is_ok() {
-        crate::fs::remove_dir_all(base).unwrap();
+    create_remove_dir_all(
+        UnixStr::try_from_str("test-files/fs/dir-test3\0").unwrap(),
+        UnixStr::try_from_str("test-files/fs/dir-test3/dir0/dir1/dir2/dir3\0").unwrap(),
+    );
+}
+
+#[test]
+fn can_create_remove_dir_all_trailing_slash() {
+    create_remove_dir_all(
+        UnixStr::try_from_str("test-files/fs/dir-test4/\0").unwrap(),
+        UnixStr::try_from_str("test-files/fs/dir-test4/dir0/dir1/dir2/dir3/\0").unwrap(),
+    );
+}
+
+#[test]
+fn cant_create_empty_dir_all() {
+    assert!(crate::fs::create_dir_all(UnixStr::try_from_str("\0").unwrap()).is_err());
+}
+
+fn create_remove_dir_all(parent: &UnixStr, full_path: &UnixStr) {
+    if crate::fs::exists(parent).unwrap() {
+        crate::fs::remove_dir_all(parent).unwrap();
     }
-    let sub_dirs = b"test-files/fs/dir-test3/dir0/dir1/dir2/dir3\0";
-    let mut sub_dir_bytes = [0u8; 44];
-    sub_dir_bytes.copy_from_slice(sub_dirs);
-    crate::fs::create_dir_all(sub_dir_bytes.as_mut_slice()).unwrap();
-    assert!(metadata(sub_dirs.as_slice()).is_ok());
-    crate::fs::remove_dir_all(base).unwrap();
-    assert!(metadata(base).is_err());
+    assert!(
+        !crate::fs::exists(parent).unwrap(),
+        "Failed to prepare test by removing {parent:?}"
+    );
+    crate::fs::create_dir_all(full_path).unwrap();
+    assert!(metadata(full_path).is_ok());
+    crate::fs::remove_dir_all(parent).unwrap();
+    assert!(metadata(parent).is_err());
 }
 
 #[test]
@@ -237,7 +257,7 @@ fn read_after_write_needs_reseek() {
         .read(true)
         .write(true)
         .create(true)
-        .open("test-files/test-read-after-write.txt\0")
+        .open(UnixStr::try_from_str("test-files/test-read-after-write.txt\0").unwrap())
         .unwrap();
     let content = b"My content goes here!";
     let wrote_bytes = file.write(content).unwrap();
@@ -249,7 +269,7 @@ fn read_after_write_needs_reseek() {
 
 #[test]
 fn can_create_with_write() {
-    const TARGET_FILE: &str = "test-files/test-write-create.txt\0";
+    const TARGET_FILE: &UnixStr = UnixStr::from_str_checked("test-files/test-write-create.txt\0");
     const PAYLOAD: &[u8] = b"My write create payload!\n";
     if metadata(TARGET_FILE).is_ok() {
         crate::fs::remove_file(TARGET_FILE).unwrap();
@@ -264,7 +284,8 @@ fn can_create_with_write() {
 
 #[test]
 fn can_replace_with_write() {
-    const TARGET_FILE: &str = "test-files/test-write-overwrite.txt\0";
+    const TARGET_FILE: &UnixStr =
+        UnixStr::from_str_checked("test-files/test-write-overwrite.txt\0");
     const PRE_PAYLOAD: &[u8] = b"My write should overwrite this payload!\n";
     const POST_PAYLOAD: &[u8] = b"Overwritten!\n";
     let mut file = OpenOptions::new()
@@ -290,7 +311,7 @@ fn can_replace_with_write() {
 
 #[test]
 fn file_exists_when_exists() {
-    let tgt = "test-files/test_exists_not_yet.txt\0";
+    let tgt = UnixStr::try_from_str("test-files/test_exists_not_yet.txt\0").unwrap();
     if crate::fs::exists(tgt).unwrap() {
         crate::fs::remove_file(tgt).unwrap();
     }
@@ -307,10 +328,10 @@ fn file_can_be_moved() {
     let mut orig_buf = [0u8; EXPECT_CONTENT.len()];
     let mut src_buf = [0u8; EXPECT_CONTENT.len()];
     let mut dest_buf = [0u8; EXPECT_CONTENT.len()];
-    let tgt = "test-files/fs/test_move_orig.txt\0";
+    let tgt = UnixStr::try_from_str("test-files/fs/test_move_orig.txt\0").unwrap();
     File::open(tgt).unwrap().read_exact(&mut orig_buf).unwrap();
     assert_eq!(EXPECT_CONTENT, &orig_buf);
-    let src = "test-files/fs/tmp_test_move_cp.txt\0";
+    let src = UnixStr::try_from_str("test-files/fs/tmp_test_move_cp.txt\0").unwrap();
     let md = metadata(tgt).unwrap();
     #[cfg(target_arch = "x86_64")]
     let file = { crate::fs::copy_file(tgt, src).unwrap() };
@@ -325,7 +346,7 @@ fn file_can_be_moved() {
     assert_eq!(md.mode(), md2.mode());
     File::open(src).unwrap().read_exact(&mut src_buf).unwrap();
     assert_eq!(EXPECT_CONTENT, &src_buf);
-    let dest = "test-files/fs/tmp_test_move_moved.txt\0";
+    let dest = UnixStr::try_from_str("test-files/fs/tmp_test_move_moved.txt\0").unwrap();
     crate::fs::rename(src, dest).unwrap();
     assert!(!crate::fs::exists(src).unwrap());
     File::open(dest).unwrap().read_exact(&mut dest_buf).unwrap();
@@ -333,7 +354,7 @@ fn file_can_be_moved() {
 }
 
 #[cfg(target_arch = "aarch64")]
-fn rw_copy_exact(src: &str, buf: &mut [u8], dst: &str) -> File {
+fn rw_copy_exact(src: &UnixStr, buf: &mut [u8], dst: &UnixStr) -> File {
     let src_md = metadata(src).unwrap();
     let mut src = File::open(src).unwrap();
     src.read_exact(buf).unwrap();

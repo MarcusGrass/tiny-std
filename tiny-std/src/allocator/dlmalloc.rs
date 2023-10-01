@@ -2019,18 +2019,72 @@ mod tests {
     #[test]
     fn smoke() {
         let mut a = Dlmalloc::new();
-        unsafe {
-            let ptr = a.malloc(1, 1);
-            assert!(!ptr.is_null());
-            *ptr = 9;
-            assert_eq!(*ptr, 9);
-            a.free(ptr);
+        let aligns = [1, 2, 4, 8, 16];
+        for i in 0..22 {
+            let align = aligns[i % aligns.len()];
+            unsafe {
+                let tiny_ptr = a.malloc(1, 1);
+                assert!(!tiny_ptr.is_null());
+                *tiny_ptr = 9;
+                assert_eq!(*tiny_ptr, 9);
 
-            let ptr = a.malloc(1, 1);
-            assert!(!ptr.is_null());
-            *ptr = 10;
-            assert_eq!(*ptr, 10);
-            a.free(ptr);
+                let small_ptr = a.malloc(16, 2);
+                assert!(!small_ptr.is_null());
+                *small_ptr = 10;
+                assert_eq!(*small_ptr, 10);
+                let large_ptr = a.malloc(2_u64.pow(i as u32) as usize, align);
+                a.free(large_ptr);
+                a.free(small_ptr);
+                a.free(tiny_ptr);
+            }
+        }
+    }
+
+    #[test]
+    fn realloc_small_align() {
+        let mut a = Dlmalloc::new();
+        let aligns = [1, 2, 4, 8, 16];
+        for i in 0..22 {
+            let align = aligns[i % aligns.len()];
+            unsafe {
+                let sz = 2_u64.pow(i as u32) as usize;
+                let ptr1 = a.malloc(2_u64.pow(i as u32) as usize, align);
+                ptr1.write_bytes(1, sz);
+                let new_size = 2_u64.pow(i as u32 + 1) as usize;
+                let ptr2 = a.realloc(ptr1, sz, align, new_size);
+                ptr2.add(sz).write_bytes(2, sz);
+                let mut sum = 0usize;
+                for j in 0..new_size {
+                    sum += ptr2.add(j).read() as usize;
+                }
+                // Should have written 1 to the first half, and 2 to the second half
+                assert_eq!(sz * 3, sum);
+                a.free(ptr2);
+            }
+        }
+    }
+
+    #[test]
+    fn realloc_big_align() {
+        let mut a = Dlmalloc::new();
+        let aligns = [32, 64, 128, 256, 512];
+        for i in 9..22 {
+            let align = aligns[i % aligns.len()];
+            unsafe {
+                let sz = 2_u64.pow(i as u32) as usize;
+                let ptr1 = a.malloc(2_u64.pow(i as u32) as usize, align);
+                ptr1.write_bytes(1, sz);
+                let new_size = 2_u64.pow(i as u32 + 1) as usize;
+                let ptr2 = a.realloc(ptr1, sz, align, new_size);
+                ptr2.add(sz).write_bytes(2, sz);
+                let mut sum = 0usize;
+                for j in 0..new_size {
+                    sum += ptr2.add(j).read() as usize;
+                }
+                // Should have written 1 to the first half, and 2 to the second half
+                assert_eq!(sz * 3, sum);
+                a.free(ptr2);
+            }
         }
     }
 

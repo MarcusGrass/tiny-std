@@ -20,6 +20,6 @@ pub unsafe extern "C" fn rust_eh_personality() {}
 #[panic_handler]
 #[cfg(not(feature = "threaded"))]
 pub fn on_panic(info: &core::panic::PanicInfo) -> ! {
-    unix_print::unix_eprintln!("Main thread panicked: {}", info);
+    crate::eprintln!("Main thread panicked: {}", info);
     rusl::process::exit(1)
 }

@@ -538,11 +538,12 @@ impl<T: ?Sized> Drop for RwLockWriteGuard<'_, T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::sync::RwLock;
+    use core::time::Duration;
 
     #[test]
-    #[cfg(feature = "alloc")]
     fn can_lock() {
-        let rw = alloc::sync::Arc::new(super::RwLock::new(0));
+        let rw = std::sync::Arc::new(super::RwLock::new(0));
         let rw_c = rw.clone();
         let mut guard = rw.write();
         let res = std::thread::spawn(move || *rw_c.read());
@@ -550,5 +551,47 @@ mod tests {
         drop(guard);
         let thread_res = res.join().unwrap();
         assert_eq!(15, thread_res);
+    }
+
+    #[test]
+    fn can_mutex_contended() {
+        const NUM_THREADS: usize = 32;
+        let count = std::sync::Arc::new(RwLock::new(0));
+        let mut handles = std::vec::Vec::new();
+        for _i in 0..NUM_THREADS {
+            let count_c = count.clone();
+            let handle = std::thread::spawn(move || {
+                // Try to create some contention
+                let mut w_guard = count_c.write();
+                let orig = *w_guard;
+                std::thread::sleep(Duration::from_millis(1));
+                *w_guard += 1;
+                drop(w_guard);
+                std::thread::sleep(Duration::from_millis(1));
+                let r_guard = count_c.read();
+                std::thread::sleep(Duration::from_millis(1));
+                // We incremented this
+                assert!(*r_guard > orig);
+            });
+            handles.push(handle);
+        }
+        for h in handles {
+            h.join().unwrap();
+        }
+        assert_eq!(NUM_THREADS, *count.read());
+    }
+
+    #[test]
+    fn can_try_rw_single_thread_contended() {
+        let rw = std::sync::Arc::new(super::RwLock::new(0));
+        let rw_c = rw.clone();
+        assert_eq!(0, *rw_c.try_read().unwrap());
+        let r_guard = rw.read();
+        assert_eq!(0, *rw_c.try_read().unwrap());
+        assert!(rw_c.try_write().is_none());
+        drop(r_guard);
+        assert_eq!(0, *rw_c.try_write().unwrap());
+        let _w_guard = rw.write();
+        assert!(rw_c.try_read().is_none());
     }
 }

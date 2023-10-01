@@ -3,12 +3,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
+
 ## [Unreleased]
 ### Fixed
 
 ### Added
 
 ### Changed
+
+## [v0.2.0] - 2023-10-01
+### Fixed
+- Create dir all used to error when it ended with a slash
+- `args_os` started at second arg
+
+### Added
+- More tests
+
+### Changed
+- API-breakage from removing AsRefUnixStr and replacing with 
+`&UnixStr`. Propagates down to all things containing `&UnixStr`. Main reason 
+is making allocation more explicit on the user's side, inviting opportunities for 
+const-evaluation of null-terminated strings.
+- Un-publicked ReadBuf, might replace entirely later
 
 ## [v0.1.1]
 ### Fixed

@@ -1,6 +1,6 @@
 //! These are not defined in the uapi which is a bit hairy, if they change, that's obviously
+use crate::string::unix_str::UnixStr;
 /// a problem.
-use crate::string::unix_str::AsUnixStr;
 use crate::Error;
 
 #[derive(Debug, Copy, Clone)]
@@ -122,14 +122,14 @@ impl SocketAddress {
         self.0.sun_path
     }
 
-    /// Tries to construct a `SocketAddress` from an `AsUnixStr` path
+    /// Tries to construct a `SocketAddress` from a `UnixStr` path
     /// # Errors
     /// The path is longer than 108 bytes (null termination included)
-    pub fn try_from_unix<P: AsUnixStr>(path: P) -> crate::Result<SocketArg> {
+    pub fn try_from_unix(path: &UnixStr) -> crate::Result<SocketArg> {
         let mut ind = 0;
-        let buf = path.exec_with_self_as_ptr(|ptr| unsafe {
+        let buf = unsafe {
             let mut buf = [0; 108];
-            let mut ptr = ptr;
+            let mut ptr = path.as_ptr();
             while !ptr.is_null() {
                 buf[ind] = ptr.read() as core::ffi::c_char;
                 if ind == 107 && buf[ind] != 0 {
@@ -141,8 +141,8 @@ impl SocketAddress {
                 ptr = ptr.add(1);
                 ind += 1;
             }
-            Ok(buf)
-        })?;
+            buf
+        };
         let addr = Self(linux_rust_bindings::socket::sockaddr_un {
             sun_family: AddressFamily::AF_UNIX.0,
             sun_path: buf,

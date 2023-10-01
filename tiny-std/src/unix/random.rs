@@ -2,12 +2,15 @@ use crate::error::Result;
 use crate::fs::File;
 use crate::io::Read;
 use rusl::error::Errno;
+use rusl::string::unix_str::UnixStr;
+
+const DEV_RANDOM: &UnixStr = UnixStr::from_str_checked("/dev/random\0");
 
 /// Fills the provided buffer with random bytes from /dev/random.
 /// # Errors
 /// File permissions failure
 pub fn system_random(buf: &mut [u8]) -> Result<()> {
-    let mut file = File::open("/dev/random\0")?;
+    let mut file = File::open(DEV_RANDOM)?;
     let mut offset = 0;
     while offset < buf.len() {
         match file.read(&mut buf[offset..]) {
@@ -112,5 +115,12 @@ mod tests {
         }
         // Sweet determinism
         assert_eq!(0, count_zero);
+    }
+
+    #[test]
+    fn prng_seeded_not_same() {
+        let time_seeded1 = Prng::new_time_seeded();
+        let time_seeded2 = Prng::new_time_seeded();
+        assert_ne!(time_seeded1.seed, time_seeded2.seed);
     }
 }

@@ -8,4 +8,3 @@ edition = "2021"
 [dependencies]
 test-lib = { path = "../test-lib", features = ["alloc"] }
 tiny-std = { path = "../../tiny-std", features = ["executable", "alloc", "global-allocator"] }
-unix-print = "0.1.0"

@@ -1,6 +1,6 @@
 [package]
 name = "rusl"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MPL-2.0"
 readme = "../Readme.md"
@@ -15,6 +15,7 @@ keywords = ["ffi", "bindings", "operating", "system", "linux"]
 [features]
 default = ["alloc"]
 alloc = []
+integration-test = []
 
 [dependencies]
 linux-rust-bindings = { version = "0.1.1", features = ["all"] }

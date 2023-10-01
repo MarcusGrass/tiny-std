@@ -3,7 +3,7 @@
 
 #[no_mangle]
 pub fn main() -> i32 {
-    unix_print::unix_eprintln!("Starting alloc single threaded main");
+    tiny_std::eprintln!("Starting alloc single threaded main");
     test_lib::run_tests();
     0
 }

@@ -1,10 +1,15 @@
 use crate::error::Errno;
 use crate::platform::OpenFlags;
+use crate::string::unix_str::UnixStr;
 use crate::unistd::{close, fcntl_get_file_status, fcntl_set_file_status, open, read, write};
 
 #[test]
 fn no_write_on_read_only() {
-    let fd = open("test-files/can_open.txt\0", OpenFlags::O_RDONLY).unwrap();
+    let fd = open(
+        UnixStr::try_from_str("test-files/can_open.txt\0").unwrap(),
+        OpenFlags::O_RDONLY,
+    )
+    .unwrap();
     let mut buf = [0; 256];
     let read_bytes = read(fd, &mut buf).unwrap();
     let expect = b"open";
@@ -17,7 +22,7 @@ fn no_write_on_read_only() {
 
 #[test]
 fn no_read_on_wr_only() {
-    let path = "test-files/can_open.txt\0";
+    let path = UnixStr::try_from_str("test-files/can_open.txt\0").unwrap();
     let fd = open(path, OpenFlags::O_WRONLY).unwrap();
     let mut buf = [0; 256];
     expect_errno!(Errno::EBADF, read(fd, &mut buf));
@@ -29,7 +34,7 @@ fn no_read_on_wr_only() {
 
 #[test]
 fn close_closes() {
-    let path = "test-files/can_open.txt\0";
+    let path = UnixStr::try_from_str("test-files/can_open.txt\0").unwrap();
     let fd = open(path, OpenFlags::O_RDONLY).unwrap();
     let mut buf = [0; 128];
     let read_res = read(fd, &mut buf).unwrap();
@@ -43,7 +48,7 @@ fn close_closes() {
 
 #[test]
 fn set_file_non_blocking() {
-    let path = "test-files/can_open.txt\0";
+    let path = UnixStr::try_from_str("test-files/can_open.txt\0").unwrap();
     let fd = open(path, OpenFlags::O_RDONLY).unwrap();
     let flags = fcntl_get_file_status(fd).unwrap();
     assert_eq!(OpenFlags::empty(), flags & OpenFlags::O_NONBLOCK);

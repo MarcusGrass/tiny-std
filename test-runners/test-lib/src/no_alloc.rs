@@ -1,10 +1,10 @@
 use tiny_std::io::Read;
 use tiny_std::process::{Environment, Stdio};
+use tiny_std::UnixStr;
 
 pub fn spawn_no_args() {
-    //
-    let mut proc = tiny_std::process::spawn::<0, &str, &str, ()>(
-        "/usr/bin/uname\0",
+    let mut proc = tiny_std::process::spawn::<0, ()>(
+        UnixStr::try_from_str("/usr/bin/uname\0").unwrap(),
         [],
         &Environment::Inherit,
         Some(Stdio::MakePipe),
@@ -29,9 +29,13 @@ pub fn spawn_no_args() {
 }
 
 pub fn spawn_with_args() {
-    let mut proc_with_arg = tiny_std::process::spawn::<3, _, _, ()>(
-        "/usr/bin/uname\0",
-        ["/usr/bin/uname\0", "-a\0", "\0"],
+    let mut proc_with_arg = tiny_std::process::spawn::<3, ()>(
+        UnixStr::try_from_str("/usr/bin/uname\0").unwrap(),
+        [
+            UnixStr::try_from_str("/usr/bin/uname\0").unwrap(),
+            UnixStr::try_from_str("-a\0").unwrap(),
+            UnixStr::EMPTY,
+        ],
         &Environment::Inherit,
         Some(Stdio::MakePipe),
         Some(Stdio::MakePipe),

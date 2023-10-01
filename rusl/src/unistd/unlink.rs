@@ -1,7 +1,7 @@
 use sc::syscall;
 
 use crate::platform::{Fd, AT_FDCWD, AT_REMOVEDIR};
-use crate::string::unix_str::AsUnixStr;
+use crate::string::unix_str::UnixStr;
 
 #[derive(Debug, Copy, Clone)]
 pub struct UnlinkFlags(i32);
@@ -26,7 +26,7 @@ impl UnlinkFlags {
 /// # Errors
 /// See above docs
 #[inline]
-pub fn unlink(path: impl AsUnixStr) -> crate::Result<()> {
+pub fn unlink(path: &UnixStr) -> crate::Result<()> {
     unlink_flags(path, UnlinkFlags::empty())
 }
 
@@ -35,7 +35,7 @@ pub fn unlink(path: impl AsUnixStr) -> crate::Result<()> {
 /// # Errors
 /// See above docs
 #[inline]
-pub fn unlink_flags(path: impl AsUnixStr, flags: UnlinkFlags) -> crate::Result<()> {
+pub fn unlink_flags(path: &UnixStr, flags: UnlinkFlags) -> crate::Result<()> {
     do_unlink(AT_FDCWD, path, flags)
 }
 
@@ -45,18 +45,16 @@ pub fn unlink_flags(path: impl AsUnixStr, flags: UnlinkFlags) -> crate::Result<(
 /// # Errors
 /// See above docs
 #[inline]
-pub fn unlink_at(dir_fd: Fd, path: impl AsUnixStr, flags: UnlinkFlags) -> crate::Result<()> {
+pub fn unlink_at(dir_fd: Fd, path: &UnixStr, flags: UnlinkFlags) -> crate::Result<()> {
     do_unlink(dir_fd.0, path, flags)
 }
 
 #[inline(always)]
 #[allow(clippy::inline_always)]
-fn do_unlink(dir_fd: i32, path: impl AsUnixStr, flags: UnlinkFlags) -> crate::Result<()> {
-    path.exec_with_self_as_ptr(|ptr| {
-        let res = unsafe { syscall!(UNLINKAT, dir_fd, ptr, flags.0) };
-        bail_on_below_zero!(res, "`UNLINKAT` syscall failed");
-        Ok(())
-    })
+fn do_unlink(dir_fd: i32, path: &UnixStr, flags: UnlinkFlags) -> crate::Result<()> {
+    let res = unsafe { syscall!(UNLINKAT, dir_fd, path.as_ptr(), flags.0) };
+    bail_on_below_zero!(res, "`UNLINKAT` syscall failed");
+    Ok(())
 }
 
 /// Taking the liberty of using `unlinkat` for both implementations, effectively meaning

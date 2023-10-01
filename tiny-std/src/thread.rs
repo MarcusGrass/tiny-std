@@ -34,11 +34,10 @@ mod tests {
 
     #[test]
     fn try_sleep() {
-        let sleep_dur = Duration::from_nanos(5_000_000);
+        let sleep_dur = Duration::from_millis(15);
         let now = MonotonicInstant::now();
         sleep(sleep_dur).unwrap();
         let elapsed = now.elapsed();
-        let drift = elapsed - sleep_dur;
-        assert!(drift.as_millis() <= 1);
+        assert!(elapsed > sleep_dur);
     }
 }

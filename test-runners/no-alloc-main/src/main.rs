@@ -3,7 +3,7 @@
 
 #[no_mangle]
 pub fn main() -> i32 {
-    unix_print::unix_eprintln!("Starting minimum main");
+    tiny_std::eprintln!("Starting minimum main");
     test_lib::run_tests();
     0
 }

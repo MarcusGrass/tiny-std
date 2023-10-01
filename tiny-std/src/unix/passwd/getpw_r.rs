@@ -171,6 +171,7 @@ fn find_last_newline(buf: &[u8]) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use rusl::platform::OpenFlags;
+    use rusl::string::unix_str::UnixStr;
     use rusl::unistd::open;
 
     use crate::unix::passwd::getpw_r::{
@@ -260,7 +261,11 @@ nvidia-persis";
 
     #[test]
     fn search_pwd_normal_sized_buf() {
-        let fd = open("test-files/unix/passwd/pwd_test.txt\0", OpenFlags::O_RDONLY).unwrap();
+        let fd = open(
+            UnixStr::try_from_str("test-files/unix/passwd/pwd_test.txt\0").unwrap(),
+            OpenFlags::O_RDONLY,
+        )
+        .unwrap();
         let mut buf = [0u8; 1024];
         let pwd = search_pwd_fd(fd, 1000, &mut buf).unwrap().unwrap();
         assert_eq!(pwd.name, "gramar");
@@ -274,7 +279,11 @@ nvidia-persis";
 
     #[test]
     fn search_pwd_small_buf() {
-        let fd = open("test-files/unix/passwd/pwd_test.txt\0", OpenFlags::O_RDONLY).unwrap();
+        let fd = open(
+            UnixStr::try_from_str("test-files/unix/passwd/pwd_test.txt\0").unwrap(),
+            OpenFlags::O_RDONLY,
+        )
+        .unwrap();
         let mut buf = [0u8; 256];
         let pwd = search_pwd_fd(fd, 1000, &mut buf).unwrap().unwrap();
         assert_eq!(pwd.name, "gramar");
@@ -288,7 +297,11 @@ nvidia-persis";
 
     #[test]
     fn last_entry_tiny_buf() {
-        let fd = open("test-files/unix/passwd/pwd_test.txt\0", OpenFlags::O_RDONLY).unwrap();
+        let fd = open(
+            UnixStr::try_from_str("test-files/unix/passwd/pwd_test.txt\0").unwrap(),
+            OpenFlags::O_RDONLY,
+        )
+        .unwrap();
         let mut buf = [0u8; 100];
         let pwd = search_pwd_fd(fd, 110, &mut buf).unwrap().unwrap();
         assert_eq!(pwd.name, "partimag");

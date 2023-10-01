@@ -18,14 +18,16 @@ mod threaded;
 #[cfg(not(feature = "alloc"))]
 use no_alloc::{spawn_no_args, spawn_with_args};
 
+use tiny_std::UnixStr;
+
 #[macro_export]
 macro_rules! run_test {
     ($func: expr) => {{
-        unix_print::unix_print!("Running test {} ... ", stringify!($func));
+        tiny_std::print!("Running test {} ... ", stringify!($func));
         let __start = tiny_std::time::MonotonicInstant::now();
         $func();
         let __elapsed = __start.elapsed().as_secs_f32();
-        unix_print::unix_println!("[OK] - {:.3} seconds", __elapsed);
+        tiny_std::println!("[OK] - {:.3} seconds", __elapsed);
     }};
 }
 
@@ -38,7 +40,7 @@ pub fn run_tests() {
 }
 
 fn run_minimal_feature_set() {
-    unix_print::unix_println!("Running minimal feature set tests");
+    tiny_std::println!("Running minimal feature set tests");
     run_test!(get_env);
     run_test!(get_args);
     run_test!(spawn_no_args);
@@ -48,7 +50,9 @@ fn run_minimal_feature_set() {
 }
 
 fn get_env() {
+    let v_unix = tiny_std::env::var_unix(UnixStr::try_from_str("HOME\0").unwrap()).unwrap();
     let v = tiny_std::env::var("HOME").unwrap();
+    assert_eq!(v, v_unix);
     if is_ci() {
         assert_eq!("/home/runner", v);
     } else {
@@ -62,6 +66,7 @@ fn get_args() {
     let arg = args.next().unwrap().unwrap();
     assert_eq!("dummy_arg", arg);
     let mut os_args = tiny_std::env::args_os();
+    os_args.next();
     let os_arg = os_args.next().unwrap();
     assert_eq!("dummy_arg", os_arg.as_str().unwrap());
 }
@@ -94,7 +99,7 @@ fn get_time() {
 
 fn is_ci() -> bool {
     !matches!(
-        tiny_std::env::var("CI"),
+        tiny_std::env::var_unix(UnixStr::try_from_str("CI\0").unwrap()),
         Err(tiny_std::env::VarError::Missing)
     )
 }

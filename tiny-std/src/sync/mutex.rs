@@ -37,7 +37,7 @@ use core::sync::atomic::{
 };
 use rusl::futex::futex_wake;
 
-pub struct InnerMutex {
+struct InnerMutex {
     /// 0: unlocked
     /// 1: locked, no other threads waiting
     /// 2: locked, and other threads waiting (contended)
@@ -46,19 +46,19 @@ pub struct InnerMutex {
 
 impl InnerMutex {
     #[inline]
-    pub const fn new() -> Self {
+    const fn new() -> Self {
         Self {
             futex: AtomicU32::new(0),
         }
     }
 
     #[inline]
-    pub fn try_lock(&self) -> bool {
+    fn try_lock(&self) -> bool {
         self.futex.compare_exchange(0, 1, Acquire, Relaxed).is_ok()
     }
 
     #[inline]
-    pub fn lock(&self) {
+    fn lock(&self) {
         if self.futex.compare_exchange(0, 1, Acquire, Relaxed).is_err() {
             self.lock_contended();
         }
@@ -114,7 +114,7 @@ impl InnerMutex {
     }
 
     #[inline]
-    pub unsafe fn unlock(&self) {
+    unsafe fn unlock(&self) {
         if self.futex.swap(0, Release) == 2 {
             // We only wake up one thread. When that thread locks the mutex, it
             // will mark the mutex as contended (2) (see lock_contended above),
@@ -251,5 +251,45 @@ impl<T: ?Sized> Drop for MutexGuard<'_, T> {
 impl<T: ?Sized + fmt::Debug> fmt::Debug for MutexGuard<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&**self, f)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::sync::Mutex;
+    use core::time::Duration;
+
+    #[test]
+    fn lock_threaded_mutex() {
+        let count = std::sync::Arc::new(Mutex::new(0));
+        let mut handles = std::vec::Vec::new();
+        for _i in 0..15 {
+            let count_c = count.clone();
+            let handle = std::thread::spawn(move || {
+                // Try to create some contention
+                let mut guard = count_c.lock();
+                std::thread::sleep(Duration::from_millis(1));
+                *guard += 1;
+            });
+            handles.push(handle);
+        }
+        for h in handles {
+            h.join().unwrap();
+        }
+        assert_eq!(15, *count.lock());
+    }
+
+    #[test]
+    fn try_lock_threaded_mutex() {
+        let val = std::sync::Arc::new(Mutex::new(0));
+        let val_c = val.clone();
+        assert_eq!(0, *val_c.try_lock().unwrap());
+        std::thread::spawn(move || {
+            let _guard = val_c.lock();
+            std::thread::sleep(Duration::from_millis(2000));
+        });
+        // ... Timing
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(val.try_lock().is_none());
     }
 }

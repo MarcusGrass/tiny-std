@@ -8,7 +8,7 @@ use rusl::error::Errno;
 pub use rusl::platform::Mode;
 use rusl::platform::{Dirent, OpenFlags, Stat, NULL_BYTE};
 use rusl::string::strlen::{buf_strlen, strlen};
-use rusl::string::unix_str::{AsUnixStr, UnixStr};
+use rusl::string::unix_str::UnixStr;
 use rusl::unistd::UnlinkFlags;
 
 use crate::error::Error;
@@ -26,19 +26,19 @@ impl File {
     /// # Errors
     /// Operating system errors ond finding and reading files
     #[inline]
-    pub fn open(path: impl AsUnixStr) -> Result<Self> {
+    pub fn open(path: &UnixStr) -> Result<Self> {
         Self::open_with_options(path, OpenOptions::new().read(true))
     }
 
     #[inline]
-    fn open_with_options(path: impl AsUnixStr, opts: &OpenOptions) -> Result<Self> {
+    fn open_with_options(path: &UnixStr, opts: &OpenOptions) -> Result<Self> {
         let flags =
             OpenFlags::O_CLOEXEC | opts.get_access_mode()? | opts.get_creation_mode()? | opts.flags;
         let fd = rusl::unistd::open_mode(path, flags, opts.mode)?;
         Ok(File(OwnedFd(fd)))
     }
 
-    fn open_at(dir_fd: RawFd, path: impl AsUnixStr) -> Result<Self> {
+    fn open_at(dir_fd: RawFd, path: &UnixStr) -> Result<Self> {
         let mut opts = OpenOptions::new();
         opts.read(true);
         let flags =
@@ -81,7 +81,7 @@ impl File {
     /// # Errors
     /// Os errors relating to file access
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    pub fn copy<P: AsUnixStr>(&self, dest: P) -> Result<Self> {
+    pub fn copy(&self, dest: &UnixStr) -> Result<Self> {
         let this_metadata = self.metadata()?;
         let dest = OpenOptions::new()
             .create(true)
@@ -134,7 +134,7 @@ impl Read for File {
 /// # Errors
 /// Os errors relating to file access and reading
 #[cfg(feature = "alloc")]
-pub fn read<P: AsUnixStr>(path: P) -> Result<Vec<u8>> {
+pub fn read(path: &UnixStr) -> Result<Vec<u8>> {
     let mut file = File::open(path)?;
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes)?;
@@ -145,7 +145,7 @@ pub fn read<P: AsUnixStr>(path: P) -> Result<Vec<u8>> {
 /// # Errors
 /// Os errors relating to file access and reading as well as utf8 conversion errors
 #[cfg(feature = "alloc")]
-pub fn read_to_string<P: AsUnixStr>(path: P) -> Result<String> {
+pub fn read_to_string(path: &UnixStr) -> Result<String> {
     let mut file = File::open(path)?;
     let mut string = String::new();
     file.read_to_string(&mut string)?;
@@ -158,7 +158,7 @@ pub fn read_to_string<P: AsUnixStr>(path: P) -> Result<String> {
 /// Use `File` and open with `append` to append to a file.
 /// # Errors
 /// Os errors relating to file creation or writing, such as permissions errors.
-pub fn write<P: AsUnixStr>(path: P, buf: &[u8]) -> Result<()> {
+pub fn write(path: &UnixStr, buf: &[u8]) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
@@ -208,7 +208,7 @@ impl Metadata {
 /// # Errors
 /// Os errors relating to file access
 #[inline]
-pub fn metadata<P: AsUnixStr>(path: P) -> Result<Metadata> {
+pub fn metadata(path: &UnixStr) -> Result<Metadata> {
     let res = rusl::unistd::stat(path)?;
     Ok(Metadata(res))
 }
@@ -218,7 +218,7 @@ pub fn metadata<P: AsUnixStr>(path: P) -> Result<Metadata> {
 /// # Errors
 /// Os errors relating to file access
 #[inline]
-pub fn rename(src: impl AsUnixStr, dest: impl AsUnixStr) -> Result<()> {
+pub fn rename(src: &UnixStr, dest: &UnixStr) -> Result<()> {
     rusl::unistd::rename(src, dest)?;
     Ok(())
 }
@@ -228,8 +228,8 @@ pub fn rename(src: impl AsUnixStr, dest: impl AsUnixStr) -> Result<()> {
 /// # Errors
 /// See [`File::copy`]
 #[inline]
-pub fn copy_file(src: impl AsUnixStr, dest: impl AsUnixStr) -> Result<File> {
-    let src_file = File::open(&src)?;
+pub fn copy_file(src: &UnixStr, dest: &UnixStr) -> Result<File> {
+    let src_file = File::open(src)?;
     src_file.copy(dest)
 }
 
@@ -237,7 +237,7 @@ pub fn copy_file(src: impl AsUnixStr, dest: impl AsUnixStr) -> Result<File> {
 /// Will false-negative if the path is empty.
 /// # Errors
 /// Os errors relating to file access
-pub fn exists<P: AsUnixStr>(path: P) -> Result<bool> {
+pub fn exists(path: &UnixStr) -> Result<bool> {
     match rusl::unistd::stat(path) {
         Ok(_) => Ok(true),
         Err(e) => {
@@ -253,7 +253,7 @@ pub fn exists<P: AsUnixStr>(path: P) -> Result<bool> {
 /// # Errors
 /// OS errors relating to file access/permissions
 #[inline]
-pub fn remove_file<P: AsUnixStr>(path: P) -> Result<()> {
+pub fn remove_file(path: &UnixStr) -> Result<()> {
     rusl::unistd::unlink(path)?;
     Ok(())
 }
@@ -262,7 +262,7 @@ pub fn remove_file<P: AsUnixStr>(path: P) -> Result<()> {
 /// # Errors
 /// OS errors relating to file access/permissions
 #[inline]
-pub fn create_dir<P: AsUnixStr>(path: P) -> Result<()> {
+pub fn create_dir(path: &UnixStr) -> Result<()> {
     create_dir_mode(path, Mode::from(0o755))
 }
 
@@ -270,7 +270,7 @@ pub fn create_dir<P: AsUnixStr>(path: P) -> Result<()> {
 /// # Errors
 /// OS errors relating to file access/permissions
 #[inline]
-pub fn create_dir_mode<P: AsUnixStr>(path: P, mode: Mode) -> Result<()> {
+pub fn create_dir_mode(path: &UnixStr, mode: Mode) -> Result<()> {
     rusl::unistd::mkdir(path, mode)?;
     Ok(())
 }
@@ -280,24 +280,31 @@ pub fn create_dir_mode<P: AsUnixStr>(path: P, mode: Mode) -> Result<()> {
 /// OS errors relating to file access/permissions
 /// If working without an allocator, the maximum path length is 512 bytes
 #[inline]
-pub fn create_dir_all<P: AsUnixStr>(path: P) -> Result<()> {
+pub fn create_dir_all(path: &UnixStr) -> Result<()> {
     // To make it simple we'll just stack alloc an uninit 512 array for the path.
     // Kind of a travesty, but needs to be like this to work without an allocator
     const NO_ALLOC_MAX_LEN: usize = 512;
     const EMPTY: [MaybeUninit<u8>; NO_ALLOC_MAX_LEN] = [MaybeUninit::uninit(); NO_ALLOC_MAX_LEN];
-    path.exec_with_self_as_ptr(|ptr| unsafe {
+    unsafe {
         // Could check if we haven't got any slashes at all and just run the pointer straight through
         // without possibly having to add an extra indirection buffer here.
+        let ptr = path.as_ptr();
         let len = strlen(ptr);
+        if len == 0 {
+            return Err(Error::no_code(
+                "Can't create a directory with an empty name",
+            ));
+        }
         #[cfg(feature = "alloc")]
         if len > NO_ALLOC_MAX_LEN {
             let mut owned: Vec<u8> = Vec::with_capacity(len);
             ptr.copy_to(owned.as_mut_ptr(), len);
-            return write_all_sub_paths(owned.as_mut_slice(), ptr);
+            write_all_sub_paths(owned.as_mut_slice(), ptr)?;
+            return Ok(());
         }
         #[cfg(not(feature = "alloc"))]
         if len > NO_ALLOC_MAX_LEN {
-            return Err(rusl::Error::no_code(
+            return Err(Error::no_code(
                 "Supplied path larger than 512 without an allocator present",
             ));
         }
@@ -306,13 +313,16 @@ pub fn create_dir_all<P: AsUnixStr>(path: P) -> Result<()> {
         // Make into slice, we know the actual slice-length is len + 1
         let initialized_section = copied[..len].as_mut_ptr().cast();
         let buf: &mut [u8] = core::slice::from_raw_parts_mut(initialized_section, len);
-        write_all_sub_paths(buf, ptr)
-    })?;
+        write_all_sub_paths(buf, ptr)?;
+    }
     Ok(())
 }
 
 #[inline]
-fn write_all_sub_paths(buf: &mut [u8], raw: *const u8) -> core::result::Result<(), rusl::Error> {
+unsafe fn write_all_sub_paths(
+    buf: &mut [u8],
+    raw: *const u8,
+) -> core::result::Result<(), rusl::Error> {
     let len = buf.len();
     let mut it = 1;
     loop {
@@ -321,12 +331,16 @@ fn write_all_sub_paths(buf: &mut [u8], raw: *const u8) -> core::result::Result<(
         if ind == 0 {
             break;
         }
-        // Todo, actually make sure we restore
+
         let byte = buf[ind];
         if byte == b'/' {
             // Swap slash for null termination to make a valid path
             buf[ind] = NULL_BYTE;
-            return match rusl::unistd::mkdir(&buf[..=ind], Mode::from(0o755)) {
+
+            return match rusl::unistd::mkdir(
+                UnixStr::from_bytes_unchecked(&buf[..=ind]),
+                Mode::from(0o755),
+            ) {
                 // Successfully wrote, traverse down
                 Ok(_) => {
                     // Replace the null byte to make a valid path concatenation
@@ -336,14 +350,21 @@ fn write_all_sub_paths(buf: &mut [u8], raw: *const u8) -> core::result::Result<(
                         if buf[i] == b'/' {
                             // Swap slash for null termination to make a valid path
                             buf[i] = NULL_BYTE;
-                            rusl::unistd::mkdir(&buf[..=i], Mode::from(0o755))?;
+                            rusl::unistd::mkdir(
+                                UnixStr::from_bytes_unchecked(&buf[..=i]),
+                                Mode::from(0o755),
+                            )?;
                             // Swap back to continue down
                             buf[i] = b'/';
                         }
                     }
+                    // if we end on a slash we don't have to write the last part
+                    if unsafe { raw.add(len - 1).read() } == b'/' {
+                        return Ok(());
+                    }
                     // We know the actual length is len + 1 and null terminated, try write full
                     rusl::unistd::mkdir(
-                        unsafe { core::slice::from_raw_parts(raw, len + 1) },
+                        UnixStr::from_bytes_unchecked(core::slice::from_raw_parts(raw, len + 1)),
                         Mode::from(0o755),
                     )?;
                     Ok(())
@@ -376,13 +397,13 @@ impl Directory {
     /// # Errors
     /// OS errors relating to file access/permissions
     #[inline]
-    pub fn open<P: AsUnixStr>(path: P) -> Result<Directory> {
+    pub fn open(path: &UnixStr) -> Result<Directory> {
         let fd = rusl::unistd::open(path, OpenFlags::O_CLOEXEC | OpenFlags::O_RDONLY)?;
         Ok(Directory(OwnedFd(fd)))
     }
 
     #[inline]
-    fn open_at<P: AsUnixStr>(dir_fd: RawFd, path: P) -> Result<Directory> {
+    fn open_at(dir_fd: RawFd, path: &UnixStr) -> Result<Directory> {
         let fd = rusl::unistd::open_at(dir_fd, path, OpenFlags::O_CLOEXEC | OpenFlags::O_RDONLY)?;
         Ok(Directory(OwnedFd(fd)))
     }
@@ -577,7 +598,7 @@ impl<'a> DirEntry<'a> {
 /// # Errors
 /// OS errors relating to file access/permissions
 #[inline]
-pub fn remove_dir<P: AsUnixStr>(path: P) -> Result<()> {
+pub fn remove_dir(path: &UnixStr) -> Result<()> {
     rusl::unistd::unlink_flags(path, UnlinkFlags::at_removedir())?;
     Ok(())
 }
@@ -586,8 +607,8 @@ pub fn remove_dir<P: AsUnixStr>(path: P) -> Result<()> {
 /// Potentially very destructive
 /// # Errors
 /// Os errors relating to file access/permissions
-pub fn remove_dir_all<P: AsUnixStr>(path: P) -> Result<()> {
-    let dir = Directory::open(&path)?;
+pub fn remove_dir_all(path: &UnixStr) -> Result<()> {
+    let dir = Directory::open(path)?;
     dir.remove_all()?;
     remove_dir(path)
 }
@@ -678,7 +699,7 @@ impl OpenOptions {
     /// # Errors
     /// See `File::open_with_options`
     #[inline]
-    pub fn open(&self, path: impl AsUnixStr) -> Result<File> {
+    pub fn open(&self, path: &UnixStr) -> Result<File> {
         File::open_with_options(path, self)
     }
 

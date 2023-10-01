@@ -9,6 +9,7 @@ use core::num::NonZeroUsize;
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use sc::nr::MUNMAP;
 
+use crate::eprintln;
 use rusl::platform::{CloneFlags, MapAdditionalFlags, MapRequiredFlag, MemoryProtection};
 use rusl::unistd::mmap;
 
@@ -626,7 +627,7 @@ pub fn on_panic(info: &core::panic::PanicInfo) -> ! {
             options(nostack, noreturn)
             );
         } else {
-            unix_print::unix_eprintln!("Main thread panicked: {}", info);
+            eprintln!("Main thread panicked: {}", info);
             rusl::process::exit(1)
         }
     }
