@@ -19,3 +19,6 @@ for applications that can be threaded.
 15. [ ] Use type-checked builders as args for comptime error evaluation of syscalls.  
 16. [ ] Enforce correct features for symbol relocation through a build-script (Fail compilation with 
 static relocation if `aux` feature isn't enabled, since that will result in a botched binary).  
+17. [ ] Path operations on &UnixStr
+18. [x] Implement `from_str` on &UnixStr
+19. [x] Throw a rusl::Error instead of Utf8Error on `as_str`

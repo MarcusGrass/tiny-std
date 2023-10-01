@@ -1,6 +1,6 @@
 use core::fmt::{Debug, Display, Formatter};
 
-pub use rusl::error::Errno;
+use rusl::error::Errno;
 
 pub type Result<T> = core::result::Result<T, Error>;
 

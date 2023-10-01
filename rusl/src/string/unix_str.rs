@@ -3,16 +3,27 @@ use crate::Error;
 use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+use core::fmt::{Debug, Formatter};
 use core::hash::Hasher;
-use core::str::Utf8Error;
 
 use crate::platform::NULL_BYTE;
 use crate::string::strlen::strlen;
 
 #[cfg(feature = "alloc")]
 #[repr(transparent)]
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct UnixString(pub(crate) Vec<u8>);
+
+#[cfg(feature = "alloc")]
+impl Debug for UnixString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let slice = unsafe { core::slice::from_raw_parts(self.0.as_ptr(), self.0.len()) };
+        match core::str::from_utf8(slice) {
+            Ok(raw) => f.write_fmt(format_args!("UnixString({raw})")),
+            Err(_e) => f.write_fmt(format_args!("UnixString({slice:?})")),
+        }
+    }
+}
 
 #[cfg(feature = "alloc")]
 impl UnixString {
@@ -97,7 +108,7 @@ impl AsRef<UnixStr> for UnixString {
 }
 
 #[repr(transparent)]
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Eq, PartialEq, Ord, PartialOrd)]
 pub struct UnixStr(pub(crate) [u8]);
 
 impl UnixStr {
@@ -168,9 +179,9 @@ impl UnixStr {
     /// Try to convert this `&UnixStr` to a utf8 `&str`
     /// # Errors
     /// Not utf8
-    pub fn as_str(&self) -> Result<&str, Utf8Error> {
+    pub fn as_str(&self) -> Result<&str, Error> {
         let slice = unsafe { core::slice::from_raw_parts(self.0.as_ptr(), self.0.len() - 1) };
-        core::str::from_utf8(slice)
+        Ok(core::str::from_utf8(slice)?)
     }
 
     /// Get this `&UnixStr` as a slice, including the null byte
@@ -238,6 +249,16 @@ impl UnixStr {
     }
 }
 
+impl<'a> Debug for &'a UnixStr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let slice = unsafe { core::slice::from_raw_parts(self.0.as_ptr(), self.0.len()) };
+        match core::str::from_utf8(slice) {
+            Ok(inner) => f.write_fmt(format_args!("UnixStr({inner})")),
+            Err(_e) => f.write_fmt(format_args!("UnixStr({slice:?})")),
+        }
+    }
+}
+
 impl<'a> core::hash::Hash for &'a UnixStr {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -250,6 +271,16 @@ impl From<&UnixStr> for UnixString {
     #[inline]
     fn from(s: &UnixStr) -> Self {
         UnixString(s.0.to_vec())
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl core::str::FromStr for UnixString {
+    type Err = Error;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from_str(s)
     }
 }
 

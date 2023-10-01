@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+## [v0.2.1] - 2023-10-01
+
+### Changed
+- Throw a rusl error instead of a Utf8Error on failed `UnixStr` conversions.
+
 ## [v0.2.0] - 2023-10-01
 
 ### Changed
