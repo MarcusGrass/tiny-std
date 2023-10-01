@@ -104,18 +104,10 @@ mod tests {
             .wait(&mut buf, EpollTimeout::WaitMillis(1_000))
             .unwrap();
         assert_eq!(1, buf[0].get_data());
-        if std::env::var("CI").is_ok() {
-            assert!(
-                buf[0].get_events().contains(EpollEventMask::EPOLLHUP),
-                "Expected EPOLLHUP, got {:?}",
-                buf[0].get_events()
-            );
-        } else {
-            assert!(
-                buf[0].get_events().contains(EpollEventMask::EPOLLOUT),
-                "Expected EPOLLOUT, got {:?}",
-                buf[0].get_events()
-            );
-        }
+        assert!(
+            buf[0].get_events().contains(EpollEventMask::EPOLLOUT),
+            "Expected EPOLLOUT, got {:?}",
+            buf[0].get_events()
+        );
     }
 }
