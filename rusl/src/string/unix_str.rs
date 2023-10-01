@@ -2,142 +2,16 @@ use crate::Error;
 #[cfg(feature = "alloc")]
 use alloc::string::String;
 #[cfg(feature = "alloc")]
-use alloc::vec;
-#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-use core::ops::Deref;
+use core::hash::Hasher;
 use core::str::Utf8Error;
 
 use crate::platform::NULL_BYTE;
-use crate::string::null_term_ptr_cmp_up_to;
 use crate::string::strlen::strlen;
 
 #[cfg(feature = "alloc")]
-pub trait AsUnixStr: ToUnixString {
-    /// Executes a function with this null terminated entity
-    /// converts it to a string and pushes a null byte if not already null terminated
-    /// # Errors
-    /// Propagates the function's errors
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>;
-
-    /// Checks if this `AsUnixStr` matches a null terminated pointer and returns the non null length
-    /// # Safety
-    /// Pointer is null terminated
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize;
-}
-
-#[cfg(not(feature = "alloc"))]
-pub trait AsUnixStr {
-    /// Executes a function with this null terminated entity
-    /// # Errors
-    /// 1. Propagates the function's errors
-    /// 2. Errors if the provided entity isn't null terminated as we need an allocator to modify
-    /// it.
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>;
-
-    /// Checks if this `AsUnixStr` matches a null terminated pointer and returns the non null length
-    /// # Safety
-    /// Pointer is null terminated
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize;
-}
-
-#[cfg(feature = "alloc")]
-pub trait ToUnixString {
-    /// Turn this into a `UnixString`
-    /// # Errors
-    /// If this string can't be converted this will throw an error
-    /// The only real reasons are if you have multiple null bytes or no access to an allocator
-    fn to_unix_string(&self) -> crate::Result<UnixString>;
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for () {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        Ok(UnixString(vec![b'\0']))
-    }
-}
-
-impl AsUnixStr for () {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        func([NULL_BYTE].as_ptr())
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, _null_terminated_pointer: *const u8) -> usize {
-        0
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl<T> ToUnixString for &T
-where
-    T: ToUnixString,
-{
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        (*self).to_unix_string()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl<T> ToUnixString for &mut T
-where
-    T: ToUnixString,
-{
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        self.deref().to_unix_string()
-    }
-}
-
-impl<A> AsUnixStr for &A
-where
-    A: AsUnixStr,
-{
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        (*self).exec_with_self_as_ptr(func)
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        (*self).match_up_to(null_terminated_pointer)
-    }
-}
-
-impl<A> AsUnixStr for &mut A
-where
-    A: AsUnixStr,
-{
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        self.deref().exec_with_self_as_ptr(func)
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        self.deref().match_up_to(null_terminated_pointer)
-    }
-}
-
-#[cfg(feature = "alloc")]
 #[repr(transparent)]
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct UnixString(pub(crate) Vec<u8>);
 
 #[cfg(feature = "alloc")]
@@ -147,158 +21,61 @@ impl UnixString {
     pub fn as_ptr(&self) -> *const u8 {
         self.0.as_ptr()
     }
-}
 
-#[cfg(feature = "alloc")]
-impl TryFrom<String> for UnixString {
-    type Error = crate::Error;
-
+    /// Create a `UnixString` from a `String`.
+    /// # Errors
+    /// String has nulls in other places than end.
     #[inline]
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        value.into_bytes().try_into()
+    pub fn try_from_string(s: String) -> Result<Self, Error> {
+        Self::try_from_vec(s.into_bytes())
     }
-}
 
-#[cfg(feature = "alloc")]
-impl TryFrom<&str> for UnixString {
-    type Error = crate::Error;
-
+    /// Create a `UnixString` from a `Vec<u8>`.
+    /// # Errors
+    /// Vec has nulls in other places than end.
     #[inline]
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        value.as_bytes().to_vec().try_into()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for &str {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        self.as_bytes().to_unix_string()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl TryFrom<Vec<u8>> for UnixString {
-    type Error = crate::Error;
-    fn try_from(mut value: Vec<u8>) -> Result<Self, Self::Error> {
-        match null_terminated_ok(&value) {
-            NullTermCheckResult::NullTerminated => Ok(Self(value)),
-            NullTermCheckResult::NullByteOutOfPlace => null_byte_out_of_place(),
-            NullTermCheckResult::NotNullTerminated => {
-                value.push(NULL_BYTE);
-                Ok(Self(value))
+    pub fn try_from_vec(mut s: Vec<u8>) -> Result<Self, Error> {
+        let len = s.len();
+        for (ind, byte) in s.iter().enumerate() {
+            if *byte == NULL_BYTE {
+                return if ind == len - 1 {
+                    unsafe { Ok(core::mem::transmute(s)) }
+                } else {
+                    Err(Error::no_code("Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place"))
+                };
             }
         }
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for Vec<u8> {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        self.as_slice().to_unix_string()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl AsUnixStr for Vec<u8> {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        self.as_slice().exec_with_self_as_ptr(func)
+        s.push(0);
+        Ok(Self(s))
     }
 
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        self.as_slice().match_up_to(null_terminated_pointer)
-    }
-}
-
-impl AsUnixStr for &[u8] {
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        match null_terminated_ok(self) {
-            NullTermCheckResult::NullTerminated => func(self.as_ptr()),
-            NullTermCheckResult::NullByteOutOfPlace => null_byte_out_of_place(),
-            NullTermCheckResult::NotNullTerminated => {
-                if self.is_empty() {
-                    return func([NULL_BYTE].as_ptr());
-                }
-                #[cfg(feature = "alloc")]
-                {
-                    let mut buf = self.to_vec();
-                    buf.push(NULL_BYTE);
-                    func(buf.as_ptr())
-                }
-                #[cfg(not(feature = "alloc"))]
-                Err(crate::Error::not_null_terminated())
+    /// Create a `UnixString` from a `&[u8]`.
+    /// Will allocate and push a null byte if not null terminated
+    /// # Errors
+    /// Bytes aren't properly null terminated, several nulls contained.
+    pub fn try_from_bytes(s: &[u8]) -> Result<Self, Error> {
+        let len = s.len();
+        for (ind, byte) in s.iter().enumerate() {
+            if *byte == NULL_BYTE {
+                return if ind == len - 1 {
+                    unsafe { Ok(core::mem::transmute(s.to_vec())) }
+                } else {
+                    Err(Error::no_code("Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place"))
+                };
             }
         }
+        let mut new = s.to_vec();
+        new.push(0);
+        Ok(Self(new))
     }
 
+    /// Create a `UnixString` from a `&str`.
+    /// Will allocate and push a null byte if not null terminated
+    /// # Errors
+    /// String isn't properly null terminated, several nulls contained.
     #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        let this_len = self.len();
-        for i in 0..this_len {
-            let other_byte = null_terminated_pointer.add(i).read();
-            if self[i] != other_byte || other_byte == NULL_BYTE {
-                return i;
-            }
-        }
-        this_len - 1
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for &mut [u8] {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        self.deref().to_unix_string()
-    }
-}
-
-impl AsUnixStr for &mut [u8] {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        self.deref().exec_with_self_as_ptr(func)
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        (&self).match_up_to(null_terminated_pointer)
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl TryFrom<&[u8]> for UnixString {
-    type Error = crate::Error;
-
-    #[inline]
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        value.to_vec().try_into()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for &[u8] {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        match null_terminated_ok(self) {
-            NullTermCheckResult::NullTerminated => Ok(UnixString(self.to_vec())),
-            NullTermCheckResult::NullByteOutOfPlace => null_byte_out_of_place(),
-            NullTermCheckResult::NotNullTerminated => {
-                let mut v = self.to_vec();
-                v.push(NULL_BYTE);
-                Ok(UnixString(v))
-            }
-        }
+    pub fn try_from_str(s: &str) -> Result<Self, Error> {
+        Self::try_from_bytes(s.as_bytes())
     }
 }
 
@@ -311,15 +88,32 @@ impl core::ops::Deref for UnixString {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl AsRef<UnixStr> for UnixString {
+    #[inline]
+    fn as_ref(&self) -> &UnixStr {
+        unsafe { UnixStr::from_bytes_unchecked(self.0.as_slice()) }
+    }
+}
+
 #[repr(transparent)]
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct UnixStr(pub(crate) [u8]);
 
 impl UnixStr {
+    pub const EMPTY: &'static Self = UnixStr::from_str_checked("\0");
+
     /// # Safety
     /// `&str` needs to be null terminated or downstream UB may occur
     #[must_use]
     pub const unsafe fn from_str_unchecked(s: &str) -> &Self {
+        core::mem::transmute(s)
+    }
+
+    /// # Safety
+    /// `&[u8]` needs to be null terminated or downstream UB may occur
+    #[must_use]
+    pub const unsafe fn from_bytes_unchecked(s: &[u8]) -> &Self {
         core::mem::transmute(s)
     }
 
@@ -330,15 +124,36 @@ impl UnixStr {
     /// not particularly efficient.
     #[must_use]
     pub const fn from_str_checked(s: &str) -> &Self {
-        match const_null_term_check(s.as_bytes()) {
-            NullTermCheckResult::NullTerminated => unsafe { core::mem::transmute(s) },
-            NullTermCheckResult::NullByteOutOfPlace => {
-                panic!("Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place");
-            }
-            NullTermCheckResult::NotNullTerminated => {
-                panic!("Tried to instantiate UnixStr from an invalid &str, not null terminated");
+        const_null_term_validate(s.as_bytes());
+        unsafe { core::mem::transmute(s) }
+    }
+
+    /// Create a `&UnixStr` from a `&str`.
+    /// # Errors
+    /// String isn't properly null terminated.
+    #[inline]
+    pub fn try_from_str(s: &str) -> Result<&Self, Error> {
+        Self::try_from_bytes(s.as_bytes())
+    }
+
+    /// Create a `&UnixStr` from a `&[u8]`.
+    /// # Errors
+    /// Slice isn't properly null terminated.
+    #[inline]
+    pub fn try_from_bytes(s: &[u8]) -> Result<&Self, Error> {
+        let len = s.len();
+        for (ind, byte) in s.iter().enumerate() {
+            if *byte == NULL_BYTE {
+                return if ind == len - 1 {
+                    unsafe { Ok(&*(s as *const [u8] as *const UnixStr)) }
+                } else {
+                    Err(Error::no_code("Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place"))
+                };
             }
         }
+        Err(Error::no_code(
+            "Tried to instantiate UnixStr from an invalid &str, not null terminated",
+        ))
     }
 
     /// # Safety
@@ -372,6 +187,62 @@ impl UnixStr {
     pub fn len(&self) -> usize {
         self.0.len()
     }
+
+    /// Get the length of this `&UnixStr`, including the null byte
+    #[must_use]
+    #[inline]
+    pub fn as_ptr(&self) -> *const u8 {
+        self.0.as_ptr()
+    }
+
+    #[must_use]
+    pub fn match_up_to(&self, other: &UnixStr) -> usize {
+        let mut it = 0;
+        let slf_ptr = self.as_ptr();
+        let other_ptr = other.as_ptr();
+        loop {
+            unsafe {
+                let a_val = slf_ptr.add(it).read();
+                let b_val = other_ptr.add(it).read();
+                if a_val != b_val || a_val == NULL_BYTE {
+                    // Not equal, or terminated
+                    return it;
+                }
+                // Equal continue
+                it += 1;
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn match_up_to_str(&self, other: &str) -> usize {
+        let mut it = 0;
+        let slf_ptr = self.as_ptr();
+        let other_ptr = other.as_ptr();
+        let other_len = other.len();
+        loop {
+            unsafe {
+                let a_val = slf_ptr.add(it).read();
+                let b_val = other_ptr.add(it).read();
+                if a_val != b_val || a_val == NULL_BYTE {
+                    // Not equal, or terminated
+                    return it;
+                }
+                // Equal continue
+                it += 1;
+            }
+            if it == other_len {
+                return it;
+            }
+        }
+    }
+}
+
+impl<'a> core::hash::Hash for &'a UnixStr {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -382,179 +253,98 @@ impl From<&UnixStr> for UnixString {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl ToUnixString for &UnixStr {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        Ok(UnixString(self.0.to_vec()))
-    }
-}
-
-impl AsUnixStr for &UnixStr {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        func(self.0.as_ptr())
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        null_term_ptr_cmp_up_to(self.0.as_ptr(), null_terminated_pointer)
-    }
-}
-
-impl AsUnixStr for &mut UnixStr {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        self.deref().exec_with_self_as_ptr(func)
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        null_term_ptr_cmp_up_to(self.0.as_ptr(), null_terminated_pointer)
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for &mut UnixStr {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        self.deref().to_unix_string()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl AsUnixStr for UnixString {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        func(self.0.as_ptr())
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        self.deref().match_up_to(null_terminated_pointer)
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for UnixString {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        Ok(self.clone())
-    }
-}
-
-impl AsUnixStr for &str {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        self.as_bytes().exec_with_self_as_ptr(func)
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        self.as_bytes().match_up_to(null_terminated_pointer)
-    }
-}
-
-impl AsUnixStr for &mut str {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        self.deref().exec_with_self_as_ptr(func)
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        self.as_bytes().match_up_to(null_terminated_pointer)
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for &mut str {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        self.deref().to_unix_string()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl AsUnixStr for String {
-    #[inline]
-    fn exec_with_self_as_ptr<F, T>(&self, func: F) -> crate::Result<T>
-    where
-        F: FnOnce(*const u8) -> crate::Result<T>,
-    {
-        self.as_bytes().exec_with_self_as_ptr(func)
-    }
-
-    #[inline]
-    unsafe fn match_up_to(&self, null_terminated_pointer: *const u8) -> usize {
-        self.as_bytes().match_up_to(null_terminated_pointer)
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl ToUnixString for String {
-    #[inline]
-    fn to_unix_string(&self) -> crate::Result<UnixString> {
-        self.as_bytes().to_unix_string()
-    }
-}
-
-const fn null_byte_out_of_place<T>() -> crate::Result<T> {
-    Err(Error::no_code("Null byte out of place"))
-}
-
-#[derive(Debug, Copy, Clone)]
-enum NullTermCheckResult {
-    NullTerminated,
-    NullByteOutOfPlace,
-    NotNullTerminated,
-}
-
 #[inline]
-fn null_terminated_ok(s: &[u8]) -> NullTermCheckResult {
-    let len = s.len();
-    for (ind, byte) in s.iter().enumerate() {
-        if *byte == NULL_BYTE {
-            return if ind == len - 1 {
-                NullTermCheckResult::NullTerminated
-            } else {
-                NullTermCheckResult::NullByteOutOfPlace
-            };
-        }
-    }
-    NullTermCheckResult::NotNullTerminated
-}
-
-#[inline]
-const fn const_null_term_check(s: &[u8]) -> NullTermCheckResult {
-    if s.is_empty() {
-        return NullTermCheckResult::NotNullTerminated;
-    }
+const fn const_null_term_validate(s: &[u8]) {
+    assert!(
+        !s.is_empty(),
+        "Tried to instantiate UnixStr from an invalid &str, not null terminated"
+    );
     let len = s.len() - 1;
     let mut i = len;
-    if s[i] != b'\0' {
-        return NullTermCheckResult::NotNullTerminated;
-    }
+    assert!(
+        s[i] == b'\0',
+        "Tried to instantiate UnixStr from an invalid &str, not null terminated"
+    );
     while i > 0 {
         i -= 1;
-        if s[i] == b'\0' {
-            return NullTermCheckResult::NullByteOutOfPlace;
-        }
+        assert!(s[i] != b'\0', "Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place");
     }
-    NullTermCheckResult::NullTerminated
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn can_match_up_to() {
+        let haystack = UnixStr::try_from_str("haystack\0").unwrap();
+        let needle = UnixStr::EMPTY;
+        assert_eq!(0, haystack.match_up_to(needle));
+        let needle = UnixStr::try_from_str("h\0").unwrap();
+        assert_eq!(1, haystack.match_up_to(needle));
+        let needle = UnixStr::try_from_str("haystac\0").unwrap();
+        assert_eq!(7, haystack.match_up_to(needle));
+        let needle = UnixStr::try_from_str("haystack\0").unwrap();
+        assert_eq!(8, haystack.match_up_to(needle));
+        let needle = UnixStr::try_from_str("haystack2\0").unwrap();
+        assert_eq!(8, haystack.match_up_to(needle));
+    }
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn can_create_unix_string_happy() {
+        let correct = UnixString::try_from_str("abc\0").unwrap();
+        let correct2 = UnixString::try_from_bytes(b"abc\0").unwrap();
+        let correct3 = UnixString::try_from_string("abc\0".to_string()).unwrap();
+        let correct4 = UnixString::try_from_vec(b"abc\0".to_vec()).unwrap();
+        let correct5 = UnixString::try_from_str("abc").unwrap();
+        let correct6 = UnixString::try_from_string(String::from("abc")).unwrap();
+        assert_eq!(correct, correct2);
+        assert_eq!(correct2, correct3);
+        assert_eq!(correct3, correct4);
+        assert_eq!(correct4, correct5);
+        assert_eq!(correct5, correct6);
+        let compare = [b'a', b'b', b'c', 0];
+        assert_eq!(correct4.as_slice(), compare);
+        assert_ne!(correct.as_ptr(), correct2.as_ptr());
+        assert_eq!(UnixStr::try_from_str("abc\0").unwrap(), correct.as_ref());
+        assert_eq!(UnixStr::try_from_str("abc\0").unwrap(), &*correct);
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn can_create_unix_string_sad() {
+        let acceptable = UnixString::try_from_str("abc").unwrap();
+        let correct = UnixString::try_from_str("abc\0").unwrap();
+        assert_eq!(correct, acceptable);
+        let unacceptable = UnixString::try_from_str("a\0bc");
+        assert!(unacceptable.is_err());
+        let unacceptable_vec = UnixString::try_from_vec(alloc::vec![b'a', b'\0', b'b', b'c']);
+        assert!(unacceptable_vec.is_err());
+    }
+
+    #[test]
+    fn can_create_unix_str() {
+        const CONST_CORRECT: &UnixStr = UnixStr::from_str_checked("abc\0");
+
+        let correct1 = UnixStr::try_from_str("abc\0").unwrap();
+        let correct2 = UnixStr::try_from_bytes(b"abc\0").unwrap();
+        assert_eq!(CONST_CORRECT, correct1);
+        assert_eq!(correct1, correct2);
+    }
+
+    #[test]
+    fn can_create_unix_str_sad() {
+        let unacceptable = UnixStr::try_from_str("a\0bc");
+        assert!(unacceptable.is_err());
+        let unacceptable_vec = UnixStr::try_from_bytes(&[b'a', b'\0', b'b', b'c']);
+        assert!(unacceptable_vec.is_err());
+        let unacceptable_not_null_term = UnixStr::try_from_str("abc");
+        assert!(unacceptable_not_null_term.is_err());
+    }
+
+    #[test]
+    fn can_cmp_unix_str_and_str() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        const MY_CMP_STR: &str = "my-nice-str";
+        assert_eq!(MY_CMP_STR.len(), UNIX_STR.match_up_to_str(MY_CMP_STR));
+    }
 }

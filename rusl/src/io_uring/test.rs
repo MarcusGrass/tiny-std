@@ -45,7 +45,11 @@ fn uring_register_files() {
     let Some(uring_fd) = setup_io_poll_uring() else {
         return;
     };
-    let open_fd = open("test-files/can_open.txt\0", OpenFlags::O_RDWR).unwrap();
+    let open_fd = open(
+        UnixStr::try_from_str("test-files/can_open.txt\0").unwrap(),
+        OpenFlags::O_RDWR,
+    )
+    .unwrap();
     io_uring_register_files(uring_fd, &[open_fd]).unwrap();
 }
 
@@ -103,7 +107,11 @@ fn uring_single_read() {
     let mut bytes = [0u8; 1024];
     let buf = IoSliceMut::new(&mut bytes);
     let mut slices = [buf];
-    let fd = open("test-files/can_open.txt\0", OpenFlags::O_RDONLY).unwrap();
+    let fd = open(
+        UnixStr::try_from_str("test-files/can_open.txt\0").unwrap(),
+        OpenFlags::O_RDONLY,
+    )
+    .unwrap();
     let user_data = 15;
     let entry = unsafe {
         IoUringSubmissionQueueEntry::new_readv(
@@ -193,7 +201,11 @@ fn uring_single_close() {
     let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
     };
-    let fd = open("test-files/can_open.txt\0", OpenFlags::O_RDONLY).unwrap();
+    let fd = open(
+        UnixStr::try_from_str("test-files/can_open.txt\0").unwrap(),
+        OpenFlags::O_RDONLY,
+    )
+    .unwrap();
     let user_data = 35;
     let entry = IoUringSubmissionQueueEntry::new_close(fd, user_data, IoUringSQEFlags::empty());
     write_await_single_entry(&mut uring, entry, user_data);
@@ -317,7 +329,7 @@ fn uring_single_mkdir_at() {
         IoUringSubmissionQueueEntry::new_mkdirat(
             None,
             new_dir_path,
-            Mode::empty(),
+            Mode(0o755),
             user_data,
             IoUringSQEFlags::empty(),
         )
@@ -495,17 +507,17 @@ fn uring_read_registered_buffers_and_fds() {
         .unwrap();
     }
     let fd1 = open(
-        "test-files/io_uring/uring_register_read1\0",
+        UnixStr::try_from_str("test-files/io_uring/uring_register_read1\0").unwrap(),
         OpenFlags::O_RDONLY,
     )
     .unwrap();
     let fd2 = open(
-        "test-files/io_uring/uring_register_read2\0",
+        UnixStr::try_from_str("test-files/io_uring/uring_register_read2\0").unwrap(),
         OpenFlags::O_RDONLY,
     )
     .unwrap();
     let fd3 = open(
-        "test-files/io_uring/uring_register_read3\0",
+        UnixStr::try_from_str("test-files/io_uring/uring_register_read3\0").unwrap(),
         OpenFlags::O_RDONLY,
     )
     .unwrap();
@@ -594,9 +606,9 @@ fn uring_write_registered_buffers_and_fds() {
         )
         .unwrap();
     }
-    let path1 = "test-files/io_uring/tmp_uring_register_write1\0";
-    let path2 = "test-files/io_uring/tmp_uring_register_write2\0";
-    let path3 = "test-files/io_uring/tmp_uring_register_write3\0";
+    let path1 = UnixStr::try_from_str("test-files/io_uring/tmp_uring_register_write1\0").unwrap();
+    let path2 = UnixStr::try_from_str("test-files/io_uring/tmp_uring_register_write2\0").unwrap();
+    let path3 = UnixStr::try_from_str("test-files/io_uring/tmp_uring_register_write3\0").unwrap();
     let fd1 = open_mode(
         path1,
         OpenFlags::O_RDWR | OpenFlags::O_CREAT | OpenFlags::O_TRUNC,

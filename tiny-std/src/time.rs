@@ -41,7 +41,7 @@ impl MonotonicInstant {
 /// Some instant in time, ever increasing but able to be manipulated.
 /// The manipulations carries a risk of over/underflow,
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Instant(TimeSpec);
+pub struct Instant(pub(crate) TimeSpec);
 
 impl Instant {
     #[inline]
@@ -169,13 +169,14 @@ fn checked_sub_dur(timespec: TimeSpec, duration: Duration) -> Option<TimeSpec> {
     if total_nanos < 0 {
         // tv_nsec is always < `NANOS_A_SECOND`, so this won't get wonky
         total_nanos += NANOS_A_SECOND;
-        seconds = seconds.checked_sub(1)?;
+        seconds = seconds.checked_add(1)?;
     }
     let tv_sec = timespec.seconds().checked_sub(seconds.try_into().ok()?)?;
 
-    Some(TimeSpec::new(tv_sec.gt(&0).then_some(tv_sec)?, total_nanos))
+    Some(TimeSpec::new(tv_sec.ge(&0).then_some(tv_sec)?, total_nanos))
 }
 
+/// Can panic if left is not bigger than right
 #[inline]
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 fn sub_ts_dur(lhs: TimeSpec, rhs: TimeSpec) -> Duration {
@@ -242,6 +243,13 @@ fn get_real_time() -> TimeSpec {
     rusl::time::clock_get_real_time()
 }
 
+impl AsRef<TimeSpec> for Instant {
+    #[inline]
+    fn as_ref(&self) -> &TimeSpec {
+        &self.0
+    }
+}
+
 #[inline]
 #[cfg(not(feature = "vdso"))]
 fn get_monotonic_time() -> TimeSpec {
@@ -254,16 +262,91 @@ fn get_real_time() -> TimeSpec {
     rusl::time::clock_get_real_time()
 }
 
-impl From<TimeSpec> for Instant {
-    #[inline]
-    fn from(value: TimeSpec) -> Self {
-        Self(value)
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::ops::Add;
+    #[test]
+    fn instant_now() {
+        // We're using monotonic time, Linux implementation is time since boot.
+        let instant = Instant::now();
+        let since_start = instant
+            .duration_since(Instant(TimeSpec::new_zeroed()))
+            .unwrap();
+        assert!(since_start > Duration::from_secs(1));
+        assert!(instant.elapsed().unwrap().as_nanos() > 0);
     }
-}
 
-impl AsRef<TimeSpec> for Instant {
-    #[inline]
-    fn as_ref(&self) -> &TimeSpec {
-        &self.0
+    #[test]
+    fn system_time_now() {
+        let system_time = SystemTime::now();
+        let since_start = system_time.duration_since_unix_time();
+        assert!(
+            since_start.as_secs() > 1_694_096_772,
+            "Test has failed or this machine's clock is off"
+        );
+        assert!(system_time.elapsed().unwrap().as_nanos() > 0);
+    }
+
+    #[test]
+    fn monotonic_to_instant() {
+        let now = MonotonicInstant::now();
+        let instant = now.as_instant();
+        assert_eq!(now.0, instant.0);
+        let dur = instant.duration_since(instant).unwrap();
+        assert_eq!(0, dur.as_secs());
+    }
+
+    #[test]
+    fn instant_arithmetic() {
+        let now = Instant::now().add(Duration::from_millis(100)).unwrap();
+        let before = (now - Duration::from_millis(10)).unwrap();
+        let diff = (now - before).unwrap();
+        assert_eq!(Duration::from_millis(10), diff);
+        let back_to_now = (before + diff).unwrap();
+        assert_eq!(now, back_to_now);
+    }
+
+    #[test]
+    fn system_time_arithmetic() {
+        let now = SystemTime::now();
+        let before = (now - Duration::from_millis(10)).unwrap();
+        let diff = (now - before).unwrap();
+        assert_eq!(Duration::from_millis(10), diff);
+        let back_to_now = (before + diff).unwrap();
+        assert_eq!(now, back_to_now);
+    }
+
+    #[test]
+    fn nano_overflow_adds() {
+        let overflow_nanos = TimeSpec::new(0, 999_999_999);
+        let add_by = Duration::from_nanos(2);
+        let dur = checked_add_dur(overflow_nanos, add_by).unwrap();
+        assert_eq!(TimeSpec::new(1, 1), dur);
+    }
+
+    #[test]
+    fn nano_underflow_subs() {
+        let underflow_nanos = TimeSpec::new(1, 0);
+        let sub_by = Duration::from_nanos(1);
+        let dur = checked_sub_dur(underflow_nanos, sub_by).unwrap();
+        assert_eq!(TimeSpec::new(0, 999_999_999), dur);
+    }
+
+    #[test]
+    fn ts_underflow_sub() {
+        let left = TimeSpec::new(1, 0);
+        let right = TimeSpec::new(0, 999_999_999);
+        let res = sub_ts_dur(left, right);
+        assert_eq!(Duration::from_nanos(1), res);
+    }
+
+    #[test]
+    fn ts_underflow_checked() {
+        let left = TimeSpec::new(1, 0);
+        let right = TimeSpec::new(0, 999_999_999);
+        let res = sub_ts_checked_dur(left, right).unwrap();
+        assert_eq!(Duration::from_nanos(1), res);
+        assert!(sub_ts_checked_dur(right, left).is_none());
     }
 }

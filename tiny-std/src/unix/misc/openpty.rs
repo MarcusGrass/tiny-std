@@ -1,6 +1,6 @@
 use rusl::ioctl::ioctl;
 use rusl::platform::{Fd, OpenFlags, SetAction, TermioFlags, Termios, WindowSize};
-use rusl::string::unix_str::AsUnixStr;
+use rusl::string::unix_str::UnixStr;
 use rusl::termios::tcsetattr;
 use rusl::unistd::{open, open_raw};
 
@@ -15,14 +15,15 @@ pub struct TerminalHandle {
 /// Not many errors can occur assuming that (`None`, `None`, `None`) is passed and you have
 /// appropriate permissions.
 /// See the [linux docs for the exceptions](https://man7.org/linux/man-pages/man2/ioctl_tty.2.html)
-pub fn openpty<P: AsUnixStr>(
-    name: Option<P>,
+pub fn openpty(
+    name: Option<&UnixStr>,
     termios: Option<&Termios>,
     winsize: Option<&WindowSize>,
 ) -> crate::error::Result<TerminalHandle> {
+    const PTMX: &UnixStr = UnixStr::from_str_checked("/dev/ptmx\0");
     let use_flags: OpenFlags = OpenFlags::O_RDWR | OpenFlags::O_NOCTTY;
     unsafe {
-        let master = open("/dev/ptmx\0", use_flags)?;
+        let master = open(PTMX, use_flags)?;
         let mut pty_num = 0;
         let pty_num_addr = core::ptr::addr_of_mut!(pty_num);
         // Todo: Maybe check if not zero and bail like musl does

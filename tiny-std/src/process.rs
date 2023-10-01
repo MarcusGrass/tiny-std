@@ -9,16 +9,16 @@ use core::hint::unreachable_unchecked;
 use rusl::error::Errno;
 use rusl::platform::{Fd, GidT, OpenFlags, PidT, UidT, WaitPidFlags};
 use rusl::platform::{STDERR, STDIN, STDOUT};
+use rusl::string::unix_str::UnixStr;
 #[cfg(feature = "alloc")]
 use rusl::string::unix_str::UnixString;
-use rusl::string::unix_str::{AsUnixStr, UnixStr};
 
 use crate::error::{Error, Result};
 use crate::fs::OpenOptions;
 use crate::io::{Read, Write};
 use crate::unix::fd::{OwnedFd, RawFd};
 
-const DEV_NULL: &str = "/dev/null\0";
+const DEV_NULL: &UnixStr = UnixStr::from_str_checked("/dev/null\0");
 
 /// Terminates this process
 #[inline]
@@ -27,13 +27,13 @@ pub fn exit(code: i32) -> ! {
 }
 
 #[cfg(feature = "alloc")]
-pub struct Command {
-    bin: UnixString,
-    args: Vec<UnixString>,
+pub struct Command<'a> {
+    bin: &'a UnixStr,
+    args: Vec<&'a UnixStr>,
     argv: Argv,
-    closures: Vec<Box<dyn FnMut() -> crate::error::Result<()> + Send + Sync>>,
+    closures: Vec<Box<dyn FnMut() -> Result<()> + Send + Sync>>,
     env: Environment,
-    cwd: Option<UnixString>,
+    cwd: Option<&'a UnixStr>,
     uid: Option<UidT>,
     gid: Option<GidT>,
     stdin: Option<Stdio>,
@@ -67,15 +67,14 @@ unsafe impl Send for Envp {}
 unsafe impl Sync for Envp {}
 
 #[cfg(feature = "alloc")]
-impl Command {
+impl<'a> Command<'a> {
     /// Constructs a new command, setting the first argument as the binary's name
     /// # Errors
     /// If the string is not `C string compatible`
-    pub fn new<A: AsUnixStr>(bin: A) -> Result<Self> {
-        let bin = bin.to_unix_string()?;
+    pub fn new(bin: &'a UnixStr) -> Result<Self> {
         let bin_ptr = bin.as_ptr();
         Ok(Self {
-            bin: bin.clone(),
+            bin,
             args: vec![bin],
             argv: Argv(vec![bin_ptr, core::ptr::null()]),
             closures: vec![],
@@ -92,7 +91,7 @@ impl Command {
 
     /// # Errors
     /// If the string is not `C string compatible`
-    pub fn env<A: AsUnixStr>(&mut self, env: A) -> Result<&mut Self> {
+    pub fn env(&mut self, env: UnixString) -> &mut Self {
         #[cfg(feature = "start")]
         if matches!(self.env, Environment::Inherit | Environment::None) {
             self.env = Environment::Provided(ProvidedEnvironment {
@@ -108,42 +107,40 @@ impl Command {
             });
         };
         if let Environment::Provided(pe) = &mut self.env {
-            let s = env.to_unix_string()?;
+            let s = env;
             pe.envp.0[pe.vars.len()] = s.as_ptr();
             pe.envp.0.push(core::ptr::null());
             pe.vars.push(s);
         }
-        Ok(self)
+        self
     }
 
     /// # Errors
     /// If the string is not `C string compatible`
-    pub fn envs<A: AsUnixStr>(&mut self, envs: Vec<A>) -> Result<&mut Self> {
+    pub fn envs(&mut self, envs: impl Iterator<Item = UnixString>) -> &mut Self {
         for env in envs {
-            self.env(env)?;
+            self.env(env);
         }
-        Ok(self)
+        self
     }
 
     /// # Errors
     /// If the string is not `C string compatible`
-    pub fn arg<A: AsUnixStr>(&mut self, arg: A) -> Result<&mut Self> {
-        let unix_string = arg.to_unix_string()?;
+    pub fn arg(&mut self, arg: &'a UnixStr) -> &mut Self {
+        let unix_string = arg;
         self.argv.0[self.args.len()] = unix_string.as_ptr();
         self.argv.0.push(core::ptr::null());
         self.args.push(unix_string);
-        Ok(self)
+        self
     }
 
     /// # Errors
     /// If the string is not `C string compatible`
-    pub fn args<A: AsUnixStr>(&mut self, args: &[A]) -> Result<&mut Self> {
-        self.args.reserve(args.len());
-        self.argv.0.reserve(args.len());
+    pub fn args(&mut self, args: impl Iterator<Item = &'a UnixStr>) -> &mut Self {
         for arg in args {
-            self.arg(arg)?;
+            self.arg(arg);
         }
-        Ok(self)
+        self
     }
 
     /// A function to run after `forking` off the process but before the exec call
@@ -160,9 +157,9 @@ impl Command {
 
     /// # Errors
     /// If the string is not `C string compatible`
-    pub fn cwd<A: AsUnixStr>(&mut self, dir: A) -> Result<&mut Self> {
-        self.cwd = Some(dir.to_unix_string()?);
-        Ok(self)
+    pub fn cwd(&mut self, dir: &'a UnixStr) -> &mut Self {
+        self.cwd = Some(dir);
+        self
     }
 
     pub fn uid(&mut self, id: UidT) -> &mut Self {
@@ -208,7 +205,7 @@ impl Command {
         };
         unsafe {
             do_spawn(
-                &self.bin,
+                self.bin,
                 self.argv.0.as_ptr(),
                 envp,
                 Stdio::Inherit,
@@ -217,7 +214,7 @@ impl Command {
                 self.stdout,
                 self.stderr,
                 &mut self.closures,
-                self.cwd.as_deref(),
+                self.cwd,
                 self.uid,
                 self.gid,
                 self.pgroup,
@@ -233,7 +230,7 @@ impl Command {
             Environment::None => NULL_ENV.as_ptr(),
             Environment::Provided(provided) => provided.envp.0.as_ptr(),
         };
-        unsafe { do_exec(&self.bin, self.argv.0.as_ptr(), envp, &mut self.closures) }
+        unsafe { do_exec(self.bin, self.argv.0.as_ptr(), envp, &mut self.closures) }
     }
 }
 
@@ -388,18 +385,18 @@ pub trait PreExec {
     /// Run this routing pre exec
     /// # Errors
     /// Any errors occuring, it's up to the implementor to decide
-    fn run(&mut self) -> crate::error::Result<()>;
+    fn run(&mut self) -> Result<()>;
 }
 
 #[cfg(feature = "alloc")]
-impl PreExec for Box<dyn FnMut() -> crate::error::Result<()> + Send + Sync> {
+impl PreExec for Box<dyn FnMut() -> Result<()> + Send + Sync> {
     #[inline]
     fn run(&mut self) -> Result<()> {
         (self)()
     }
 }
 
-impl<'a> PreExec for &'a mut (dyn FnMut() -> crate::error::Result<()> + Send + Sync) {
+impl<'a> PreExec for &'a mut (dyn FnMut() -> Result<()> + Send + Sync) {
     #[inline]
     fn run(&mut self) -> Result<()> {
         (self)()
@@ -562,9 +559,9 @@ unsafe fn do_spawn<F: PreExec>(
 /// after if we did an allocation before that closure.
 #[cfg(not(feature = "alloc"))]
 #[allow(clippy::too_many_arguments)]
-pub fn spawn<const N: usize, BIN: AsUnixStr, ARG: AsUnixStr, CL: PreExec>(
-    bin: BIN,
-    argv: [ARG; N],
+pub fn spawn<const N: usize, CL: PreExec>(
+    bin: &UnixStr,
+    argv: [&UnixStr; N],
     env: &Environment,
     stdin: Option<Stdio>,
     stdout: Option<Stdio>,
@@ -585,28 +582,20 @@ pub fn spawn<const N: usize, BIN: AsUnixStr, ARG: AsUnixStr, CL: PreExec>(
     let mut new_args = [core::ptr::null(); N];
     let arg_ptr = if argv.is_empty() {
         // Make sure we at least send the bin as arg
-        bin.exec_with_self_as_ptr(|ptr| {
-            no_args[0] = ptr;
-            Ok(())
-        })?;
+        no_args[0] = bin.as_ptr();
         no_args.as_ptr()
     } else {
         for (ind, arg) in argv.into_iter().enumerate() {
-            arg.exec_with_self_as_ptr(|ptr| {
-                new_args[ind] = ptr;
-                Ok(())
-            })?;
+            new_args[ind] = arg.as_ptr();
         }
         new_args[N - 1] = core::ptr::null();
         new_args.as_ptr()
     };
     // Only safe to do on no-alloc, since we may create a string there and the pointer will
     // dangle if we take it out of the closure
-    let bin_ptr = bin.exec_with_self_as_ptr(Ok)?;
-    let bin_str = unsafe { UnixStr::from_ptr(bin_ptr) };
     unsafe {
         do_spawn(
-            bin_str,
+            bin,
             arg_ptr,
             envp,
             Stdio::Inherit,

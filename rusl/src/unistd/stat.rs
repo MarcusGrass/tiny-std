@@ -3,15 +3,15 @@ use core::mem::MaybeUninit;
 use sc::syscall;
 
 use crate::platform::{Fd, Stat, AT_FDCWD};
-use crate::string::unix_str::AsUnixStr;
+use crate::string::unix_str::UnixStr;
 
 /// [stat](https://man7.org/linux/man-pages/man2/statx.2.html)
 /// Gets file status at the path pointed to by `path`
 /// # Errors
 /// See above docs
 #[inline]
-pub fn stat(path: impl AsUnixStr) -> crate::Result<Stat> {
-    path.exec_with_self_as_ptr(|ptr| do_statat(AT_FDCWD, ptr))
+pub fn stat(path: &UnixStr) -> crate::Result<Stat> {
+    do_statat(AT_FDCWD, path)
 }
 
 /// [fstat](https://man7.org/linux/man-pages/man2/stat.2.html)
@@ -19,8 +19,8 @@ pub fn stat(path: impl AsUnixStr) -> crate::Result<Stat> {
 /// # Errors
 /// See above docs
 #[inline]
-pub fn statat(dir_fd: Fd, path: impl AsUnixStr) -> crate::Result<Stat> {
-    path.exec_with_self_as_ptr(|ptr| do_statat(dir_fd.value(), ptr))
+pub fn statat(dir_fd: Fd, path: &UnixStr) -> crate::Result<Stat> {
+    do_statat(dir_fd.value(), path)
 }
 
 /// [fstat](https://man7.org/linux/man-pages/man2/stat.2.html)
@@ -29,16 +29,16 @@ pub fn statat(dir_fd: Fd, path: impl AsUnixStr) -> crate::Result<Stat> {
 /// See above docs
 #[inline]
 pub fn stat_fd(dir_fd: Fd) -> crate::Result<Stat> {
-    do_statat(dir_fd.0, b"\0".as_ptr())
+    do_statat(dir_fd.0, UnixStr::EMPTY)
 }
 
-fn do_statat(fd: i32, pathname: *const u8) -> crate::Result<Stat> {
+fn do_statat(fd: i32, pathname: &UnixStr) -> crate::Result<Stat> {
     let mut stat = MaybeUninit::uninit();
     let res = unsafe {
         syscall!(
             NEWFSTATAT,
             fd,
-            pathname,
+            pathname.as_ptr(),
             stat.as_mut_ptr(),
             crate::platform::DirFlags::AT_EMPTY_PATH.bits().0
         )
@@ -55,16 +55,8 @@ mod tests {
 
     #[test]
     fn stat_test() {
-        #[cfg(feature = "alloc")]
-        let (a, b) = { ("test-files/can_stat.txt", "") };
-        #[cfg(not(feature = "alloc"))]
-        let (a, b) = { ("test-files/can_stat.txt\0", "\0") };
-        do_stat_cwd(a, b);
-    }
-
-    fn do_stat_cwd(cwd_path: &str, empty_path: &str) {
-        stat(cwd_path).unwrap();
-        stat(empty_path).unwrap();
-        stat(()).unwrap();
+        let legit_path = UnixStr::try_from_str("test-files/can_stat.txt\0").unwrap();
+        stat(legit_path).unwrap();
+        stat(UnixStr::EMPTY).unwrap();
     }
 }

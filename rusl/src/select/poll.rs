@@ -37,6 +37,7 @@ mod tests {
     fn poll_stdout_ready() {
         // Stdout should essentially always be ready for output
         let mut poll_fds = [PollFd::new(STDOUT, PollEvents::POLLOUT)];
+        println!("Dummy out");
         let num_rdy = ppoll(&mut poll_fds, Some(&TimeSpec::new(1, 0)), None).unwrap();
         // Get one changed revents
         assert_eq!(1, num_rdy);

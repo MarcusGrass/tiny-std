@@ -1,7 +1,7 @@
 use rusl::platform::{
     AddressFamily, NonNegativeI32, SocketAddress, SocketFlags, SocketOptions, SocketType,
 };
-use rusl::string::unix_str::AsUnixStr;
+use rusl::string::unix_str::UnixStr;
 
 use crate::error::Result;
 use crate::io::{Read, Write};
@@ -17,7 +17,7 @@ impl UnixStream {
     /// Creates and connects a non-blocking `UnixStream` at the specified path
     /// # Errors
     /// Various OS errors relating to permissions, and missing paths
-    pub fn connect<P: AsUnixStr>(path: P, blocking: bool) -> Result<Self> {
+    pub fn connect(path: &UnixStr, blocking: bool) -> Result<Self> {
         let block = blocking
             .then(SocketFlags::empty)
             .unwrap_or(SocketFlags::SOCK_NONBLOCK);
@@ -29,7 +29,7 @@ impl UnixStream {
         let addr = SocketAddress::try_from_unix(path)?;
 
         rusl::network::connect(fd, &addr)?;
-        Ok(UnixStream(OwnedFd(fd)))
+        Ok(Self(OwnedFd(fd)))
     }
 }
 
@@ -65,7 +65,7 @@ impl UnixListener {
     /// Use the `blocking` variable to set as blocking or non-blocking
     /// # Errors
     /// Various OS errors relating to permissions, and missing paths
-    pub fn bind<P: AsUnixStr>(path: P, blocking: bool) -> Result<Self> {
+    pub fn bind(path: &UnixStr, blocking: bool) -> Result<Self> {
         let block = blocking
             .then(SocketFlags::empty)
             .unwrap_or(SocketFlags::SOCK_NONBLOCK);

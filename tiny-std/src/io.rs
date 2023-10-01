@@ -7,9 +7,9 @@ use core::{fmt, str};
 use rusl::error::Errno;
 
 use crate::error::{Error, Result};
-use crate::io::read_buf::ReadBuf;
 
-pub mod read_buf;
+#[cfg(feature = "alloc")]
+pub(crate) mod read_buf;
 
 pub trait Read {
     /// Read into to provided buffer
@@ -40,33 +40,6 @@ pub trait Read {
         default_read_exact(self, buf)
     }
 
-    /// Reads into the provided `ReadBuf`
-    /// # Errors
-    /// Eventual Errors specific to the implementation
-    fn read_buf(&mut self, buf: &mut ReadBuf<'_>) -> Result<()> {
-        default_read_buf(|b| self.read(b), buf)
-    }
-
-    /// Reads exactly enough bytes to fill the `ReadBuf`
-    /// # Errors
-    /// Eventual Errors specific to the implementation
-    fn read_buf_exact(&mut self, buf: &mut ReadBuf<'_>) -> Result<()> {
-        while buf.remaining() > 0 {
-            let prev_filled = buf.filled().len();
-            match self.read_buf(buf) {
-                Ok(()) => {}
-                Err(e) if e.matches_errno(Errno::EINTR) => continue,
-                Err(e) => return Err(e),
-            }
-
-            if buf.filled().len() == prev_filled {
-                return Err(Error::no_code("Failed to fill buffer"));
-            }
-        }
-
-        Ok(())
-    }
-
     /// Get this reader by mut ref
     /// # Errors
     /// Eventual Errors specific to the implementation
@@ -95,14 +68,14 @@ pub(crate) fn default_read_to_end<R: Read + ?Sized>(r: &mut R, buf: &mut Vec<u8>
             buf.reserve(32); // buf is full, need more space
         }
 
-        let mut read_buf = ReadBuf::uninit(buf.spare_capacity_mut());
+        let mut read_buf = crate::io::read_buf::ReadBuf::uninit(buf.spare_capacity_mut());
 
         // SAFETY: These bytes were initialized but not filled in the previous loop
         unsafe {
             read_buf.assume_init(initialized);
         }
 
-        match r.read_buf(&mut read_buf) {
+        match default_read_buf(|b| r.read(b), &mut read_buf) {
             Ok(()) => {}
             Err(ref e) if e.matches_errno(Errno::EINTR) => continue,
             Err(e) => return Err(e),
@@ -229,7 +202,8 @@ pub(crate) fn default_read_exact<R: Read + ?Sized>(this: &mut R, mut buf: &mut [
     }
 }
 
-pub(crate) fn default_read_buf<F>(read: F, buf: &mut ReadBuf<'_>) -> Result<()>
+#[cfg(feature = "alloc")]
+pub(crate) fn default_read_buf<F>(read: F, buf: &mut crate::io::read_buf::ReadBuf<'_>) -> Result<()>
 where
     F: FnOnce(&mut [u8]) -> Result<usize>,
 {

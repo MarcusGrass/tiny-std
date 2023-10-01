@@ -14,12 +14,11 @@ version = "0.1.0"
 dependencies = [
  "test-lib",
  "tiny-std",
- "unix-print",
 ]
 
 [[package]]
 name = "rusl"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "linux-rust-bindings",
  "sc",
@@ -37,7 +36,6 @@ version = "0.1.0"
 dependencies = [
  "rusl",
  "tiny-std",
- "unix-print",
 ]
 
 [[package]]
@@ -49,19 +47,9 @@ dependencies = [
 
 [[package]]
 name = "tiny-std"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "rusl",
  "sc",
  "tiny-start",
- "unix-print",
-]
-
-[[package]]
-name = "unix-print"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c50e1866b3de196f1329f6a805771eee750651c83bbebd5dff159e5f033cc16f"
-dependencies = [
- "sc",
 ]

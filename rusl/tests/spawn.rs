@@ -1,13 +1,19 @@
+#[cfg(feature = "integration-test")]
 use std::mem::MaybeUninit;
 
+#[cfg(feature = "integration-test")]
 use rusl::error::Errno;
+#[cfg(feature = "integration-test")]
 use rusl::platform::{
     Clone3Args, CloneArgs, CloneFlags, Fd, PollEvents, PollFd, SignalKind, WaitPidFlags,
 };
+#[cfg(feature = "integration-test")]
 use rusl::process::{clone, clone3, exit, wait_pid};
+#[cfg(feature = "integration-test")]
 use rusl::select::ppoll;
 
 #[test]
+#[cfg(feature = "integration-test")]
 fn test_clone3_vfork() {
     unsafe {
         // Doing a vfork, that's not explicitly implemented on aarch64 but is possible
@@ -35,6 +41,7 @@ fn test_clone3_vfork() {
 }
 
 #[test]
+#[cfg(feature = "integration-test")]
 fn test_clone3_pidfd() {
     unsafe {
         let mut pidfd: MaybeUninit<Fd> = MaybeUninit::uninit();
@@ -64,6 +71,7 @@ fn test_clone3_pidfd() {
 }
 
 #[test]
+#[cfg(feature = "integration-test")]
 fn test_regular_clone_vfork() {
     unsafe {
         let flags = CloneFlags::CLONE_VFORK;

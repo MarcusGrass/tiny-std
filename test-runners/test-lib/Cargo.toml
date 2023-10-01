@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 tiny-std = { path = "../../tiny-std", default-features = false, features = ["aux", "start", "symbols", "vdso"] }
 rusl = { path = "../../rusl", default-features = false }
-unix-print = "0.1.0"
 
 [features]
 default = []

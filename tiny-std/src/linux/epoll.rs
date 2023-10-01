@@ -92,12 +92,13 @@ impl EpollDriver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusl::platform::STDIN;
+    use rusl::platform::STDOUT;
 
     #[test]
     fn test_epoll_driver() {
         let drive = EpollDriver::create(true).unwrap();
-        drive.register(STDIN, 1, EpollEventMask::EPOLLOUT).unwrap();
+        drive.register(STDOUT, 1, EpollEventMask::EPOLLOUT).unwrap();
+        println!("Dummy out");
         let mut buf = [EpollEvent::new(0, EpollEventMask::empty())];
         drive
             .wait(&mut buf, EpollTimeout::WaitMillis(1_000))

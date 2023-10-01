@@ -16,6 +16,7 @@ pub fn get_dents(fd: Fd, dir_p: &mut [u8]) -> crate::Result<usize> {
 mod tests {
     use crate::platform::{DirType, Dirent, OpenFlags};
     use crate::string::strlen::buf_strlen;
+    use crate::string::unix_str::UnixStr;
     use crate::unistd::open;
 
     use super::*;
@@ -45,7 +46,7 @@ mod tests {
     #[test]
     fn try_read_dir() {
         let dir = open(
-            "test-files/dents-test\0",
+            UnixStr::try_from_str("test-files/dents-test\0").unwrap(),
             OpenFlags::O_CLOEXEC | OpenFlags::O_RDONLY,
         )
         .unwrap();
