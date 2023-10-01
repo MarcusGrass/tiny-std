@@ -1,5 +1,6 @@
 use core::str::Utf8Error;
 
+use crate::error::Error;
 use rusl::string::strlen::strlen;
 use rusl::string::unix_str::UnixStr;
 
@@ -27,7 +28,7 @@ pub enum VarError {
 /// # Errors
 /// 1. Value is not in the environment
 /// 2. Value exists but is not utf-8
-pub fn var_unix(key: &UnixStr) -> Result<&'static str, VarError> {
+pub fn var_unix(key: &UnixStr) -> Result<&'static UnixStr, VarError> {
     let mut env_ptr = unsafe { ENV.env_p };
     while !env_ptr.is_null() {
         unsafe {
@@ -40,10 +41,9 @@ pub fn var_unix(key: &UnixStr) -> Result<&'static str, VarError> {
             if match_up_to != 0 {
                 // Next is '='
                 if var_ptr.add(match_up_to).read() == b'=' {
-                    let value_len = strlen(var_ptr.add(match_up_to + 1));
-                    let value_slice =
-                        core::slice::from_raw_parts(var_ptr.add(match_up_to + 1), value_len);
-                    return core::str::from_utf8(value_slice).map_err(VarError::NotUnicode);
+                    // # Safety
+                    // Trusting the OS to null terminate
+                    return Ok(UnixStr::from_ptr(var_ptr.add(match_up_to + 1)));
                 }
             }
 
@@ -103,11 +103,11 @@ pub fn args_os() -> ArgsOs {
 pub struct Args(ArgsOs);
 
 impl Iterator for Args {
-    type Item = Result<&'static str, Utf8Error>;
+    type Item = Result<&'static str, Error>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(UnixStr::as_str)
+        self.0.next().map(|e| Ok(UnixStr::as_str(e)?))
     }
 }
 

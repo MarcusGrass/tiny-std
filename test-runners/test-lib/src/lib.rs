@@ -52,7 +52,7 @@ fn run_minimal_feature_set() {
 fn get_env() {
     let v_unix = tiny_std::env::var_unix(UnixStr::try_from_str("HOME\0").unwrap()).unwrap();
     let v = tiny_std::env::var("HOME").unwrap();
-    assert_eq!(v, v_unix);
+    assert_eq!(v, v_unix.as_str().unwrap());
     if is_ci() {
         assert_eq!("/home/runner", v);
     } else {
