@@ -124,14 +124,20 @@ impl SocketAddress {
 
     /// Tries to construct a `SocketAddress` from a `UnixStr` path
     /// # Errors
-    /// The path is longer than 108 bytes (null termination included)
+    /// The path is longer than 108 bytes (null termination included).
+    /// The path contains byte values out of the 7-bit ASCII range.
     pub fn try_from_unix(path: &UnixStr) -> crate::Result<SocketArg> {
         let mut ind = 0;
         let buf = unsafe {
             let mut buf = [0; 108];
             let mut ptr = path.as_ptr();
             while !ptr.is_null() {
-                buf[ind] = ptr.read() as core::ffi::c_char;
+                let val = core::ffi::c_char::try_from(ptr.read()).map_err(|_e| {
+                    Error::no_code(
+                        "Socket paths need to be 7-bit ASCII, path contained value in 8-bit range",
+                    )
+                })?;
+                buf[ind] = val;
                 if ind == 107 && buf[ind] != 0 {
                     return Err(Error::no_code("Socket address too long"));
                 } else if buf[ind] == 0 {

@@ -1,10 +1,57 @@
 use crate::platform::numbers::NonNegativeI32;
+use crate::platform::TimeSpec;
 
 pub type Stat = linux_rust_bindings::stat::stat;
 
 #[repr(transparent)]
 #[derive(Debug)]
 pub struct Statx(pub(crate) linux_rust_bindings::stat::statx);
+
+impl Statx {
+    #[inline]
+    #[must_use]
+    pub const fn mask(&self) -> StatxMask {
+        StatxMask(self.0.stx_mask)
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn size(&self) -> u64 {
+        self.0.stx_size
+    }
+
+    /// Last access
+    #[inline]
+    #[must_use]
+    pub const fn access_time(&self) -> TimeSpec {
+        let ts = self.0.stx_atime;
+        TimeSpec::new(ts.tv_sec, ts.tv_nsec as i64)
+    }
+
+    /// Creation
+    #[inline]
+    #[must_use]
+    pub const fn birth_time(&self) -> TimeSpec {
+        let ts = self.0.stx_btime;
+        TimeSpec::new(ts.tv_sec, ts.tv_nsec as i64)
+    }
+
+    /// Content modification
+    #[inline]
+    #[must_use]
+    pub const fn modified_time(&self) -> TimeSpec {
+        let ts = self.0.stx_mtime;
+        TimeSpec::new(ts.tv_sec, ts.tv_nsec as i64)
+    }
+
+    /// Metadata modification
+    #[inline]
+    #[must_use]
+    pub const fn changed_time(&self) -> TimeSpec {
+        let ts = self.0.stx_ctime;
+        TimeSpec::new(ts.tv_sec, ts.tv_nsec as i64)
+    }
+}
 
 transparent_bitflags! {
     pub struct StatxMask: u32 {

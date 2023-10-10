@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Implement `From<TimeSpec>` for `SystemTime`
 
 ## [v0.2.2] - 2023-10-01
 

@@ -2,6 +2,7 @@
 #![cfg_attr(not(test), no_std)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::similar_names)]
+#![cfg_attr(test, allow(clippy::ignored_unit_patterns))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
