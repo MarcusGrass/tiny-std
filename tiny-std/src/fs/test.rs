@@ -120,7 +120,7 @@ fn can_create_and_delete_dir() {
     let dir_meta = metadata(tgt).unwrap();
     assert!(dir_meta.is_dir());
     match crate::fs::create_dir(tgt) {
-        Ok(_) => panic!("Could create on already existing dir"),
+        Ok(()) => panic!("Could create on already existing dir"),
         Err(e) => {
             assert!(e.matches_errno(Errno::EEXIST));
         }
@@ -188,10 +188,7 @@ fn create_read_and_delete_dir_with_a_lot_of_files() {
     let mut found_entries = 0;
     for entry in it {
         let entry = entry.unwrap();
-        let null_term = entry.file_unix_name().unwrap();
-        if null_term != unsafe { UnixStr::from_str_unchecked(".\0") }
-            && null_term != unsafe { UnixStr::from_str_unchecked("..\0") }
-        {
+        if !entry.is_relative_reference() {
             assert_eq!(FileType::RegularFile, entry.file_type());
             let file_name = entry.file_name().unwrap();
             let mut num = String::new();

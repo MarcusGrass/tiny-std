@@ -2,6 +2,7 @@
 rustflags = [
     "-Wclippy::all",
     "-Wclippy::pedantic",
+    "-Wclippy::mod_module_files",
     "-Aclippy::cast_lossless",
     "-Aclippy::cast_possible_truncation",
     "-Aclippy::cast_sign_loss",

@@ -342,7 +342,7 @@ unsafe fn write_all_sub_paths(
                 Mode::from(0o755),
             ) {
                 // Successfully wrote, traverse down
-                Ok(_) => {
+                Ok(()) => {
                     // Replace the null byte to make a valid path concatenation
                     buf[ind] = b'/';
                     for i in ind + 1..len {

@@ -88,6 +88,31 @@ impl UnixString {
     pub fn try_from_str(s: &str) -> Result<Self, Error> {
         Self::try_from_bytes(s.as_bytes())
     }
+
+    /// A slightly less efficient that creating a format string way of
+    /// creating a [`UnixString`], since it'll in all likelihood lead to two allocations.
+    /// Can't do much since fmt internals are feature gated in `core`.
+    /// Still a bit more ergonomic than creating a format-String and then creating a [`UnixString`] from that.
+    /// More efficient if a null byte is added to the format strings.
+    /// # Example
+    /// ```
+    /// use rusl::string::unix_str::UnixString;
+    /// fn create_format_unix_string() {
+    ///     let ins_with = "gramar";
+    ///     let good = UnixString::from_format(format_args!("/home/{ins_with}/code"));
+    ///     assert_eq!("/home/gramar/code", good.as_str().unwrap());
+    ///     let great = UnixString::from_format(format_args!("/home/{ins_with}/code\0"));
+    ///     assert_eq!("/home/gramar/code", great.as_str().unwrap());
+    /// }
+    /// ```
+    #[must_use]
+    pub fn from_format(args: core::fmt::Arguments<'_>) -> Self {
+        let mut fmt_str_buf = alloc::fmt::format(args).into_bytes();
+        if !matches!(fmt_str_buf.last(), Some(&NULL_BYTE)) {
+            fmt_str_buf.push(NULL_BYTE);
+        }
+        UnixString(fmt_str_buf)
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -247,6 +272,232 @@ impl UnixStr {
             }
         }
     }
+
+    #[must_use]
+    pub fn find(&self, other: &Self) -> Option<usize> {
+        if other.len() > self.len() {
+            return None;
+        }
+        let this_buf = &self.0;
+        let other_buf = &other.0[..other.0.len() - 2];
+        buf_find(this_buf, other_buf)
+    }
+
+    #[must_use]
+    pub fn find_buf(&self, other: &[u8]) -> Option<usize> {
+        if other.len() > self.len() {
+            return None;
+        }
+        let this_buf = &self.0;
+        buf_find(this_buf, other)
+    }
+
+    #[must_use]
+    pub fn ends_with(&self, other: &Self) -> bool {
+        if other.len() > self.len() {
+            return false;
+        }
+        let mut ind = 0;
+        while let (Some(this), Some(that)) = (
+            self.0.get(self.0.len() - 1 - ind),
+            other.0.get(other.0.len() - 1 - ind),
+        ) {
+            if this != that {
+                return false;
+            }
+            if other.0.len() - 1 - ind == 0 {
+                return true;
+            }
+            ind += 1;
+        }
+        true
+    }
+
+    /// Joins this [`UnixStr`] with some other [`UnixStr`] adding a slash if necessary.
+    /// Will make sure that there's at most one slash at the boundary but won't check
+    /// either string for "path validity" in any other case
+    /// # Example
+    /// ```
+    /// use rusl::string::unix_str::UnixStr;
+    /// fn join_paths() {
+    ///     // Combines slash
+    ///     let a = UnixStr::try_from_str("path/").unwrap();
+    ///     let b = UnixStr::try_from_str("/ext").unwrap();
+    ///     let combined = a.path_join(b);
+    ///     assert_eq!("path/ext", combined.as_str().unwrap());
+    ///     // Adds slash
+    ///     let combined_other_way = b.path_join(a);
+    ///     assert_eq!("/ext/path/", combined_other_way.as_str().unwrap());
+    ///     // Doesn't truncate other slashes, only works at the boundary between the two paths
+    ///     let a = UnixStr::try_from_str("path//").unwrap();
+    ///     let combined_many_slashes = a.path_join(b);
+    ///     assert_eq!("path//ext", combined_many_slashes.as_str().unwrap());
+    /// }
+    /// ```
+    #[must_use]
+    #[cfg(feature = "alloc")]
+    pub fn path_join(&self, ext: &Self) -> UnixString {
+        let mut as_string = self.0.to_vec();
+        as_string.pop();
+        let Some(last) = as_string.last().copied() else {
+            return UnixString::from(ext);
+        };
+        if ext.len() == 1 {
+            return UnixString::from(self);
+        }
+        as_string.reserve(ext.len());
+        let buf = if last == b'/' {
+            unsafe {
+                if ext.0.get_unchecked(0) == &b'/' {
+                    as_string.extend_from_slice(ext.0.get_unchecked(1..));
+                } else {
+                    as_string.extend_from_slice(&ext.0);
+                }
+            }
+            as_string
+        } else if unsafe { ext.0.get_unchecked(0) == &b'/' } {
+            as_string.extend_from_slice(&ext.0);
+            as_string
+        } else {
+            as_string.push(b'/');
+            as_string.extend_from_slice(&ext.0);
+            as_string
+        };
+        UnixString(buf)
+    }
+
+    /// Joins this [`UnixStr`] with some format string adding a slash if necessary.
+    /// Follows the same rules as [`UnixStr::path_join`].
+    /// # Example
+    /// ```
+    /// use rusl::string::unix_str::UnixStr;
+    /// fn join_paths() {
+    ///     // Combines slash
+    ///     let a = UnixStr::try_from_str("path/").unwrap();
+    ///     let combined = a.path_join_fmt(format_args!("ext"));
+    ///     assert_eq!("path/ext", combined.as_str().unwrap());
+    /// }
+    /// ```
+    #[must_use]
+    #[cfg(feature = "alloc")]
+    pub fn path_join_fmt(&self, args: core::fmt::Arguments<'_>) -> UnixString {
+        let container = alloc::fmt::format(args);
+        if container.is_empty() {
+            return UnixString::from(self);
+        }
+        let mut container_vec = container.into_bytes();
+        let mut as_string = self.0.to_vec();
+        as_string.pop();
+        let Some(last) = as_string.last().copied() else {
+            if !matches!(container_vec.last().copied(), Some(NULL_BYTE)) {
+                container_vec.push(NULL_BYTE);
+            }
+            return UnixString(container_vec);
+        };
+        if last == b'/' {
+            as_string.reserve(container_vec.len() + 1);
+            let start_from = if let Some(b'/') = container_vec.first().copied() {
+                1
+            } else {
+                0
+            };
+            if let Some(add_slice) = container_vec.get(start_from..) {
+                as_string.extend_from_slice(add_slice);
+            }
+            if !matches!(as_string.last().copied(), Some(NULL_BYTE)) {
+                as_string.push(NULL_BYTE);
+            }
+        } else if let Some(b'/') = container_vec.first().copied() {
+            as_string.extend(container_vec);
+            if !matches!(as_string.last().copied(), Some(NULL_BYTE)) {
+                as_string.push(NULL_BYTE);
+            }
+        } else {
+            as_string.push(b'/');
+            as_string.extend(container_vec);
+            if !matches!(as_string.last().copied(), Some(NULL_BYTE)) {
+                as_string.push(NULL_BYTE);
+            }
+        }
+        UnixString(as_string)
+    }
+
+    /// Treats this [`UnixStr`] as a path, then tries to find its parent.
+    /// Will treat any double slash as a path with no parent
+    /// # Example
+    /// ```
+    /// use rusl::string::unix_str::UnixStr;
+    /// fn find_parent() {
+    ///     let well_formed = UnixStr::try_from_str("/home/gramar/code/").unwrap();
+    ///     let up_one = well_formed.parent_path().unwrap();
+    ///     assert_eq!("/home/gramar", up_one.as_str().unwrap());
+    ///     let up_two = up_one.parent_path().unwrap();
+    ///     assert_eq!("/home", up_two.as_str().unwrap());
+    ///     let up_three = up_two.parent_path().unwrap();
+    ///     assert_eq!("/", up_three.as_str().unwrap());
+    ///     assert!(up_three.parent_path().is_none());
+    ///     let ill_formed = UnixStr::try_from_str("/home/gramar/code//").unwrap();
+    ///     assert!(ill_formed.parent_path().is_none());
+    /// }
+    /// ```
+    #[must_use]
+    #[cfg(feature = "alloc")]
+    pub fn parent_path(&self) -> Option<UnixString> {
+        let len = self.0.len();
+        // Can't be len 0, len 1 is only a null byte, len 2 is a single char, parent becomes none
+        if len < 3 {
+            return None;
+        }
+        let last = self.0.len() - 2;
+        let mut next_slash_back = last;
+        while let Some(byte) = self.0.get(next_slash_back).copied() {
+            if byte == b'/' {
+                if next_slash_back != 0 {
+                    if let Some(b'/') = self.0.get(next_slash_back - 1) {
+                        return None;
+                    }
+                }
+                break;
+            }
+            if next_slash_back == 0 {
+                return None;
+            }
+            next_slash_back -= 1;
+        }
+        // Found slash at root, we want to include it in output then giving only the root path
+        if next_slash_back == 0 {
+            next_slash_back += 1;
+        }
+        unsafe {
+            Some(UnixString(
+                self.0.get_unchecked(..=next_slash_back).to_vec(),
+            ))
+        }
+    }
+}
+
+#[inline]
+#[allow(clippy::needless_range_loop)]
+fn buf_find(this_buf: &[u8], other_buf: &[u8]) -> Option<usize> {
+    for i in 0..this_buf.len() {
+        if this_buf[i] == other_buf[0] {
+            let mut no_match = false;
+            for j in 1..other_buf.len() {
+                if let Some(this) = this_buf.get(i + j) {
+                    if *this != other_buf[j] {
+                        no_match = true;
+                        break;
+                    }
+                } else {
+                    return None;
+                }
+            }
+            if !no_match {
+                return Some(i);
+            }
+        }
+    }
+    None
 }
 
 impl<'a> Debug for &'a UnixStr {
@@ -319,38 +570,6 @@ mod tests {
         let needle = UnixStr::try_from_str("haystack2\0").unwrap();
         assert_eq!(8, haystack.match_up_to(needle));
     }
-    #[test]
-    #[cfg(feature = "alloc")]
-    fn can_create_unix_string_happy() {
-        let correct = UnixString::try_from_str("abc\0").unwrap();
-        let correct2 = UnixString::try_from_bytes(b"abc\0").unwrap();
-        let correct3 = UnixString::try_from_string("abc\0".to_string()).unwrap();
-        let correct4 = UnixString::try_from_vec(b"abc\0".to_vec()).unwrap();
-        let correct5 = UnixString::try_from_str("abc").unwrap();
-        let correct6 = UnixString::try_from_string(String::from("abc")).unwrap();
-        assert_eq!(correct, correct2);
-        assert_eq!(correct2, correct3);
-        assert_eq!(correct3, correct4);
-        assert_eq!(correct4, correct5);
-        assert_eq!(correct5, correct6);
-        let compare = [b'a', b'b', b'c', 0];
-        assert_eq!(correct4.as_slice(), compare);
-        assert_ne!(correct.as_ptr(), correct2.as_ptr());
-        assert_eq!(UnixStr::try_from_str("abc\0").unwrap(), correct.as_ref());
-        assert_eq!(UnixStr::try_from_str("abc\0").unwrap(), &*correct);
-    }
-
-    #[test]
-    #[cfg(feature = "alloc")]
-    fn can_create_unix_string_sad() {
-        let acceptable = UnixString::try_from_str("abc").unwrap();
-        let correct = UnixString::try_from_str("abc\0").unwrap();
-        assert_eq!(correct, acceptable);
-        let unacceptable = UnixString::try_from_str("a\0bc");
-        assert!(unacceptable.is_err());
-        let unacceptable_vec = UnixString::try_from_vec(alloc::vec![b'a', b'\0', b'b', b'c']);
-        assert!(unacceptable_vec.is_err());
-    }
 
     #[test]
     fn can_create_unix_str() {
@@ -377,5 +596,248 @@ mod tests {
         const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
         const MY_CMP_STR: &str = "my-nice-str";
         assert_eq!(MY_CMP_STR.len(), UNIX_STR.match_up_to_str(MY_CMP_STR));
+    }
+
+    #[test]
+    fn can_check_ends_with() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        assert!(UNIX_STR.ends_with(UnixStr::from_str_checked("-str\0")));
+    }
+
+    #[test]
+    fn can_check_ends_with_self() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        assert!(UNIX_STR.ends_with(UNIX_STR));
+    }
+
+    #[test]
+    fn can_check_ends_with_empty() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        assert!(UNIX_STR.ends_with(UnixStr::EMPTY));
+    }
+
+    #[test]
+    fn can_check_ends_with_no() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        assert!(!UNIX_STR.ends_with(UnixStr::from_str_checked("nice-\0")));
+    }
+
+    #[test]
+    fn can_check_ends_with_no_too_long() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        assert!(!UNIX_STR.ends_with(UnixStr::from_str_checked("other-my-nice-str\0")));
+    }
+
+    #[test]
+    fn can_find_at_end() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        let found_at = UNIX_STR.find(UnixStr::from_str_checked("-str\0")).unwrap();
+        assert_eq!(7, found_at);
+    }
+
+    #[test]
+    fn can_find_finds_first() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("str-str-str\0");
+        let found_at = UNIX_STR.find(UnixStr::from_str_checked("-str\0")).unwrap();
+        assert_eq!(3, found_at);
+        let found_at = UNIX_STR.find_buf("-str".as_bytes()).unwrap();
+        assert_eq!(3, found_at);
+    }
+
+    #[test]
+    fn can_find_at_middle() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        let found_at = UNIX_STR.find(UnixStr::from_str_checked("-nice\0")).unwrap();
+        assert_eq!(2, found_at);
+        let found_at = UNIX_STR.find_buf("-nice".as_bytes()).unwrap();
+        assert_eq!(2, found_at);
+    }
+
+    #[test]
+    fn can_find_at_start() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        let found_at = UNIX_STR.find(UnixStr::from_str_checked("my\0")).unwrap();
+        assert_eq!(0, found_at);
+        let found_at = UNIX_STR.find_buf("my".as_bytes()).unwrap();
+        assert_eq!(0, found_at);
+    }
+
+    #[test]
+    fn can_find_no_match() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("my-nice-str\0");
+        let found_at = UNIX_STR.find(UnixStr::from_str_checked("cake\0"));
+        assert!(found_at.is_none());
+        let found_at = UNIX_STR.find_buf("cake".as_bytes());
+        assert!(found_at.is_none());
+    }
+
+    #[test]
+    fn can_find_too_long() {
+        const UNIX_STR: &UnixStr = UnixStr::from_str_checked("str\0");
+        let found_at = UNIX_STR.find(UnixStr::from_str_checked("sstr\0"));
+        assert!(found_at.is_none());
+
+        let found_at = UNIX_STR.find_buf("sstr".as_bytes());
+        assert!(found_at.is_none());
+    }
+
+    #[cfg(feature = "alloc")]
+    mod alloc_tests {
+        use super::*;
+        use alloc::string::ToString;
+        #[test]
+        #[cfg(feature = "alloc")]
+        fn can_create_unix_string_sad() {
+            let acceptable = UnixString::try_from_str("abc").unwrap();
+            let correct = UnixString::try_from_str("abc\0").unwrap();
+            assert_eq!(correct, acceptable);
+            let unacceptable = UnixString::try_from_str("a\0bc");
+            assert!(unacceptable.is_err());
+            let unacceptable_vec = UnixString::try_from_vec(alloc::vec![b'a', b'\0', b'b', b'c']);
+            assert!(unacceptable_vec.is_err());
+        }
+        #[test]
+        fn can_path_join() {
+            let a = UnixStr::from_str_checked("hello\0");
+            let b = UnixStr::from_str_checked("there\0");
+            let new = a.path_join(b);
+            assert_eq!("hello/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn can_path_join_fmt() {
+            let a = UnixStr::from_str_checked("hello\0");
+            let new = a.path_join_fmt(format_args!("there"));
+            assert_eq!("hello/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn can_path_join_with_trailing_slash() {
+            let a = UnixStr::from_str_checked("hello/\0");
+            let b = UnixStr::from_str_checked("there\0");
+            let new = a.path_join(b);
+            assert_eq!("hello/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn can_path_join_fmt_with_trailing_slash() {
+            let a = UnixStr::from_str_checked("hello/\0");
+            let new = a.path_join_fmt(format_args!("there"));
+            assert_eq!("hello/there", new.as_str().unwrap());
+        }
+        #[test]
+        fn can_path_join_with_leading_slash() {
+            let a = UnixStr::from_str_checked("hello\0");
+            let b = UnixStr::from_str_checked("/there\0");
+            let new = a.path_join(b);
+            assert_eq!("hello/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn can_path_join_fmt_with_leading_slash() {
+            let a = UnixStr::from_str_checked("hello\0");
+            let new = a.path_join_fmt(format_args!("/there"));
+            assert_eq!("hello/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn can_path_join_empty() {
+            let a = UnixStr::from_str_checked("\0");
+            let b = UnixStr::from_str_checked("/there\0");
+            let new = a.path_join(b);
+            assert_eq!("/there", new.as_str().unwrap());
+            let new = b.path_join(a);
+            assert_eq!("/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn can_path_join_fmt_empty() {
+            let a = UnixStr::from_str_checked("\0");
+            let b = UnixStr::from_str_checked("/there\0");
+            let new = a.path_join_fmt(format_args!("/there"));
+            assert_eq!("/there", new.as_str().unwrap());
+            let new = b.path_join_fmt(format_args!(""));
+            assert_eq!("/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn can_path_join_truncates_slashes() {
+            let a = UnixStr::from_str_checked("hello/\0");
+            let b = UnixStr::from_str_checked("/there\0");
+            let new = a.path_join(b);
+            assert_eq!("hello/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn find_parent_path_happy() {
+            let a = UnixStr::from_str_checked("hello/there/friend\0");
+            let parent = a.parent_path().unwrap();
+            assert_eq!("hello/there", parent.as_str().unwrap());
+            let b = UnixStr::from_str_checked("/home/gramar/code/rust/tiny-std\0");
+            let b_first_parent = b.parent_path().unwrap();
+            assert_eq!("/home/gramar/code/rust", b_first_parent.as_str().unwrap());
+            let b_second_parent = b_first_parent.parent_path().unwrap();
+            assert_eq!("/home/gramar/code", b_second_parent.as_str().unwrap());
+            let b_third_parent = b_second_parent.parent_path().unwrap();
+            assert_eq!("/home/gramar", b_third_parent.as_str().unwrap());
+            let b_fourth_parent = b_third_parent.parent_path().unwrap();
+            assert_eq!("/home", b_fourth_parent.as_str().unwrap());
+            let root = b_fourth_parent.parent_path().unwrap();
+            assert_eq!("/", root.as_str().unwrap());
+        }
+
+        #[test]
+        fn find_parent_path_empty_no_parent() {
+            let a = UnixStr::EMPTY;
+            let parent = a.parent_path();
+            assert!(parent.is_none());
+        }
+
+        #[test]
+        fn find_parent_path_short_no_parent() {
+            let a = UnixStr::from_str_checked("/\0");
+            let parent = a.parent_path();
+            assert!(parent.is_none());
+            let b = UnixStr::from_str_checked("a\0");
+            let parent = b.parent_path();
+            assert!(parent.is_none());
+        }
+
+        #[test]
+        fn find_parent_path_short_has_parent() {
+            let a = UnixStr::from_str_checked("/a\0");
+            let parent = a.parent_path().unwrap();
+            assert_eq!("/", parent.as_str().unwrap());
+        }
+
+        #[test]
+        fn find_parent_path_double_slash_invalid() {
+            let a = UnixStr::from_str_checked("//\0");
+            let parent = a.parent_path();
+            assert!(parent.is_none());
+            let a = UnixStr::from_str_checked("hello//\0");
+            let parent = a.parent_path();
+            assert!(parent.is_none());
+        }
+
+        #[test]
+        fn can_create_unix_string_happy() {
+            let correct = UnixString::try_from_str("abc\0").unwrap();
+            let correct2 = UnixString::try_from_bytes(b"abc\0").unwrap();
+            let correct3 = UnixString::try_from_string("abc\0".to_string()).unwrap();
+            let correct4 = UnixString::try_from_vec(b"abc\0".to_vec()).unwrap();
+            let correct5 = UnixString::try_from_str("abc").unwrap();
+            let correct6 = UnixString::try_from_string(String::from("abc")).unwrap();
+            assert_eq!(correct, correct2);
+            assert_eq!(correct2, correct3);
+            assert_eq!(correct3, correct4);
+            assert_eq!(correct4, correct5);
+            assert_eq!(correct5, correct6);
+            let compare = [b'a', b'b', b'c', 0];
+            assert_eq!(correct4.as_slice(), compare);
+            assert_ne!(correct.as_ptr(), correct2.as_ptr());
+            assert_eq!(UnixStr::try_from_str("abc\0").unwrap(), correct.as_ref());
+            assert_eq!(UnixStr::try_from_str("abc\0").unwrap(), &*correct);
+        }
     }
 }

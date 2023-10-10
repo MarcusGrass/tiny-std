@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 ### Added
+- Utility methods for `UnixStr` to make it easier to navigate them
+as paths
+- Find-method for `UnixStr`
+- Accessors for some inner fields of `Statx`
 
 ### Changed
 

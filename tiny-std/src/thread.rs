@@ -16,7 +16,7 @@ pub fn sleep(duration: Duration) -> Result<()> {
     let mut ts = duration.try_into()?;
     loop {
         match rusl::time::nanosleep_same_ptr(&mut ts) {
-            Ok(_) => return Ok(()),
+            Ok(()) => return Ok(()),
             Err(ref e) if e.code == Some(Errno::EINTR) => {
                 continue;
             }

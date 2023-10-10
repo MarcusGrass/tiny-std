@@ -143,6 +143,13 @@ impl core::ops::Sub for SystemTime {
     }
 }
 
+impl From<TimeSpec> for SystemTime {
+    #[inline]
+    fn from(value: TimeSpec) -> Self {
+        Self(value)
+    }
+}
+
 #[inline]
 fn checked_add_dur(timespec: TimeSpec, duration: Duration) -> Option<TimeSpec> {
     // tv_nsec are < `NANOS_A_SECOND`, this cannot overflow

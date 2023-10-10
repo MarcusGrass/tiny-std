@@ -28,7 +28,7 @@ pub(crate) fn futex_wait_fast(futex: &AtomicU32, expect: u32) {
             return;
         }
         match futex_wait(futex, expect, FutexFlags::PRIVATE, None) {
-            Ok(_) => {
+            Ok(()) => {
                 return;
             }
             Err(e) => {

@@ -45,7 +45,7 @@ impl Prng {
     const A: u128 = 25_214_903_917;
     const C: u128 = 11;
 
-    /// Create a new Prng-instance seeding with a `MonotonicInstant`, this is fine because
+    /// Create a new Prng-instance seeding with a [`crate::time::MonotonicInstant`], this is fine because
     /// you shouldn't need a secure seed anyway, because you should not use this for
     /// security-purposes at all.
     #[must_use]
