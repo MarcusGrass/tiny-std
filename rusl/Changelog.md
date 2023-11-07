@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-## [v0.2.2]
+## [v0.2.2] - 2023-11-07
 ### Added
 - Utility methods for `UnixStr` to make it easier to navigate them
 as paths
