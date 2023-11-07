@@ -24,7 +24,7 @@ fn pop_expect_punct<I: Iterator<Item = TokenTree>, D: Display>(
 ) {
     let punct = stream
         .next()
-        .unwrap_or_else(|| panic!("[ArgParse derive] {}", err_msg.to_string()));
+        .unwrap_or_else(|| panic!("[ArgParse derive] {err_msg}"));
     if let TokenTree::Punct(p) = punct {
         assert_eq!(p.as_char(), expect, "{err_msg}");
     } else {
@@ -50,7 +50,7 @@ fn pop_expect_ident<I: Iterator<Item = TokenTree>, D: Display>(
 fn pop_ident<I: Iterator<Item = TokenTree>, D: Display>(stream: &mut I, err_msg: D) -> Ident {
     let ident = stream
         .next()
-        .unwrap_or_else(|| panic!("[ArgParse derive] {}", err_msg.to_string()));
+        .unwrap_or_else(|| panic!("[ArgParse derive] {err_msg}"));
     if let TokenTree::Ident(ident) = ident {
         ident
     } else {
@@ -61,7 +61,7 @@ fn pop_ident<I: Iterator<Item = TokenTree>, D: Display>(stream: &mut I, err_msg:
 fn pop_lit<I: Iterator<Item = TokenTree>, D: Display>(stream: &mut I, err_msg: D) -> Literal {
     let lit = stream
         .next()
-        .unwrap_or_else(|| panic!("[ArgParse derive] {}", err_msg.to_string()));
+        .unwrap_or_else(|| panic!("[ArgParse derive] {err_msg}"));
     if let TokenTree::Literal(l) = lit {
         l
     } else {
@@ -72,7 +72,7 @@ fn pop_lit<I: Iterator<Item = TokenTree>, D: Display>(stream: &mut I, err_msg: D
 fn pop_group<I: Iterator<Item = TokenTree>, D: Display>(stream: &mut I, err_msg: D) -> Group {
     let group = stream
         .next()
-        .unwrap_or_else(|| panic!("[ArgParse derive] {}", err_msg.to_string()));
+        .unwrap_or_else(|| panic!("[ArgParse derive] {err_msg}"));
     if let TokenTree::Group(g) = group {
         g
     } else {
