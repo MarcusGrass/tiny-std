@@ -1,7 +1,15 @@
 [package]
 name = "tiny-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+license = "MPL-2.0"
+readme = "../Readme.md"
+repository = "https://github.com/MarcusGrass/tiny-std"
+homepage = "https://github.com/MarcusGrass/tiny-std"
+description = "Tiny cli argparser generator"
+documentation = "https://docs.rs/tiny-std"
+categories = ["command-line-utilities", "no-std"]
+keywords = ["cli", "parse", "arg", "parser", "linux"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

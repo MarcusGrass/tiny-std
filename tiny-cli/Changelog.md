@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-## [v0.1.0] - 2023-10-01
+## [v0.2.0] - 2023-11-07
 
-### Added
-- Tiny-cli ArgParser
+### Changed
+- Tiny-cli ArgParser as proc macro instead of regular macro
