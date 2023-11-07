@@ -141,6 +141,7 @@ impl UnixStr {
 
     /// # Safety
     /// `&str` needs to be null terminated or downstream UB may occur
+    #[inline]
     #[must_use]
     pub const unsafe fn from_str_unchecked(s: &str) -> &Self {
         core::mem::transmute(s)
@@ -148,6 +149,7 @@ impl UnixStr {
 
     /// # Safety
     /// `&[u8]` needs to be null terminated or downstream UB may occur
+    #[inline]
     #[must_use]
     pub const unsafe fn from_bytes_unchecked(s: &[u8]) -> &Self {
         core::mem::transmute(s)
@@ -212,7 +214,7 @@ impl UnixStr {
     /// Get this `&UnixStr` as a slice, including the null byte
     #[inline]
     #[must_use]
-    pub fn as_slice(&self) -> &[u8] {
+    pub const fn as_slice(&self) -> &[u8] {
         &self.0
     }
 
@@ -311,6 +313,36 @@ impl UnixStr {
             ind += 1;
         }
         true
+    }
+
+    /// Get the last component of a path, if possible.
+    ///
+    /// # Example
+    /// ```
+    /// use rusl::string::unix_str::UnixStr;
+    /// use rusl::unix_lit;
+    /// fn get_file_paths() {
+    ///     // Has no filename, just a root path
+    ///     let a = unix_lit!("/");
+    ///     assert_eq!(None, a.path_file_name());
+    ///     // Has a 'filename'
+    ///     let a = unix_lit!("/etc");
+    ///     assert_eq!(Some(unix_lit!("etc")), a.path_file_name());
+    /// }
+    /// ```
+    #[must_use]
+    #[allow(clippy::borrow_as_ptr)]
+    pub fn path_file_name(&self) -> Option<&UnixStr> {
+        for (ind, byte) in self.0.iter().enumerate().rev() {
+            if *byte == b'/' {
+                return if ind + 2 < self.len() {
+                    unsafe { Some(&*(&self.0[ind + 1..] as *const [u8] as *const Self)) }
+                } else {
+                    None
+                };
+            }
+        }
+        None
     }
 
     /// Joins this [`UnixStr`] with some other [`UnixStr`] adding a slash if necessary.
@@ -766,6 +798,25 @@ mod tests {
             let b = UnixStr::from_str_checked("/there\0");
             let new = a.path_join(b);
             assert_eq!("hello/there", new.as_str().unwrap());
+        }
+
+        #[test]
+        fn can_get_last_path_happy() {
+            let base = unix_lit!("a/b/c");
+            let res = base.path_file_name().unwrap();
+            let expect = unix_lit!("c");
+            assert_eq!(expect, res);
+        }
+
+        #[test]
+        fn can_get_last_path_root_gives_none() {
+            let base = unix_lit!("/");
+            assert!(base.path_file_name().is_none());
+        }
+
+        #[test]
+        fn can_get_last_path_empty_gives_none() {
+            assert!(UnixStr::EMPTY.path_file_name().is_none());
         }
 
         #[test]

@@ -12,3 +12,4 @@ cargo fmt --all --check
 cd ../..
 /bin/sh .local/rusl-lint.sh
 /bin/sh .local/tiny-std-lint.sh
+cargo clippy -p tiny-cli

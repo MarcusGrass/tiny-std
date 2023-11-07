@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+
+
+## [v0.2.3]
+
+### Added
+- cli shim code to integrate with tiny-cli
+
+### Changed
 - Implement `From<TimeSpec>` for `SystemTime`
 
 ## [v0.2.2] - 2023-10-01

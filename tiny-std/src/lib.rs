@@ -12,6 +12,7 @@ extern crate alloc;
 pub use error::{Error, Result};
 pub use rusl::error::Errno;
 pub use rusl::string::unix_str::*;
+pub use rusl::unix_lit;
 pub use rusl::Error as RuslError;
 
 #[cfg(feature = "allocator-provided")]
