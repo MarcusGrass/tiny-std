@@ -42,6 +42,6 @@ vdso = ["aux"]
 threaded = ["alloc", "start"]
 
 [dependencies]
-rusl = { version = "0.2.2" , default-features = false }
-tiny-start = { version = "0.1.2", default-features = false, optional = true }
+rusl = { path = "../rusl" , default-features = false }
+tiny-start = { path = "../tiny-start", default-features = false, optional = true }
 sc = "0.2.7"
