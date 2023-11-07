@@ -1,3 +1,5 @@
+#[cfg(feature = "cli")]
+pub mod cli;
 pub mod fd;
 pub mod host_name;
 pub mod misc;

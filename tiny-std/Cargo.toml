@@ -20,6 +20,8 @@ alloc = ["rusl/alloc"]
 
 allocator-provided = []
 
+cli = ["start"]
+
 global-allocator = ["allocator-provided"]
 
 # Pulls in all features to make an executable that works as expected (env etc), std-incompatible

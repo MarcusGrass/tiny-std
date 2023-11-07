@@ -116,3 +116,25 @@ macro_rules! expect_errno {
         assert_eq!($errno, $crate::errno_or_throw!($res));
     };
 }
+
+/// comp-time-checked null-terminated string literal, adds null terminator.
+/// Will fail to compile if invalid.
+#[macro_export]
+macro_rules! unix_lit {
+    ($lit: literal) => {{
+        const __LIT_VAL: &$crate::string::unix_str::UnixStr =
+            $crate::string::unix_str::UnixStr::from_str_checked(concat!($lit, "\0"));
+        __LIT_VAL
+    }};
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::string::unix_str::UnixStr;
+
+    #[test]
+    fn lit_macro() {
+        let my_var = unix_lit!("hello");
+        assert_eq!(UnixStr::try_from_str("hello\0").unwrap(), my_var);
+    }
+}
