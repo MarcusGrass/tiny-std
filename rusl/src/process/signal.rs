@@ -8,6 +8,7 @@ use crate::platform::{NonNegativeI32, SaMask, SigSetT, SIG_DFL, SIG_IGN};
 
 /// This struct can differ between architectures, it's the same on aarch64 and `x86_64` though.
 #[repr(C)]
+#[allow(clippy::struct_field_names)]
 struct Sigaction {
     // Fn pointer to an extern C Fn(int) -> ()
     sa_sigaction: SaSigaction,
@@ -44,8 +45,8 @@ pub struct SigInfo {
     pub si_code: i32,
     pub si_trapno: i32,
     pub si_pid: i32,
-    pub _pad: [i32; 27],
-    pub _align: [u64; 0],
+    _pad: [i32; 27],
+    _align: [u64; 0],
 }
 
 /// We don't have to do much here, just return from the handler
