@@ -11,9 +11,9 @@ use linux_rust_bindings::io_uring::{
 };
 
 use crate::platform::{
-    comptime_i32_to_u32, comptime_u32_to_u8, AddressFamily, Fd, Mode, OpenFlags, RenameFlags,
-    SocketArg, SocketFlags, SocketOptions, Statx, StatxFlags, StatxMask, TimeSpec, AT_FDCWD,
-    AT_REMOVEDIR,
+    comptime_i32_to_u32, comptime_u32_to_u8, AddressFamily, Fd, Mode, OpenFlags, PollEvents,
+    RenameFlags, SocketAddressInet, SocketAddressUnix, SocketArgUnix, SocketFlags, SocketOptions,
+    Statx, StatxFlags, StatxMask, TimeSpec, AT_FDCWD, AT_REMOVEDIR,
 };
 use crate::string::unix_str::UnixStr;
 use crate::unistd::munmap;
@@ -90,7 +90,7 @@ pub enum IoUringOp {
     ReadFixed = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_READ_FIXED),
     WriteFixed =
         comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_WRITE_FIXED),
-    PollFdd = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_POLL_ADD),
+    PollAdd = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_POLL_ADD),
     PollRemove =
         comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_POLL_REMOVE),
     SyncFileRange =
@@ -142,6 +142,15 @@ pub enum IoUringOp {
     SendZc = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SEND_ZC),
     SendmsgZc = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_SENDMSG_ZC),
     Last = comptime_u32_to_u8(linux_rust_bindings::io_uring::io_uring_op_IORING_OP_LAST),
+}
+
+transparent_bitflags! {
+    pub struct PollAddMultiFlags: u32 {
+        const DEFAULT = 0;
+        const ADD_MULTI = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_POLL_ADD_MULTI);
+        const UPDATE_EVENTS = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_POLL_UPDATE_EVENTS);
+        const UPDATE_USER_DATA = comptime_i32_to_u32(linux_rust_bindings::io_uring::IORING_POLL_UPDATE_USER_DATA);
+    }
 }
 
 #[repr(transparent)]
@@ -572,9 +581,9 @@ impl IoUringSubmissionQueueEntry {
     /// `sockaddr` needs to live until this entry is passed to the kernel
     #[inline]
     #[must_use]
-    pub unsafe fn new_connect(
+    pub unsafe fn new_connect_unix(
         socket: Fd,
-        sockaddr: &SocketArg,
+        sockaddr: &SocketArgUnix,
         user_data: u64,
         sqe_flags: IoUringSQEFlags,
     ) -> Self {
@@ -605,12 +614,14 @@ impl IoUringSubmissionQueueEntry {
 
     /// Creates a new socket. Will execute an equivalent to an `accept4` syscall.  
     /// # Safety
-    /// `sockaddr` needs to live until this entry is passed to the kernel
+    /// `sockaddr` and `addr_len` needs to live until the kernel has processed this accept call
+    /// (accepted a client and returned a CQE).
     #[inline]
     #[must_use]
-    pub unsafe fn new_accept(
+    pub unsafe fn new_accept_unix(
         socket: Fd,
-        sockaddr: &SocketArg,
+        sockaddr: *mut SocketAddressUnix,
+        addr_len: *mut u64,
         socket_flags: SocketFlags,
         user_data: u64,
         sqe_flags: IoUringSQEFlags,
@@ -621,10 +632,51 @@ impl IoUringSubmissionQueueEntry {
             ioprio: 0,
             fd: socket.0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
-                addr2: core::ptr::addr_of!(sockaddr.addr_len) as u64,
+                addr2: sockaddr as u64,
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
-                addr: core::ptr::addr_of!(sockaddr.addr) as u64,
+                addr: addr_len as u64,
+            },
+            len: 0,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                accept_flags: socket_flags.0,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::default(),
+                cmd: __BindgenUnionField::default(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Accepts a new inet socket connection. Will execute an equivalent to an `accept4` syscall.
+    /// # Safety
+    /// `sockaddr` and `addr_len` needs to live until the kernel has processed this accept call
+    /// (accepted a client and returned a CQE).
+    #[inline]
+    #[must_use]
+    pub unsafe fn new_accept_inet(
+        socket: Fd,
+        sockaddr: *mut SocketAddressInet,
+        addr_len: *mut u64,
+        socket_flags: SocketFlags,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: IoUringOp::Accept as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: socket.0,
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
+                addr2: sockaddr as u64,
+            },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: addr_len as u64,
             },
             len: 0,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
@@ -669,7 +721,7 @@ impl IoUringSubmissionQueueEntry {
                 },
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
-                addr: ts as *const TimeSpec as u64,
+                addr: core::ptr::from_ref::<TimeSpec>(ts) as u64,
             },
             len: 1,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
@@ -678,6 +730,156 @@ impl IoUringSubmissionQueueEntry {
                 } else {
                     IORING_TIMEOUT_ABS as u32
                 },
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Create a new sendmsg SQE
+    /// # Safety
+    /// `send_drop_guard` needs to live until this SQE is processed by the kernel.
+    #[inline]
+    #[must_use]
+    #[cfg(feature = "alloc")]
+    #[allow(clippy::cast_sign_loss)]
+    pub unsafe fn new_sendmsg(
+        socket: Fd,
+        send_drop_guard: &crate::platform::SendDropGuard,
+        sendmsg_flags: i32,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: IoUringOp::Sendmsg as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: socket.value(),
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: core::ptr::addr_of!(send_drop_guard.msghdr) as u64,
+            },
+            len: 0,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                msg_flags: sendmsg_flags as u32,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Create a new raw pointer sendmsg SQE
+    /// # Safety
+    /// `msghdr` needs to live until this SQE is processed by the kernel.
+    #[inline]
+    #[must_use]
+    #[cfg(feature = "alloc")]
+    #[allow(clippy::cast_sign_loss)]
+    pub unsafe fn new_sendmsg_raw(
+        socket: Fd,
+        msghdr: *const crate::platform::MsgHdr,
+        sendmsg_flags: i32,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: IoUringOp::Sendmsg as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: socket.value(),
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: msghdr as u64,
+            },
+            len: 0,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                msg_flags: sendmsg_flags as u32,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    /// Create a new sendmsg SQE
+    /// # Safety
+    /// Instant UB if the pointer, or the internal pointers in the pointed to struct become invalid
+    /// before the kernel has finished with the entry.
+    #[inline]
+    #[must_use]
+    #[cfg(feature = "alloc")]
+    #[allow(clippy::cast_sign_loss)]
+    pub unsafe fn new_recvmsg(
+        socket: Fd,
+        msghdr: *mut crate::platform::MsgHdr,
+        sendmsg_flags: i32,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: IoUringOp::Recvmsg as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: socket.value(),
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
+                addr: msghdr as u64,
+            },
+            len: 0,
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                msg_flags: sendmsg_flags as u32,
+            },
+            user_data,
+            __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },
+            personality: 0,
+            __bindgen_anon_5: io_uring_sqe__bindgen_ty_5 { file_index: 0 },
+            __bindgen_anon_6: io_uring_sqe__bindgen_ty_6 {
+                __bindgen_anon_1: __BindgenUnionField::new(),
+                cmd: __BindgenUnionField::new(),
+                bindgen_union_field: [0; 2],
+            },
+        })
+    }
+
+    #[must_use]
+    #[allow(clippy::cast_sign_loss)]
+    pub fn new_poll_add(
+        fd: Fd,
+        poll_events: PollEvents,
+        flags: PollAddMultiFlags,
+        user_data: u64,
+        sqe_flags: IoUringSQEFlags,
+    ) -> Self {
+        Self(io_uring_sqe {
+            opcode: IoUringOp::PollAdd as u8,
+            flags: sqe_flags.bits(),
+            ioprio: 0,
+            fd: fd.value(),
+            __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 { off: 0 },
+            __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 { addr: 0 },
+            len: flags.bits(),
+            __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
+                poll_events: poll_events.bits() as u16,
             },
             user_data,
             __bindgen_anon_4: io_uring_sqe__bindgen_ty_4 { buf_index: 0 },

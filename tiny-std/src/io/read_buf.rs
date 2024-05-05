@@ -167,5 +167,5 @@ pub(crate) unsafe fn slice_assume_init_mut<T>(slice: &mut [MaybeUninit<T>]) -> &
     // `slice` is initialized, and `MaybeUninit` is guaranteed to have the same layout as `T`.
     // The pointer obtained is valid since it refers to memory owned by `slice` which is a
     // reference and thus guaranteed to be valid for reads.
-    &mut *(slice as *mut [MaybeUninit<T>] as *mut [T])
+    &mut *(core::ptr::from_mut::<[MaybeUninit<T>]>(slice) as *mut [T])
 }

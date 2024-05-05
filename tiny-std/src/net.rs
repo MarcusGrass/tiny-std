@@ -1,5 +1,5 @@
 use rusl::platform::{
-    AddressFamily, NonNegativeI32, SocketAddress, SocketFlags, SocketOptions, SocketType,
+    AddressFamily, NonNegativeI32, SocketAddressUnix, SocketFlags, SocketOptions, SocketType,
 };
 use rusl::string::unix_str::UnixStr;
 
@@ -26,9 +26,9 @@ impl UnixStream {
             SocketOptions::new(SocketType::SOCK_STREAM, block),
             0,
         )?;
-        let addr = SocketAddress::try_from_unix(path)?;
+        let addr = SocketAddressUnix::try_from_unix(path)?;
 
-        rusl::network::connect(fd, &addr)?;
+        rusl::network::connect_unix(fd, &addr)?;
         Ok(Self(OwnedFd(fd)))
     }
 }
@@ -74,8 +74,8 @@ impl UnixListener {
             SocketOptions::new(SocketType::SOCK_STREAM, block),
             0,
         )?;
-        let addr = SocketAddress::try_from_unix(path)?;
-        rusl::network::bind(fd, &addr)?;
+        let addr = SocketAddressUnix::try_from_unix(path)?;
+        rusl::network::bind_unix(fd, &addr)?;
         rusl::network::listen(fd, NonNegativeI32::MAX)?;
         Ok(Self(OwnedFd(fd)))
     }
@@ -89,7 +89,7 @@ impl UnixListener {
         let block = blocking
             .then(SocketFlags::empty)
             .unwrap_or(SocketFlags::SOCK_NONBLOCK);
-        let client = rusl::network::accept(self.0 .0, None, SocketFlags::SOCK_CLOEXEC | block)?;
+        let client = rusl::network::accept_unix(self.0 .0, SocketFlags::SOCK_CLOEXEC | block)?.0;
         Ok(UnixStream(OwnedFd(client)))
     }
 }

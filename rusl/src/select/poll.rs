@@ -20,8 +20,8 @@ pub fn ppoll(
             PPOLL,
             poll_fds.as_mut_ptr(),
             poll_fds.len(),
-            timespec.map_or_else(core::ptr::null, |ts| ts as *const TimeSpec),
-            sigset.map_or_else(core::ptr::null, |ss_t| ss_t as *const SigSetT)
+            timespec.map_or_else(core::ptr::null, core::ptr::from_ref::<TimeSpec>),
+            sigset.map_or_else(core::ptr::null, core::ptr::from_ref::<SigSetT>)
         )
     };
     bail_on_below_zero!(res, "`PPOLL` syscall failed");

@@ -19,7 +19,7 @@ pub struct Passwd<'a> {
 /// `/etc/passwd` isn't readable.
 pub fn getpwuid_r(uid: UidT, buf: &mut [u8]) -> Result<Option<Passwd>> {
     let fd =
-        unsafe { rusl::unistd::open_raw("/etc/passwd\0".as_ptr() as usize, OpenFlags::O_RDONLY)? };
+        unsafe { rusl::unistd::open_raw(c"/etc/passwd".as_ptr() as usize, OpenFlags::O_RDONLY)? };
     search_pwd_fd(fd, uid, buf)
 }
 

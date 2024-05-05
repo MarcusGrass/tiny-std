@@ -562,7 +562,7 @@ impl<'a> DirEntry<'a> {
             // ie. we just did a range check.
             let tgt = self.inner.d_name.get_unchecked(..=len);
             // Safety: `&UnixStr` and `&[u8]` have the same layout
-            Ok(&*(tgt as *const [u8] as *const UnixStr))
+            Ok(&*(core::ptr::from_ref::<[u8]>(tgt) as *const UnixStr))
         }
     }
 

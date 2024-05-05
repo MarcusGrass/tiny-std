@@ -23,7 +23,7 @@ pub fn futex_wait(
             val,
             timeout
                 .as_ref()
-                .map_or_else(core::ptr::null, |ts| ts as *const TimeSpec),
+                .map_or_else(core::ptr::null, core::ptr::from_ref::<TimeSpec>),
             0,
             0
         )

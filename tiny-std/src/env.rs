@@ -12,6 +12,7 @@ pub(crate) static mut ENV: Env = Env {
     env_p: core::ptr::null(),
 };
 
+#[allow(clippy::struct_field_names)]
 pub(crate) struct Env {
     pub(crate) arg_c: u64,
     pub(crate) arg_v: *const *const u8,

@@ -1,11 +1,11 @@
 use core::marker::PhantomData;
 
-use linux_rust_bindings::uio::iovec;
+pub use linux_rust_bindings::uio::iovec;
 
 #[repr(transparent)]
 pub struct IoSlice<'a> {
     #[allow(dead_code)]
-    vec: iovec,
+    pub vec: iovec,
     _p: PhantomData<&'a [u8]>,
 }
 
@@ -24,8 +24,7 @@ impl<'a> IoSlice<'a> {
 
 #[repr(transparent)]
 pub struct IoSliceMut<'a> {
-    #[allow(dead_code)]
-    pub(crate) vec: iovec,
+    pub vec: iovec,
     _p: PhantomData<&'a mut [u8]>,
 }
 

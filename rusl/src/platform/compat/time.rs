@@ -95,13 +95,7 @@ impl TryFrom<Duration> for TimeSpec {
             tv_sec: d.as_secs().try_into().map_err(|_| {
                 crate::Error::no_code("Failed to fit duration u64 secs into tv_sec i64")
             })?,
-            tv_nsec: d
-                .subsec_nanos()
-                .try_into()
-                // This one doesn't make a lot of sense
-                .map_err(|_| {
-                    crate::Error::no_code("Failed to fit duration u32 secs into tv_sec i32")
-                })?,
+            tv_nsec: d.subsec_nanos().into(),
         }))
     }
 }
