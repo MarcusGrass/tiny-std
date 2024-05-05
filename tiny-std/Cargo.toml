@@ -1,6 +1,6 @@
 [package]
 name = "tiny-std"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 license = "MPL-2.0"
 readme = "../Readme.md"
@@ -42,6 +42,6 @@ vdso = ["aux"]
 threaded = ["alloc", "start"]
 
 [dependencies]
-rusl = { path = "../rusl" , default-features = false }
-tiny-start = { path = "../tiny-start", default-features = false, optional = true }
+rusl = { version = "0.3.0" , default-features = false }
+tiny-start = { version = "0.1.3", default-features = false, optional = true }
 sc = "0.2.7"
