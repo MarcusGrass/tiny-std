@@ -192,6 +192,7 @@ const fn leftshift_for_tree_index(x: u32) -> u32 {
     }
 }
 
+#[allow(clippy::new_without_default)]
 impl Dlmalloc {
     #[must_use]
     pub const fn new() -> Dlmalloc {

@@ -258,9 +258,9 @@ pub(crate) struct ThreadDealloc {
 /// Spawn a thread that will run the provided function
 /// # Errors
 /// Failure to mmap the thread's stack.
-pub fn spawn<T, F: FnOnce() -> T>(func: F) -> Result<JoinHandle<T>>
+pub fn spawn<T, F>(func: F) -> Result<JoinHandle<T>>
 where
-    F: Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
     T: Send + 'static,
 {
     let flags = CloneFlags::CLONE_VM

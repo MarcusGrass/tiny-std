@@ -120,7 +120,7 @@ impl core::ops::Deref for UnixString {
     type Target = UnixStr;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.0.as_slice() as *const [u8] as *const UnixStr) }
+        unsafe { &*(core::ptr::from_ref::<[u8]>(self.0.as_slice()) as *const UnixStr) }
     }
 }
 
@@ -183,7 +183,7 @@ impl UnixStr {
         for (ind, byte) in s.iter().enumerate() {
             if *byte == NULL_BYTE {
                 return if ind == len - 1 {
-                    unsafe { Ok(&*(s as *const [u8] as *const UnixStr)) }
+                    unsafe { Ok(&*(core::ptr::from_ref::<[u8]>(s) as *const UnixStr)) }
                 } else {
                     Err(Error::no_code("Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place"))
                 };
@@ -200,7 +200,7 @@ impl UnixStr {
     pub unsafe fn from_ptr<'a>(s: *const u8) -> &'a Self {
         let non_null_len = strlen(s);
         let slice = core::slice::from_raw_parts(s, non_null_len + 1);
-        &*(slice as *const [u8] as *const Self)
+        &*(core::ptr::from_ref::<[u8]>(slice) as *const Self)
     }
 
     /// Try to convert this `&UnixStr` to a utf8 `&str`
@@ -336,7 +336,9 @@ impl UnixStr {
         for (ind, byte) in self.0.iter().enumerate().rev() {
             if *byte == b'/' {
                 return if ind + 2 < self.len() {
-                    unsafe { Some(&*(&self.0[ind + 1..] as *const [u8] as *const Self)) }
+                    unsafe {
+                        Some(&*(core::ptr::from_ref::<[u8]>(&self.0[ind + 1..]) as *const Self))
+                    }
                 } else {
                     None
                 };

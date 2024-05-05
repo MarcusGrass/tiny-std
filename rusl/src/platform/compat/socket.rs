@@ -641,7 +641,7 @@ mod tests {
         mut_cm.cmsg_len = cmsg_len;
         let data = cmsg_data!(cmhdr);
         core::ptr::copy_nonoverlapping(
-            fds as *const _ as *const u8,
+            core::ptr::from_ref(fds) as *const u8,
             data,
             core::mem::size_of_val(fds),
         );

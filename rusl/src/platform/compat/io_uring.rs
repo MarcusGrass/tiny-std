@@ -721,7 +721,7 @@ impl IoUringSubmissionQueueEntry {
                 },
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
-                addr: ts as *const TimeSpec as u64,
+                addr: core::ptr::from_ref::<TimeSpec>(ts) as u64,
             },
             len: 1,
             __bindgen_anon_3: io_uring_sqe__bindgen_ty_3 {
