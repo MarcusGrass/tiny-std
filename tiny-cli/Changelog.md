@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+## [v0.2.1] - 2024-05-05
+### Fixed
+
+- Update tiny-std
+
 ## [v0.2.0] - 2023-11-07
 
 ### Changed

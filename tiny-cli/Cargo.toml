@@ -1,6 +1,6 @@
 [package]
 name = "tiny-cli"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MPL-2.0"
 readme = "../Readme.md"
@@ -16,4 +16,4 @@ keywords = ["cli", "parse", "arg", "parser", "linux"]
 proc-macro = true
 
 [dev-dependencies]
-tiny-std = { path = "../tiny-std", features = ["alloc", "cli"]}
+tiny-std = { version = "0.2.4", features = ["alloc", "cli"]}
