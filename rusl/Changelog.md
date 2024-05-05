@@ -3,13 +3,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
-
 ## [Unreleased]
 ### Fixed
 
 ### Added
 
 ### Changed
+
+## [0.3.0] - 2024-05-05
+
+### Fixed
+
+### Added
+
+- TCP-sockets implementation
+- TCP-sockets implementation for io-uring
+- Bunch of tests
+- TCP and Unix socket `GETSOCKETNAME` implementation
+- Sendmsg and Recvmsg implementations - Very rough implementation, subject to improvement.
+- PollAdd io-uring implementation
+- lseek implementation
+
+### Changed
+
+- Rename socket functions to be domain-specific
 
 ## [v0.2.2] - 2023-11-07
 ### Added
