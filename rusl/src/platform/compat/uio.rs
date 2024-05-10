@@ -11,7 +11,7 @@ pub struct IoSlice<'a> {
 
 impl<'a> IoSlice<'a> {
     #[must_use]
-    pub fn new(buf: &[u8]) -> Self {
+    pub const fn new(buf: &[u8]) -> Self {
         Self {
             vec: iovec {
                 iov_base: buf.as_ptr().cast_mut().cast(),

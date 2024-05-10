@@ -121,6 +121,12 @@ transparent_bitflags! {
     }
 }
 
+impl Mode {
+    pub const MODE_755: Mode = Mode(
+        Mode::S_IRWXU.0 | Mode::S_IRGRP.0 | Mode::S_IXGRP.0 | Mode::S_IXOTH.0 | Mode::S_IROTH.0,
+    );
+}
+
 impl From<u32> for Mode {
     #[inline]
     fn from(value: u32) -> Self {

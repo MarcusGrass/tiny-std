@@ -3,10 +3,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
-## [Unreleased]
+## [TBD] - RELEASE DATE
 ### Fixed
 
 ### Added
+
+### Changed
+
+## [0.3.1] - RELEASE DATE
+### Fixed
+
+### Added
+- Implement GETPID syscall
+- Implement READV syscall
+- implement WRITEV syscall
 
 ### Changed
 

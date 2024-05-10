@@ -10,7 +10,7 @@ pub use mmap::{mmap, munmap};
 pub use mount::{mount, unmount};
 pub use open::{open, open_at, open_at_mode, open_mode, open_raw};
 pub use pipe::{pipe, pipe2};
-pub use read::read;
+pub use read::{read, readv};
 pub use rename::{rename, rename_at, rename_at2, rename_flags};
 pub use seek::{lseek, Whence};
 pub use setgid::setgid;
@@ -22,7 +22,7 @@ pub use swapon::swapon;
 pub use uname::uname;
 pub use unlink::{rmdir, unlink, unlink_at, unlink_flags, UnlinkFlags};
 pub use unshare::unshare;
-pub use write::write;
+pub use write::{write, writev};
 
 mod chdir;
 mod close;

@@ -1,7 +1,11 @@
 use crate::error::Errno;
-use crate::platform::OpenFlags;
+use crate::platform::{IoSlice, IoSliceMut, Mode, OpenFlags};
 use crate::string::unix_str::UnixStr;
-use crate::unistd::{close, fcntl_get_file_status, fcntl_set_file_status, open, read, write};
+use crate::unistd::read::readv;
+use crate::unistd::write::writev;
+use crate::unistd::{
+    close, fcntl_get_file_status, fcntl_set_file_status, open, open_mode, read, unlink, write,
+};
 
 #[test]
 fn no_write_on_read_only() {
@@ -55,4 +59,56 @@ fn set_file_non_blocking() {
     fcntl_set_file_status(fd, OpenFlags::O_NONBLOCK).unwrap();
     let new_flags = fcntl_get_file_status(fd).unwrap();
     assert_eq!(OpenFlags::O_NONBLOCK, new_flags & OpenFlags::O_NONBLOCK);
+}
+
+#[test]
+fn can_read_write() {
+    const CONTENT: &[u8; 21] = b"Test write into file\n";
+    let path = unix_lit!("test-files/unistd/read_write.txt");
+    let _ = unlink(path);
+    let fd = open_mode(
+        path,
+        OpenFlags::O_WRONLY | OpenFlags::O_CREAT,
+        Mode::MODE_755,
+    )
+    .unwrap();
+    write(fd, CONTENT).unwrap();
+    close(fd).unwrap();
+    let fd = open(path, OpenFlags::O_RDONLY).unwrap();
+    let mut buf = [0u8; CONTENT.len()];
+    read(fd, &mut buf).unwrap();
+    assert_eq!(&buf, CONTENT);
+}
+
+#[test]
+fn can_read_writev() {
+    const PART_A: &[u8] = b"First line\n";
+    const PART_B: &[u8] = b"Second line\nThird line\n";
+    const PART_C: &[u8] = b"Fourth line\n";
+    let iova = IoSlice::new(PART_A);
+    let iovb = IoSlice::new(PART_B);
+    let iovc = IoSlice::new(PART_C);
+    let path = unix_lit!("test-files/unistd/read_writev.txt");
+    let _ = unlink(path);
+    let fd = open_mode(
+        path,
+        OpenFlags::O_WRONLY | OpenFlags::O_CREAT,
+        Mode::MODE_755,
+    )
+    .unwrap();
+    writev(fd, &[iova, iovb, iovc]).unwrap();
+    close(fd).unwrap();
+    let mut recva = [0u8; PART_A.len()];
+    let mut recvb = [0u8; PART_B.len()];
+    let mut recvc = [0u8; PART_C.len()];
+    let iovra = IoSliceMut::new(&mut recva);
+    let iovrb = IoSliceMut::new(&mut recvb);
+    let iovrc = IoSliceMut::new(&mut recvc);
+
+    let fd = open(path, OpenFlags::O_RDONLY).unwrap();
+    readv(fd, &mut [iovra, iovrb, iovrc]).unwrap();
+
+    assert_eq!(recva, PART_A);
+    assert_eq!(recvb, PART_B);
+    assert_eq!(recvc, PART_C);
 }

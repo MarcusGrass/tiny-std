@@ -16,7 +16,7 @@ use rusl::string::unix_str::UnixString;
 use crate::error::{Error, Result};
 use crate::fs::OpenOptions;
 use crate::io::{Read, Write};
-use crate::unix::fd::{OwnedFd, RawFd};
+use crate::unix::fd::{BorrowedFd, OwnedFd, RawFd};
 
 const DEV_NULL: &UnixStr = UnixStr::from_str_checked("/dev/null\0");
 
@@ -613,6 +613,14 @@ pub fn spawn<const N: usize, CL: PreExec>(
 }
 
 pub struct AnonPipe(OwnedFd);
+
+impl AnonPipe {
+    #[inline]
+    #[must_use]
+    pub fn borrow_fd(&self) -> BorrowedFd {
+        BorrowedFd::new(self.0 .0)
+    }
+}
 
 impl Read for AnonPipe {
     #[inline]
