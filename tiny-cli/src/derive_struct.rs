@@ -197,7 +197,7 @@ fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream 
                 ArgsParsedTreeParseState::WantsSubcommand => {
                     let mem = parse_member(ident, &mut stream);
                     let field_ty = match mem.ty {
-                        FieldTy::UnixStr | FieldTy::Str => {
+                        FieldTy::UnixStr | FieldTy::Str | FieldTy::Bool => {
                             panic!("[ArgParse derive] Invalid type for subcommand");
                         }
                         FieldTy::Unknown(ty) => ty,
@@ -215,29 +215,29 @@ fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream 
                 }
                 ArgsParsedTreeParseState::Ready => {
                     let mem = parse_member(ident, &mut stream);
-                    let pf = ParsedField {
-                        doc_comments: core::mem::take(&mut doc_comments_for_next),
-                        name: mem.name.clone(),
-                        ty: mem.ty,
-                        is_ref: mem.is_ref,
-                        package: mem.package,
-                        long_match: mem.name,
-                        short_match: None,
-                    };
+                    let pf = ParsedField::new_check_consistency(
+                        core::mem::take(&mut doc_comments_for_next),
+                        mem.name.clone(),
+                        mem.ty,
+                        mem.is_ref,
+                        mem.package,
+                        mem.name,
+                        None,
+                    );
                     c.push_field(&pf);
                     members.push(pf);
                 }
                 ArgsParsedTreeParseState::WantsMember(p) => {
                     let mem = parse_member(ident, &mut stream);
-                    let pf = ParsedField {
-                        doc_comments: core::mem::take(&mut doc_comments_for_next),
-                        name: mem.name.clone(),
-                        ty: mem.ty,
-                        is_ref: mem.is_ref,
-                        package: mem.package,
-                        long_match: p.long.unwrap_or(mem.name),
-                        short_match: p.short,
-                    };
+                    let pf = ParsedField::new_check_consistency(
+                        core::mem::take(&mut doc_comments_for_next),
+                        mem.name.clone(),
+                        mem.ty,
+                        mem.is_ref,
+                        mem.package,
+                        p.long.unwrap_or(mem.name),
+                        p.short,
+                    );
                     c.push_field(&pf);
                     members.push(pf);
                     state = ArgsParsedTreeParseState::Ready;
@@ -539,6 +539,7 @@ impl ParsedField {
                     ty.clone()
                 }
             }
+            FieldTy::Bool => "bool".to_string(),
         }
     }
 
@@ -568,12 +569,36 @@ impl ParsedField {
         }
         let _ = help_row.write_char('\n');
     }
+
+    pub(crate) fn new_check_consistency(
+        doc_comments: Vec<String>,
+        name: String,
+        ty: FieldTy,
+        is_ref: bool,
+        package: FieldPackageKind,
+        long_match: String,
+        short_match: Option<String>,
+    ) -> Self {
+        if ty == FieldTy::Bool && matches!(package, FieldPackageKind::Option) {
+            panic!("[ArgParse Derive] Failed to derive, got field with name={name} specified as Option<bool> bool defaults to false and are always optional")
+        }
+        Self {
+            doc_comments,
+            name,
+            ty,
+            is_ref,
+            package,
+            long_match,
+            short_match,
+        }
+    }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum FieldTy {
     UnixStr,
     Str,
+    Bool,
     Unknown(String),
 }
 
@@ -583,6 +608,7 @@ impl FieldTy {
         match trimmed_ident.as_str() {
             "UnixStr" => Self::UnixStr,
             "str" => Self::Str,
+            "bool" => Self::Bool,
             &_ => Self::Unknown(trimmed_ident),
         }
     }

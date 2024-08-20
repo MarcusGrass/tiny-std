@@ -5,7 +5,7 @@ use std::panic;
 use std::sync::{Arc, Mutex};
 use tiny_cli::{ArgParse, Subcommand};
 use tiny_std::unix::cli::ArgParse;
-use tiny_std::{UnixStr, UnixString};
+use tiny_std::{unix_lit, UnixStr, UnixString};
 
 #[derive(ArgParse)]
 #[cli(help_path = "tiny-cli")]
@@ -62,6 +62,22 @@ fn aliases_work() {
     ];
     let ss = SimpleStructWithAliases::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(15, ss.one_req_field);
+}
+
+#[derive(ArgParse)]
+pub struct SimplStructWithBool {
+    #[cli(short = "b")]
+    my_opt: bool,
+}
+
+#[test]
+fn bool_parsing_works() {
+    let mut values = [unix_lit!("-b")];
+    let b = SimplStructWithBool::arg_parse(&mut values.into_iter()).unwrap();
+    assert!(b.my_opt);
+    let mut no_value = [];
+    let b = SimplStructWithBool::arg_parse(&mut no_value.into_iter()).unwrap();
+    assert!(!b.my_opt);
 }
 
 #[derive(ArgParse)]

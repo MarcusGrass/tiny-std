@@ -41,6 +41,7 @@ impl CodeWriter {
             struct_out: String::new(),
         }
     }
+
     pub(crate) fn push_field(&mut self, field: &ParsedField) {
         self.field_push_const_match(field);
         self.field_push_var_decl(field);
@@ -80,6 +81,12 @@ impl CodeWriter {
     }
 
     fn field_push_var_decl(&mut self, field: &ParsedField) {
+        if matches!(field.ty, FieldTy::Bool) {
+            let _ = self
+                .var_decl_head
+                .write_fmt(format_args!("\t\tlet mut {}: bool = false;\n", field.name,));
+            return;
+        }
         match field.package {
             FieldPackageKind::None | FieldPackageKind::Option => {
                 let _ = self.var_decl_head.write_fmt(format_args!(
@@ -130,7 +137,7 @@ impl CodeWriter {
     }
 
     fn field_push_to_out(&mut self, field: &ParsedField) {
-        if matches!(field.package, FieldPackageKind::None) {
+        if matches!(field.package, FieldPackageKind::None) && !matches!(field.ty, FieldTy::Bool) {
             let _ = self.struct_out.write_fmt(format_args!("\
             {}: {{
                 if let Some(found_arg) = {} {{
@@ -245,13 +252,22 @@ impl tiny_std::unix::cli::ArgParse for {name} {{
     fn arg_parse(args: &mut impl Iterator<Item=&'static tiny_std::UnixStr>) -> core::result::Result<Self, tiny_std::unix::cli::ArgParseError> {{
 ")
 }
+
 fn member_try_assign(m: &ParsedField) -> String {
     match m.package {
         FieldPackageKind::None | FieldPackageKind::Option => {
-            format!("{} = Some({})", m.name, member_as_convert(m))
+            if matches!(m.ty, FieldTy::Bool) {
+                format!("{} = true", m.name)
+            } else {
+                format!("{} = Some({})", m.name, member_as_convert(m))
+            }
         }
         FieldPackageKind::Vec => {
-            format!("{}.push({})", m.name, member_as_convert(m))
+            if matches!(m.ty, FieldTy::Bool) {
+                format!("{}.push(true)", m.name)
+            } else {
+                format!("{}.push({})", m.name, member_as_convert(m))
+            }
         }
     }
 }
@@ -282,6 +298,7 @@ fn member_as_convert(m: &ParsedField) -> String {
             let _ = out.write_str("\t\t\t\t\t\t}\n");
             let _ = out.write_str("\t\t\t\t\t}");
         }
+        FieldTy::Bool => {}
         FieldTy::Unknown(ty) => {
             let _ = out.write_str("\t\t\t\t\t\tlet next_str_arg = match next_arg.as_str() {\n");
             let _ = out.write_str("\t\t\t\t\t\t\tOk(s) => s,\n");
