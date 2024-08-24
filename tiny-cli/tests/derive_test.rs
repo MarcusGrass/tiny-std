@@ -5,11 +5,12 @@ use std::panic;
 use std::sync::{Arc, Mutex};
 use tiny_cli::{ArgParse, Subcommand};
 use tiny_std::unix::cli::ArgParse;
-use tiny_std::{UnixStr, UnixString};
+use tiny_std::{unix_lit, UnixStr, UnixString};
 
 #[derive(ArgParse)]
 #[cli(help_path = "tiny-cli")]
-pub struct SimplestStruct {
+pub struct SimplestStructWithOpt {
+    #[cli(long = "one-req-field")]
     one_req_field: i32,
 }
 
@@ -19,13 +20,13 @@ fn simplest_struct_happy() {
         UnixStr::from_str_checked("--one-req-field\0"),
         UnixStr::from_str_checked("15\0"),
     ];
-    let ss = SimplestStruct::arg_parse(&mut values.into_iter()).unwrap();
+    let ss = SimplestStructWithOpt::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(15, ss.one_req_field);
 }
 #[test]
 fn simplest_struct_err() {
     let mut values = [UnixStr::from_str_checked("--one-req-field\0")];
-    let ss = SimplestStruct::arg_parse(&mut values.into_iter());
+    let ss = SimplestStructWithOpt::arg_parse(&mut values.into_iter());
     let Err(e) = ss else {
         panic!("Expected arg parse to fail on simple struct")
     };
@@ -40,6 +41,54 @@ Options:
 Expected argument following '--one-req-field'.",
         string_out
     );
+}
+
+#[derive(ArgParse)]
+#[cli(help_path = "tiny-cli")]
+pub struct SimplestStructWithArg {
+    one_req_field: i32,
+}
+
+#[test]
+fn simplest_struct_arg_happy() {
+    let mut values = [UnixStr::from_str_checked("15\0")];
+    let ss = SimplestStructWithArg::arg_parse(&mut values.into_iter()).unwrap();
+    assert_eq!(15, ss.one_req_field);
+}
+#[test]
+fn simplest_struct_arg_err() {
+    let mut values = [];
+    let ss = SimplestStructWithArg::arg_parse(&mut values.into_iter());
+    let Err(e) = ss else {
+        panic!("Expected arg parse to fail on simple struct")
+    };
+    let string_out = e.to_string();
+    assert_eq!(
+        "\
+Usage: tiny-cli [ONE_REQ_FIELD]
+
+Arguments:
+  [ONE_REQ_FIELD]
+
+Required argument 'one_req_field' not supplied.",
+        string_out
+    );
+}
+
+#[derive(ArgParse)]
+#[cli(help_path = "tiny-cli")]
+pub struct SimplestStructWithOptArg {
+    one_req_field: Option<i32>,
+}
+
+#[test]
+fn simplest_struct_opt_arg_happy() {
+    let mut values = [UnixStr::from_str_checked("15\0")];
+    let ss = SimplestStructWithOptArg::arg_parse(&mut values.into_iter()).unwrap();
+    assert_eq!(Some(15), ss.one_req_field);
+    let mut values = [];
+    let ss = SimplestStructWithOptArg::arg_parse(&mut values.into_iter()).unwrap();
+    assert!(ss.one_req_field.is_none());
 }
 
 #[derive(ArgParse)]
@@ -65,9 +114,88 @@ fn aliases_work() {
 }
 
 #[derive(ArgParse)]
+pub struct SimplStructWithBool {
+    #[cli(short = "b")]
+    my_opt: bool,
+}
+
+#[test]
+fn bool_parsing_works() {
+    let mut values = [unix_lit!("-b")];
+    let b = SimplStructWithBool::arg_parse(&mut values.into_iter()).unwrap();
+    assert!(b.my_opt);
+    let mut no_value = [];
+    let b = SimplStructWithBool::arg_parse(&mut no_value.into_iter()).unwrap();
+    assert!(!b.my_opt);
+}
+
+#[derive(ArgParse)]
+#[cli(help_path = "tiny-cli")]
+pub struct MultiArg {
+    pos_one: String,
+    pos_two: i64,
+}
+
+#[test]
+fn parse_multi_arg() {
+    let mut values = [unix_lit!("one"), unix_lit!("2")];
+    let multi = MultiArg::arg_parse(&mut values.into_iter()).unwrap();
+    assert_eq!("one", multi.pos_one);
+    assert_eq!(2, multi.pos_two);
+}
+
+#[test]
+fn parse_multi_arg_needs_both() {
+    let mut values = [unix_lit!("one")];
+    let Err(e) = MultiArg::arg_parse(&mut values.into_iter()) else {
+        panic!("Expected parse failure on multiarg missing second arg");
+    };
+    assert_eq!(
+        "\
+Usage: tiny-cli [POS_ONE] [POS_TWO]
+
+Arguments:
+  [POS_ONE]
+
+  [POS_TWO]
+
+Required argument 'pos_two' not supplied.",
+        e.to_string()
+    );
+}
+
+#[derive(ArgParse)]
+#[cli(help_path = "tiny-cli")]
+pub struct MultiArgOptLast {
+    pos_one: String,
+    pos_two: i64,
+    pos_three: Option<usize>,
+}
+
+#[test]
+fn parse_multi_arg_opt_no_opt() {
+    let mut values = [unix_lit!("one"), unix_lit!("2")];
+    let multi = MultiArgOptLast::arg_parse(&mut values.into_iter()).unwrap();
+    assert_eq!("one", multi.pos_one);
+    assert_eq!(2, multi.pos_two);
+}
+
+#[test]
+fn parse_multi_arg_opt_with_opt() {
+    let mut values = [unix_lit!("one"), unix_lit!("2"), unix_lit!("1337")];
+    let multi = MultiArgOptLast::arg_parse(&mut values.into_iter()).unwrap();
+    assert_eq!("one", multi.pos_one);
+    assert_eq!(2, multi.pos_two);
+    assert_eq!(Some(1337), multi.pos_three);
+}
+
+#[derive(ArgParse)]
 pub struct StructWithDifferentPackaging {
+    #[cli(long = "req-field")]
     req_field: i32,
+    #[cli(short = "o")]
     opt_field: Option<i32>,
+    #[cli(long = "rep")]
     rep_field: Vec<i32>,
 }
 
@@ -84,7 +212,7 @@ fn required_optional_repeated() {
     let mut values = [
         UnixStr::from_str_checked("--req-field\0"),
         UnixStr::from_str_checked("15\0"),
-        UnixStr::from_str_checked("--opt-field\0"),
+        UnixStr::from_str_checked("-o\0"),
         UnixStr::from_str_checked("30\0"),
     ];
     let ss = StructWithDifferentPackaging::arg_parse(&mut values.into_iter()).unwrap();
@@ -94,9 +222,9 @@ fn required_optional_repeated() {
     let mut values = [
         UnixStr::from_str_checked("--req-field\0"),
         UnixStr::from_str_checked("15\0"),
-        UnixStr::from_str_checked("--rep-field\0"),
+        UnixStr::from_str_checked("--rep\0"),
         UnixStr::from_str_checked("30\0"),
-        UnixStr::from_str_checked("--rep-field\0"),
+        UnixStr::from_str_checked("--rep\0"),
         UnixStr::from_str_checked("45\0"),
     ];
     let ss = StructWithDifferentPackaging::arg_parse(&mut values.into_iter()).unwrap();
@@ -126,6 +254,7 @@ pub enum TestSubcommand {
 #[derive(ArgParse, Debug, Eq, PartialEq)]
 #[cli(help_path = "tiny-cli, cmd-two")]
 pub struct TestSubTwo {
+    #[cli(long = "field1")]
     field1: i32,
 }
 
@@ -242,8 +371,9 @@ fn nested_optional_subcommand() {
 #[cli(help_path = "tiny-cli")]
 struct ComplexUsesAllFeatures {
     /// Naked field, but has comment
+    #[cli(long = "my-field")]
     my_field: i32,
-    #[cli(short = "s")]
+    #[cli(short = "s", long = "my-field-has-short")]
     my_field_has_short: String,
     #[cli(long = "long-field")]
     my_field_has_long_remap: &'static UnixStr,
@@ -261,33 +391,52 @@ enum ComplexSubcommand {
     List(ListArgs),
     /// No comment
     Other(OtherArgs),
+    Arg(SubCommandWithArg),
 }
 
 #[derive(ArgParse, Debug)]
 #[cli(help_path = "tiny-cli, run")]
 struct RunArgs {
+    #[cli(short = "a")]
     arg_has_opt_str: Option<&'static str>,
+    #[cli(short = "b")]
     arg_has_opt_unix_str: Option<&'static UnixStr>,
+    #[cli(short = "c")]
     arg_has_rep_str: Vec<&'static str>,
+    #[cli(short = "d")]
     arg_has_rep_unix_str: Vec<&'static UnixStr>,
 }
 
 #[derive(ArgParse, Debug)]
 #[cli(help_path = "tiny-cli, list")]
 struct ListArgs {
+    #[cli(long = "arg-has-opt-string")]
     arg_has_opt_string: Option<String>,
+    #[cli(long = "rep")]
     arg_has_rep_unix_string: Vec<UnixString>,
     /// This is required
+    #[cli(long = "req")]
     arg_has_required_string: String,
 }
 #[derive(ArgParse, Debug)]
 #[cli(help_path = "tiny-cli, other")]
 struct OtherArgs {
     /// This field is required
+    #[cli(long = "required-field")]
     required_field: i32,
     /// Also has optional subcommand
     #[cli(subcommand)]
     subc_opt: Option<OtherSubcommand>,
+}
+
+#[derive(ArgParse, Debug)]
+#[cli(help_path = "tiny-cli, arg")]
+struct SubCommandWithArg {
+    /// Required positional argument
+    subc_arg: String,
+    /// Optional option
+    #[cli(short = "o")]
+    opt: Option<i32>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -299,6 +448,7 @@ enum OtherSubcommand {
 #[cli(help_path = "tiny-cli, other, only-one-option")]
 pub struct OptStruct {
     /// This isn't required
+    #[cli(long = "only-one-opt-owned-field")]
     only_one_opt_owned_field: Option<i128>,
 }
 
@@ -344,15 +494,15 @@ fn complex_run_full_opts() {
         UnixStr::from_str_checked("-c\0"),
         UnixStr::from_str_checked("remapped string field\0"),
         UnixStr::from_str_checked("run\0"),
-        UnixStr::from_str_checked("--arg-has-opt-str\0"),
+        UnixStr::from_str_checked("-a\0"),
         UnixStr::from_str_checked("myval\0"),
-        UnixStr::from_str_checked("--arg-has-opt-unix-str\0"),
+        UnixStr::from_str_checked("-b\0"),
         UnixStr::from_str_checked("myunixval\0"),
-        UnixStr::from_str_checked("--arg-has-rep-str\0"),
+        UnixStr::from_str_checked("-c\0"),
         UnixStr::from_str_checked("myrepval\0"),
-        UnixStr::from_str_checked("--arg-has-rep-str\0"),
+        UnixStr::from_str_checked("-c\0"),
         UnixStr::from_str_checked("myrepval2\0"),
-        UnixStr::from_str_checked("--arg-has-rep-unix-str\0"),
+        UnixStr::from_str_checked("-d\0"),
         UnixStr::from_str_checked("myrepunixval\0"),
     ];
     let res = ComplexUsesAllFeatures::arg_parse(&mut values.into_iter()).unwrap();
@@ -464,6 +614,7 @@ Commands:
   run   - For running
   list
   other - No comment
+  arg
 
 Options:
       --my-field
@@ -496,13 +647,13 @@ fn complex_run_help() {
 Usage: tiny-cli run [OPTIONS]
 
 Options:
-      --arg-has-opt-str
+  -a
 
-      --arg-has-opt-unix-str
+  -b
 
-      --arg-has-rep-str
+  -c
 
-      --arg-has-rep-unix-str
+  -d
 
 ",
         output
@@ -527,9 +678,9 @@ Usage: tiny-cli list [OPTIONS]
 Options:
       --arg-has-opt-string
 
-      --arg-has-rep-unix-string
+      --rep
 
-      --arg-has-required-string
+      --req
         This is required
 
 ",
@@ -583,6 +734,65 @@ Usage: tiny-cli other only-one-option [OPTIONS]
 Options:
       --only-one-opt-owned-field
         This isn't required
+
+",
+        output
+    );
+}
+
+#[test]
+fn complex_accepts_arg() {
+    let mut values = [
+        UnixStr::from_str_checked("--my-field\0"),
+        UnixStr::from_str_checked("1\0"),
+        UnixStr::from_str_checked("-s\0"),
+        UnixStr::from_str_checked("string-value\0"),
+        UnixStr::from_str_checked("--long-field\0"),
+        UnixStr::from_str_checked("unixstr\0"),
+        UnixStr::from_str_checked("-c\0"),
+        UnixStr::from_str_checked("remapped string field\0"),
+        UnixStr::from_str_checked("arg\0"),
+        UnixStr::from_str_checked("mystr\0"),
+    ];
+    let s = ComplexUsesAllFeatures::arg_parse(&mut values.into_iter()).unwrap();
+    match s.subcommand {
+        ComplexSubcommand::Arg(a) => {
+            assert_eq!("mystr", a.subc_arg);
+        }
+        unk => panic!("Unexpected subcommand parsed: {unk:?}"),
+    }
+}
+
+#[test]
+fn complex_accepts_arg_help() {
+    let mut values = [
+        UnixStr::from_str_checked("--my-field\0"),
+        UnixStr::from_str_checked("1\0"),
+        UnixStr::from_str_checked("-s\0"),
+        UnixStr::from_str_checked("string-value\0"),
+        UnixStr::from_str_checked("--long-field\0"),
+        UnixStr::from_str_checked("unixstr\0"),
+        UnixStr::from_str_checked("-c\0"),
+        UnixStr::from_str_checked("remapped string field\0"),
+        UnixStr::from_str_checked("arg\0"),
+        UnixStr::from_str_checked("-h\0"),
+    ];
+    let Err(e) = ComplexUsesAllFeatures::arg_parse(&mut values.into_iter()) else {
+        panic!("Expect err on complex run help");
+    };
+    assert_eq!(0, e.cause.len());
+    let output = e.to_string();
+    assert_eq!(
+        "\
+Usage: tiny-cli arg [OPTIONS] [SUBC_ARG]
+
+Arguments:
+  [SUBC_ARG]
+        Required positional argument
+
+Options:
+  -o
+        Optional option
 
 ",
         output

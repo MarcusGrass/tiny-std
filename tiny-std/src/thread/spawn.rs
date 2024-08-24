@@ -71,11 +71,11 @@ impl<T: Sized> Drop for JoinHandle<T> {
 /// 3. This struct's layout size (usize)
 /// 4. This struct's layout align (usize)
 /// 5. Some return value wrapped in an `UnsafeCell`
-/// This is useful because we don't need to allocate/deallocate/dereference
-/// 3 separate pointers, we just chunk them into one with the proper alignment.
-/// Ideally this would be a pointer to a struct and not just raw bytes, but since
-/// we don't know the size of `T` in the panic handler we need to keep it as anonymous bytes.
-/// Alignment when creating is important for this not to result in UB
+///    This is useful because we don't need to allocate/deallocate/dereference
+///    3 separate pointers, we just chunk them into one with the proper alignment.
+///    Ideally this would be a pointer to a struct and not just raw bytes, but since
+///    we don't know the size of `T` in the panic handler we need to keep it as anonymous bytes.
+///    Alignment when creating is important for this not to result in UB
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug)]
 struct Tsm(*mut u8);
@@ -401,14 +401,14 @@ extern "C" {
     /// - `tls`, x86: arg5/`r8`, aarch64: arg4/`x3`
     ///
     /// Input arguments with c-conventions:
-    /// start_fn: `rdi` / `x0`,
-    /// stack_ptr: `rsi` / `x1`,
-    /// flags: `rdx` / `x2`,
-    /// args_ptr: `rcx` / `x3`,
-    /// tls_ptr: `r8` / `x4`,
-    /// child_tid_ptr: `r9` / `x5`,
-    /// stack_unmap_ptr: `stack first 8 bytes` / `x6`,
-    /// stack_sz: `stack second 8 bytes` / `x7`,
+    /// `start_fn`: `rdi` / `x0`,
+    /// `stack_ptr`: `rsi` / `x1`,
+    /// `flags`: `rdx` / `x2`,
+    /// `args_ptr`: `rcx` / `x3`,
+    /// `tls_ptr`: `r8` / `x4`,
+    /// `child_tid_ptr`: `r9` / `x5`,
+    /// `stack_unmap_ptr`: `stack first 8 bytes` / `x6`,
+    /// `stack_sz`: `stack second 8 bytes` / `x7`,
     fn __clone(
         start_fn: usize,
         stack_ptr: usize,

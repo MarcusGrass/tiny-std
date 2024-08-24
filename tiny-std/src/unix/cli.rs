@@ -103,9 +103,6 @@ pub struct ArgParseCauseBuffer {
 
 impl Write for ArgParseCauseBuffer {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        if self.len != 0 {
-            return Err(core::fmt::Error::default());
-        }
         let buf_write = s.as_bytes();
         let rem = STACK_BUFFER_CAP - self.len;
         if buf_write.len() > rem {

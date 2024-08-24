@@ -50,7 +50,7 @@ impl UnixString {
         for (ind, byte) in s.iter().enumerate() {
             if *byte == NULL_BYTE {
                 return if ind == len - 1 {
-                    unsafe { Ok(core::mem::transmute(s)) }
+                    unsafe { Ok(core::mem::transmute::<Vec<u8>, Self>(s)) }
                 } else {
                     Err(Error::no_code("Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place"))
                 };
@@ -69,7 +69,7 @@ impl UnixString {
         for (ind, byte) in s.iter().enumerate() {
             if *byte == NULL_BYTE {
                 return if ind == len - 1 {
-                    unsafe { Ok(core::mem::transmute(s.to_vec())) }
+                    unsafe { Ok(core::mem::transmute::<Vec<u8>, Self>(s.to_vec())) }
                 } else {
                     Err(Error::no_code("Tried to instantiate UnixStr from an invalid &str, a null byte was found but out of place"))
                 };

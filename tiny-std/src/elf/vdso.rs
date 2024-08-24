@@ -24,13 +24,13 @@ const CLOCK_GETTIME_NAME: &[u8] = b"__vdso_clock_gettime\0";
 /// go through a syscall each time we want to get the time.
 /// To do this we need to do a few things:
 /// 1. Find the `.shstrtab` which contain section names (could maybe use section types instead,
-/// but .dynstr shares type and attributes with .strtab which could be an issue disambiguating without names)
+///    but .dynstr shares type and attributes with .strtab which could be an issue disambiguating without names)
 /// 2. Find the `.dynstr` name offset of the symbol `CLOCK_GETTIME_NAME`, the name offset is in practice like an alias
 /// 3. Find the `.dynsym` entry corresponding to the "alias", and get the address offset of the function pointer and the table index of the section containing it
 /// 4. Find the required alignment of the containing section by reading its section header
 /// 5. Align the offset, transmute to appropriate `extern fn`
-/// See [Linux vdso docs](https://man7.org/linux/man-pages/man7/vdso.7.html)
-/// See also [Linux elf docs](https://man7.org/linux/man-pages/man5/elf.5.html)
+///    See [Linux vdso docs](https://man7.org/linux/man-pages/man7/vdso.7.html)
+///    See also [Linux elf docs](https://man7.org/linux/man-pages/man5/elf.5.html)
 #[allow(clippy::cast_possible_truncation)]
 unsafe fn find_vdso_clock_get_time(
     vdso: *const u8,

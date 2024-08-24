@@ -3,6 +3,7 @@ use crate::{
     pop_expect_ident, pop_expect_punct, pop_group, pop_ident, pop_lit, try_extract_doc_comment,
 };
 use proc_macro::{Group, Ident, Punct, TokenStream, TokenTree};
+use std::collections::VecDeque;
 use std::fmt::Write;
 use std::str::FromStr;
 
@@ -155,11 +156,12 @@ enum ArgsParsedTreeParseState {
     WantsSubcommand,
     WantsMember(CliPreferences),
 }
+#[allow(clippy::too_many_lines)]
 fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream {
     let mut stream = g.stream().into_iter();
     let mut state = ArgsParsedTreeParseState::Ready;
     let mut doc_comments_for_next = Vec::new();
-    let mut members = Vec::new();
+    let mut parsed_fields = VecDeque::new();
     let mut subcommand = None;
     let mut c = CodeWriter::new(name, metadata);
     while let Some(tree) = stream.next() {
@@ -197,7 +199,7 @@ fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream 
                 ArgsParsedTreeParseState::WantsSubcommand => {
                     let mem = parse_member(ident, &mut stream);
                     let field_ty = match mem.ty {
-                        FieldTy::UnixStr | FieldTy::Str => {
+                        FieldTy::UnixStr | FieldTy::Str | FieldTy::Bool => {
                             panic!("[ArgParse derive] Invalid type for subcommand");
                         }
                         FieldTy::Unknown(ty) => ty,
@@ -215,31 +217,33 @@ fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream 
                 }
                 ArgsParsedTreeParseState::Ready => {
                     let mem = parse_member(ident, &mut stream);
-                    let pf = ParsedField {
-                        doc_comments: core::mem::take(&mut doc_comments_for_next),
-                        name: mem.name.clone(),
-                        ty: mem.ty,
-                        is_ref: mem.is_ref,
-                        package: mem.package,
-                        long_match: mem.name,
-                        short_match: None,
-                    };
+                    let pf = ParsedField::new_check_consistency(
+                        core::mem::take(&mut doc_comments_for_next),
+                        mem.name.clone(),
+                        mem.ty,
+                        mem.is_ref,
+                        mem.package,
+                        None,
+                        None,
+                        None,
+                    );
                     c.push_field(&pf);
-                    members.push(pf);
+                    parsed_fields.push_back(pf);
                 }
                 ArgsParsedTreeParseState::WantsMember(p) => {
                     let mem = parse_member(ident, &mut stream);
-                    let pf = ParsedField {
-                        doc_comments: core::mem::take(&mut doc_comments_for_next),
-                        name: mem.name.clone(),
-                        ty: mem.ty,
-                        is_ref: mem.is_ref,
-                        package: mem.package,
-                        long_match: p.long.unwrap_or(mem.name),
-                        short_match: p.short,
-                    };
+                    let pf = ParsedField::new_check_consistency(
+                        core::mem::take(&mut doc_comments_for_next),
+                        mem.name.clone(),
+                        mem.ty,
+                        mem.is_ref,
+                        mem.package,
+                        p.arg,
+                        p.long,
+                        p.short,
+                    );
                     c.push_field(&pf);
-                    members.push(pf);
+                    parsed_fields.push_back(pf);
                     state = ArgsParsedTreeParseState::Ready;
                 }
             },
@@ -251,11 +255,29 @@ fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream 
             TokenTree::Literal(_) => {}
         }
     }
-    let out = c.finish();
+    // Subcommands and positional arguments are hard to parse together (though not impossible)
+    assert!(
+        !(subcommand.is_some() && parsed_fields.iter().any(|pf| pf.positional.is_some())),
+        "Struct has both a subcommand and a positional argument, unparseable"
+    );
+
+    // Jumbled optional and required positionals may be impossible to parse correctly
+    let mut seen_opt_positional = false;
+    for pf in &parsed_fields {
+        if pf.positional.is_some() && matches!(pf.package, FieldPackageKind::Option) {
+            assert!(
+                !seen_opt_positional,
+                "If an optional positional argument is specified, it must come last"
+            );
+            seen_opt_positional = true;
+        }
+    }
+    let out = c.finish(parsed_fields);
     TokenStream::from_str(&out)
         .expect("[ArgParse derive] Failed to convert generated struct to token stream")
 }
 
+#[allow(clippy::too_many_lines)]
 fn parse_annotation_group(g: &Group) -> GroupParseResult {
     let mut group_stream = g.stream().into_iter();
     let first = group_stream
@@ -284,6 +306,7 @@ fn parse_annotation_group(g: &Group) -> GroupParseResult {
         "cli" => {
             let g = pop_group(&mut group_stream, "Expected cli to be followed by a group starting with (. ex: #[cli( long= \"my-arg\")]");
             let mut g_stream = g.stream().into_iter();
+            let mut preferred_arg = None;
             let mut preferred_short = None;
             let mut preferred_long = None;
             while let Some(next_item) = g_stream.next() {
@@ -337,11 +360,31 @@ fn parse_annotation_group(g: &Group) -> GroupParseResult {
                         assert!(!(preferred_long.is_some() || preferred_short.is_some()), "Found both subcommand and long/short on the same field, subcommands are named by their enum tags");
                         return GroupParseResult::SubCommand;
                     }
-                    v => panic!("[ArgParse derive] Expected cli group ident to be either 'long' or 'short' got {v}"),
+                    "arg" => {
+                        assert!(
+                            preferred_arg.is_none(),
+                            "Found multiple cli(arg) in struct"
+                        );
+                        pop_expect_punct(
+                            &mut g_stream,
+                            '=',
+                            "Expected 'long' in #[cli(arg... to be followed by an =",
+                        );
+                        let arg_lit = pop_lit(
+                            &mut g_stream,
+                            "Expected a literal in #[cli(arg = \"<lit>\"...",
+                        )
+                        .to_string()
+                        .trim_matches('\"')
+                        .to_string();
+                        preferred_arg = Some(arg_lit);
+                    }
+                    v => panic!("[ArgParse derive] Expected cli group ident to be either 'long', 'short', subcommand, or 'arg' got {v}"),
                 }
             }
 
             GroupParseResult::FieldPreferences(CliPreferences {
+                arg: preferred_arg,
                 long: preferred_long,
                 short: preferred_short,
             })
@@ -477,6 +520,7 @@ enum GroupParseResult {
 
 #[derive(Debug, Clone)]
 struct CliPreferences {
+    arg: Option<String>,
     long: Option<String>,
     short: Option<String>,
 }
@@ -496,16 +540,21 @@ pub(crate) struct ParsedField {
     ty: FieldTy,
     is_ref: bool,
     package: FieldPackageKind,
-    long_match: String,
+    positional: Option<String>,
+    long_match: Option<String>,
     short_match: Option<String>,
 }
 
 impl ParsedField {
-    pub(crate) fn long_const_ident(&self) -> String {
-        self.long_match.replace('-', "_").to_uppercase()
+    pub(crate) fn long_const_ident(&self) -> Option<String> {
+        self.long_match
+            .as_ref()
+            .map(|s| s.replace('-', "_").to_uppercase())
     }
-    pub(crate) fn long_match_lit(&self) -> String {
-        self.long_match.to_lowercase().replace('_', "-")
+    pub(crate) fn long_match_lit(&self) -> Option<String> {
+        self.long_match
+            .as_ref()
+            .map(|s| s.to_lowercase().replace('_', "-"))
     }
 
     pub(crate) fn short_const_ident(&self) -> Option<String> {
@@ -520,12 +569,17 @@ impl ParsedField {
             .map(|s| s.to_lowercase().replace('_', "-"))
     }
 
-    pub(crate) fn as_const_match(&self) -> String {
-        if let Some(short) = self.short_const_ident() {
-            format!("{} | {}", short, self.long_const_ident())
-        } else {
-            self.long_const_ident().to_string()
-        }
+    pub(crate) fn as_const_match(&self) -> Option<String> {
+        let id = match (self.short_const_ident(), self.long_const_ident()) {
+            (Some(short), Some(long)) => {
+                format!("{short} | {long}")
+            }
+            (Some(id), None) | (None, Some(id)) => id,
+            (None, None) => {
+                return None;
+            }
+        };
+        Some(id)
     }
 
     pub(crate) fn type_decl(&self) -> String {
@@ -539,41 +593,90 @@ impl ParsedField {
                     ty.clone()
                 }
             }
+            FieldTy::Bool => "bool".to_string(),
         }
     }
 
-    pub(crate) fn as_lit_match(&self) -> String {
-        let mut help_row = String::new();
-        if let Some(short_lit) = self.short_match_lit() {
-            let _ =
-                help_row.write_fmt(format_args!("-{} | --{}", short_lit, self.long_match_lit()));
-        } else {
-            let _ = help_row.write_fmt(format_args!("--{}", self.long_match_lit()));
-        }
-        help_row
+    pub(crate) fn as_lit_match(&self) -> Option<String> {
+        let help_row = match (self.short_match_lit(), self.long_match_lit()) {
+            (Some(short), Some(long)) => {
+                format!("-{short} | --{long}")
+            }
+            (Some(short), None) => {
+                format!("-{short}")
+            }
+            (None, Some(long)) => {
+                format!("--{long}")
+            }
+            (None, None) => {
+                return None;
+            }
+        };
+        Some(help_row)
     }
 
     pub(crate) fn write_into_help(&self, help_row: &mut String) {
-        if let Some(short_lit) = self.short_match_lit() {
-            let _ = help_row.write_fmt(format_args!(
-                "  -{}, --{}\n",
-                short_lit,
-                self.long_match_lit()
-            ));
-        } else {
-            let _ = help_row.write_fmt(format_args!("      --{}\n", self.long_match_lit()));
+        match (self.short_match_lit(), self.long_match_lit()) {
+            (Some(short), Some(long)) => {
+                let _ = help_row.write_fmt(format_args!("  -{short}, --{long}\n",));
+            }
+            (Some(short), None) => {
+                let _ = help_row.write_fmt(format_args!("  -{short}\n"));
+            }
+            (None, Some(long)) => {
+                let _ = help_row.write_fmt(format_args!("      --{long}\n"));
+            }
+            (None, None) => {}
         }
         for dc in &self.doc_comments {
             let _ = help_row.write_fmt(format_args!("        {dc}\n"));
         }
         let _ = help_row.write_char('\n');
     }
+
+    pub(crate) fn write_into_args_help(&self, arg: &str, help_row: &mut String) {
+        let _ = help_row.write_fmt(format_args!("  [{}]\n", arg.to_uppercase()));
+        for dc in &self.doc_comments {
+            let _ = help_row.write_fmt(format_args!("        {dc}\n"));
+        }
+        let _ = help_row.write_char('\n');
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new_check_consistency(
+        doc_comments: Vec<String>,
+        name: String,
+        ty: FieldTy,
+        is_ref: bool,
+        package: FieldPackageKind,
+        mut positional: Option<String>,
+        long_match: Option<String>,
+        short_match: Option<String>,
+    ) -> Self {
+        assert!(!(ty == FieldTy::Bool && matches!(package, FieldPackageKind::Option)), "[ArgParse Derive] Failed to derive, got field with name={name} specified as Option<bool> bool defaults to false and are always optional");
+        assert!(!(positional.is_some() && (long_match.is_some() || short_match.is_some())), "[ArgParse Derive] Failed to derive, got field with name={name} with both a positional (arg) and options specified");
+        if positional.is_none() && long_match.is_none() && short_match.is_none() {
+            positional = Some(name.clone());
+        }
+        assert!(!(positional.is_some() && (ty == FieldTy::Bool || matches!(package, FieldPackageKind::Vec))), "[ArgParse Derive] Failed to derive, got field with name={name} with an invalid type, arguments can't be booleans or vectors");
+        Self {
+            doc_comments,
+            name,
+            ty,
+            is_ref,
+            package,
+            positional,
+            long_match,
+            short_match,
+        }
+    }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum FieldTy {
     UnixStr,
     Str,
+    Bool,
     Unknown(String),
 }
 
@@ -583,6 +686,7 @@ impl FieldTy {
         match trimmed_ident.as_str() {
             "UnixStr" => Self::UnixStr,
             "str" => Self::Str,
+            "bool" => Self::Bool,
             &_ => Self::Unknown(trimmed_ident),
         }
     }

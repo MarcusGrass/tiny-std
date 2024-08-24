@@ -22,3 +22,4 @@ static relocation if `aux` feature isn't enabled, since that will result in a bo
 17. [ ] Path operations on &UnixStr
 18. [x] Implement `from_str` on &UnixStr
 19. [x] Throw a rusl::Error instead of Utf8Error on `as_str`
+20. [x] Cli err on two optional positional args, err on subcommand + positional combo
