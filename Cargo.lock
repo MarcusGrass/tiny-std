@@ -10,7 +10,7 @@ checksum = "109280d660e557dfa6474e3b1bbe04272ba3fa5c5e5ce73b394c7b224f082caa"
 
 [[package]]
 name = "rusl"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "linux-rust-bindings",
  "sc",
@@ -24,7 +24,7 @@ checksum = "010e18bd3bfd1d45a7e666b236c78720df0d9a7698ebaa9c1c559961eb60a38b"
 
 [[package]]
 name = "tiny-cli"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "tiny-std",
 ]
