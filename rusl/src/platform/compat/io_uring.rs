@@ -714,11 +714,7 @@ impl IoUringSubmissionQueueEntry {
             ioprio: 0,
             fd: 0,
             __bindgen_anon_1: io_uring_sqe__bindgen_ty_1 {
-                off: if let Some(cmpl) = await_completions {
-                    cmpl
-                } else {
-                    0
-                },
+                off: await_completions.unwrap_or_default(),
             },
             __bindgen_anon_2: io_uring_sqe__bindgen_ty_2 {
                 addr: core::ptr::from_ref::<TimeSpec>(ts) as u64,
