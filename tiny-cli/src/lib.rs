@@ -29,7 +29,7 @@ fn pop_expect_punct<I: Iterator<Item = TokenTree>, D: Display>(
         assert_eq!(p.as_char(), expect, "{err_msg}");
     } else {
         panic!(
-            "[ArgParse derive] Expected punctation with {expect}, found: {punct:?}, ctx: {err_msg}"
+            "[ArgParse derive] Expected punctuation with {expect}, found: {punct:?}, ctx: {err_msg}"
         );
     }
 }
@@ -54,7 +54,7 @@ fn pop_ident<I: Iterator<Item = TokenTree>, D: Display>(stream: &mut I, err_msg:
     if let TokenTree::Ident(ident) = ident {
         ident
     } else {
-        panic!("[ArgParse derive] Expected ident, found {ident:?}, ctx: {err_msg}");
+        panic!("[ArgParse derive] Expected ident, found '{ident:?}', ctx: {err_msg}");
     }
 }
 
