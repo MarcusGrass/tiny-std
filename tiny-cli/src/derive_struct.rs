@@ -393,8 +393,36 @@ fn parse_annotation_group(g: &Group) -> GroupParseResult {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn parse_member<I: Iterator<Item = TokenTree>>(ident: &Ident, it: &mut I) -> ParsedMember {
-    let field_name = ident.to_string();
+    let mut field_name = ident.to_string();
+    if field_name == "pub" {
+        match it.next() {
+            None => {
+                panic!("Expected visibility to be followed by an ident found nothing");
+            }
+            Some(tt) => match tt {
+                TokenTree::Group(g) => {
+                    let count = g.stream().into_iter().count();
+                    assert_eq!(
+                        1, count,
+                        "Expected a single identifier after 'pub(', found {g}"
+                    );
+                    field_name =
+                        pop_ident(it, "Expected to find an ident after visibility").to_string();
+                }
+                TokenTree::Ident(id) => {
+                    field_name = id.to_string();
+                }
+                TokenTree::Punct(p) => {
+                    panic!("Found punctuation '{p}' after visibility specifier, expected an ident");
+                }
+                TokenTree::Literal(l) => {
+                    panic!("Found literal {l} after visibility specifier, expected an ident");
+                }
+            },
+        }
+    }
     pop_expect_punct(it, ':', "Failed to parse member, expected ':' punctuation");
     let next = it
         .next()

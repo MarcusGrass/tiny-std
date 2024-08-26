@@ -167,8 +167,8 @@ Required argument 'pos_two' not supplied.",
 #[derive(ArgParse)]
 #[cli(help_path = "tiny-cli")]
 pub struct MultiArgOptLast {
-    pos_one: String,
-    pos_two: i64,
+    pub pos_one: String,
+    pub(crate) pos_two: i64,
     pos_three: Option<usize>,
 }
 
