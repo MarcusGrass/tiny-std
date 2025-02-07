@@ -32,7 +32,7 @@ pub fn bind_inet(sock_fd: Fd, socket_address_inet: &SocketAddressInet) -> Result
         syscall!(
             BIND,
             sock_fd.0,
-            socket_address_inet as *const SocketAddressInet,
+            core::ptr::from_ref::<SocketAddressInet>(socket_address_inet),
             SocketAddressInet::LENGTH
         )
     };

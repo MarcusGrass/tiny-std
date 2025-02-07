@@ -63,7 +63,7 @@ transparent_bitflags! {
         const MAP_HUGE_512MB = linux_rust_bindings::mman::MAP_HUGE_512MB as u32;
         const MAP_HUGE_1GB = linux_rust_bindings::mman::MAP_HUGE_1GB as u32;
         const MAP_HUGE_2GB = linux_rust_bindings::mman::MAP_HUGE_2GB as u32;
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(clippy::cast_possible_truncation)]
         const MAP_HUGE_16GB = linux_rust_bindings::mman::MAP_HUGE_16GB as u32;
     }
 }

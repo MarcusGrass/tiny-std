@@ -1,8 +1,6 @@
-#![allow(unused)]
-
-use std::any::{Any, TypeId};
+#![expect(dead_code)]
+#![expect(clippy::struct_field_names)]
 use std::panic;
-use std::sync::{Arc, Mutex};
 use tiny_cli::{ArgParse, Subcommand};
 use tiny_std::unix::cli::ArgParse;
 use tiny_std::{unix_lit, UnixStr, UnixString};
@@ -16,7 +14,7 @@ pub struct SimplestStructWithOpt {
 
 #[test]
 fn simplest_struct_happy() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--one-req-field\0"),
         UnixStr::from_str_checked("15\0"),
     ];
@@ -25,7 +23,7 @@ fn simplest_struct_happy() {
 }
 #[test]
 fn simplest_struct_err() {
-    let mut values = [UnixStr::from_str_checked("--one-req-field\0")];
+    let values = [UnixStr::from_str_checked("--one-req-field\0")];
     let ss = SimplestStructWithOpt::arg_parse(&mut values.into_iter());
     let Err(e) = ss else {
         panic!("Expected arg parse to fail on simple struct")
@@ -51,13 +49,13 @@ pub struct SimplestStructWithArg {
 
 #[test]
 fn simplest_struct_arg_happy() {
-    let mut values = [UnixStr::from_str_checked("15\0")];
+    let values = [UnixStr::from_str_checked("15\0")];
     let ss = SimplestStructWithArg::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(15, ss.one_req_field);
 }
 #[test]
 fn simplest_struct_arg_err() {
-    let mut values = [];
+    let values = [];
     let ss = SimplestStructWithArg::arg_parse(&mut values.into_iter());
     let Err(e) = ss else {
         panic!("Expected arg parse to fail on simple struct")
@@ -83,10 +81,10 @@ pub struct SimplestStructWithOptArg {
 
 #[test]
 fn simplest_struct_opt_arg_happy() {
-    let mut values = [UnixStr::from_str_checked("15\0")];
+    let values = [UnixStr::from_str_checked("15\0")];
     let ss = SimplestStructWithOptArg::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(Some(15), ss.one_req_field);
-    let mut values = [];
+    let values = [];
     let ss = SimplestStructWithOptArg::arg_parse(&mut values.into_iter()).unwrap();
     assert!(ss.one_req_field.is_none());
 }
@@ -99,13 +97,13 @@ pub struct SimpleStructWithAliases {
 
 #[test]
 fn aliases_work() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("-s\0"),
         UnixStr::from_str_checked("15\0"),
     ];
     let ss = SimpleStructWithAliases::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(15, ss.one_req_field);
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--long\0"),
         UnixStr::from_str_checked("15\0"),
     ];
@@ -121,10 +119,10 @@ pub struct SimplStructWithBool {
 
 #[test]
 fn bool_parsing_works() {
-    let mut values = [unix_lit!("-b")];
+    let values = [unix_lit!("-b")];
     let b = SimplStructWithBool::arg_parse(&mut values.into_iter()).unwrap();
     assert!(b.my_opt);
-    let mut no_value = [];
+    let no_value = [];
     let b = SimplStructWithBool::arg_parse(&mut no_value.into_iter()).unwrap();
     assert!(!b.my_opt);
 }
@@ -138,7 +136,7 @@ pub struct MultiArg {
 
 #[test]
 fn parse_multi_arg() {
-    let mut values = [unix_lit!("one"), unix_lit!("2")];
+    let values = [unix_lit!("one"), unix_lit!("2")];
     let multi = MultiArg::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!("one", multi.pos_one);
     assert_eq!(2, multi.pos_two);
@@ -146,7 +144,7 @@ fn parse_multi_arg() {
 
 #[test]
 fn parse_multi_arg_needs_both() {
-    let mut values = [unix_lit!("one")];
+    let values = [unix_lit!("one")];
     let Err(e) = MultiArg::arg_parse(&mut values.into_iter()) else {
         panic!("Expected parse failure on multiarg missing second arg");
     };
@@ -174,7 +172,7 @@ pub struct MultiArgOptLast {
 
 #[test]
 fn parse_multi_arg_opt_no_opt() {
-    let mut values = [unix_lit!("one"), unix_lit!("2")];
+    let values = [unix_lit!("one"), unix_lit!("2")];
     let multi = MultiArgOptLast::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!("one", multi.pos_one);
     assert_eq!(2, multi.pos_two);
@@ -182,7 +180,7 @@ fn parse_multi_arg_opt_no_opt() {
 
 #[test]
 fn parse_multi_arg_opt_with_opt() {
-    let mut values = [unix_lit!("one"), unix_lit!("2"), unix_lit!("1337")];
+    let values = [unix_lit!("one"), unix_lit!("2"), unix_lit!("1337")];
     let multi = MultiArgOptLast::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!("one", multi.pos_one);
     assert_eq!(2, multi.pos_two);
@@ -201,7 +199,7 @@ pub struct StructWithDifferentPackaging {
 
 #[test]
 fn required_optional_repeated() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--req-field\0"),
         UnixStr::from_str_checked("15\0"),
     ];
@@ -209,7 +207,7 @@ fn required_optional_repeated() {
     assert_eq!(15, ss.req_field);
     assert!(ss.opt_field.is_none());
     assert!(ss.rep_field.is_empty());
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--req-field\0"),
         UnixStr::from_str_checked("15\0"),
         UnixStr::from_str_checked("-o\0"),
@@ -219,7 +217,7 @@ fn required_optional_repeated() {
     assert_eq!(15, ss.req_field);
     assert_eq!(Some(30), ss.opt_field);
     assert!(ss.rep_field.is_empty());
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--req-field\0"),
         UnixStr::from_str_checked("15\0"),
         UnixStr::from_str_checked("--rep\0"),
@@ -260,34 +258,34 @@ pub struct TestSubTwo {
 
 #[test]
 fn simple_subcommand() {
-    let mut values = [UnixStr::from_str_checked("cmd-one\0")];
+    let values = [UnixStr::from_str_checked("cmd-one\0")];
     let ss = WithEnumSubcommand::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(TestSubcommand::CmdOne, ss.sc);
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("cmd-two\0"),
         UnixStr::from_str_checked("--field1\0"),
         UnixStr::from_str_checked("7\0"),
     ];
     let ss = WithEnumSubcommand::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(TestSubcommand::CmdTwo(TestSubTwo { field1: 7 }), ss.sc);
-    let mut values = [UnixStr::from_str_checked("cmd-three\0")];
+    let values = [UnixStr::from_str_checked("cmd-three\0")];
     let ss = WithEnumSubcommand::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(TestSubcommand::CmdThree, ss.sc);
 }
 
 #[test]
 fn simple_subcommand_help_print() {
-    let mut values = [UnixStr::from_str_checked("cmd-one\0")];
+    let values = [UnixStr::from_str_checked("cmd-one\0")];
     let ss = WithEnumSubcommand::arg_parse(&mut values.into_iter()).unwrap();
     assert_eq!(TestSubcommand::CmdOne, ss.sc);
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("cmd-two\0"),
         UnixStr::from_str_checked("-h\0"),
     ];
     let Err(e1) = WithEnumSubcommand::arg_parse(&mut values.into_iter()) else {
         panic!("Expected err on help");
     };
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("cmd-two\0"),
         UnixStr::from_str_checked("--help\0"),
     ];
@@ -454,7 +452,7 @@ pub struct OptStruct {
 
 #[test]
 fn complex_run_no_opts() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--my-field\0"),
         UnixStr::from_str_checked("1\0"),
         UnixStr::from_str_checked("-s\0"),
@@ -484,7 +482,7 @@ fn complex_run_no_opts() {
 
 #[test]
 fn complex_run_full_opts() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--my-field\0"),
         UnixStr::from_str_checked("1\0"),
         UnixStr::from_str_checked("-s\0"),
@@ -530,7 +528,7 @@ fn complex_run_full_opts() {
 
 #[test]
 fn complex_subcommand_skip_nested() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--my-field\0"),
         UnixStr::from_str_checked("1\0"),
         UnixStr::from_str_checked("-s\0"),
@@ -558,8 +556,44 @@ fn complex_subcommand_skip_nested() {
 }
 
 #[test]
+fn complex_subcommand_with_list_args() {
+    let values = [
+        UnixStr::from_str_checked("--my-field\0"),
+        UnixStr::from_str_checked("1\0"),
+        UnixStr::from_str_checked("-s\0"),
+        UnixStr::from_str_checked("string-value\0"),
+        UnixStr::from_str_checked("--long-field\0"),
+        UnixStr::from_str_checked("unixstr\0"),
+        UnixStr::from_str_checked("-c\0"),
+        UnixStr::from_str_checked("remapped string field\0"),
+        UnixStr::from_str_checked("list\0"),
+        UnixStr::from_str_checked("--rep\0"),
+        UnixStr::from_str_checked("one\0"),
+        UnixStr::from_str_checked("--rep\0"),
+        UnixStr::from_str_checked("two\0"),
+        UnixStr::from_str_checked("--req\0"),
+        UnixStr::from_str_checked("req\0"),
+    ];
+    let res = ComplexUsesAllFeatures::arg_parse(&mut values.into_iter()).unwrap();
+    assert_eq!(1, res.my_field);
+    assert_eq!("string-value", res.my_field_has_short);
+    assert_eq!(
+        UnixStr::from_str_checked("unixstr\0"),
+        res.my_field_has_long_remap
+    );
+    assert_eq!("remapped string field", res.my_field_has_double_remap);
+    let ComplexSubcommand::List(o) = res.subcommand else {
+        panic!("Expected other subcommand to have been invoked");
+    };
+    assert!(o.arg_has_opt_string.is_none());
+    assert_eq!(unix_lit!("one"), o.arg_has_rep_unix_string[0].as_ref());
+    assert_eq!(unix_lit!("two"), o.arg_has_rep_unix_string[1].as_ref());
+    assert_eq!("req", &o.arg_has_required_string);
+}
+
+#[test]
 fn complex_subcommand_full_nested() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--my-field\0"),
         UnixStr::from_str_checked("1\0"),
         UnixStr::from_str_checked("-s\0"),
@@ -598,7 +632,7 @@ fn complex_subcommand_full_nested() {
 
 #[test]
 fn complex_top_level_help() {
-    let mut values = [UnixStr::from_str_checked("-h\0")];
+    let values = [UnixStr::from_str_checked("-h\0")];
     let Err(e) = ComplexUsesAllFeatures::arg_parse(&mut values.into_iter()) else {
         panic!("Expect err on complex help");
     };
@@ -633,7 +667,7 @@ Options:
 
 #[test]
 fn complex_run_help() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("run\0"),
         UnixStr::from_str_checked("-h\0"),
     ];
@@ -662,7 +696,7 @@ Options:
 
 #[test]
 fn complex_list_help() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("list\0"),
         UnixStr::from_str_checked("--help\0"),
     ];
@@ -690,7 +724,7 @@ Options:
 
 #[test]
 fn complex_other_help() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("other\0"),
         UnixStr::from_str_checked("--help\0"),
     ];
@@ -717,7 +751,7 @@ Options:
 
 #[test]
 fn complex_other_opt_help() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("other\0"),
         UnixStr::from_str_checked("only-one-option\0"),
         UnixStr::from_str_checked("-h\0"),
@@ -742,7 +776,7 @@ Options:
 
 #[test]
 fn complex_accepts_arg() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--my-field\0"),
         UnixStr::from_str_checked("1\0"),
         UnixStr::from_str_checked("-s\0"),
@@ -765,7 +799,7 @@ fn complex_accepts_arg() {
 
 #[test]
 fn complex_accepts_arg_help() {
-    let mut values = [
+    let values = [
         UnixStr::from_str_checked("--my-field\0"),
         UnixStr::from_str_checked("1\0"),
         UnixStr::from_str_checked("-s\0"),

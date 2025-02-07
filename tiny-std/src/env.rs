@@ -12,7 +12,7 @@ pub(crate) static mut ENV: Env = Env {
     env_p: core::ptr::null(),
 };
 
-#[allow(clippy::struct_field_names)]
+#[expect(clippy::struct_field_names)]
 pub(crate) struct Env {
     pub(crate) arg_c: u64,
     pub(crate) arg_v: *const *const u8,
@@ -86,14 +86,13 @@ pub fn var(key: &str) -> Result<&'static str, VarError> {
 
 #[inline]
 #[must_use]
-#[allow(clippy::cast_possible_truncation)]
 pub fn args() -> Args {
     Args(args_os())
 }
 
 #[inline]
 #[must_use]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 pub fn args_os() -> ArgsOs {
     ArgsOs {
         ind: 0,

@@ -90,7 +90,6 @@ macro_rules! dbg {
     };
 }
 
-#[allow(clippy::cast_sign_loss)]
 fn try_print(fd: Fd, msg: &str) -> core::fmt::Result {
     let buf = msg.as_bytes();
     let len = buf.len();
@@ -118,7 +117,6 @@ pub const __STDERR_WRITER: __UnixWriter = __UnixWriter(rusl::platform::STDERR);
 impl __UnixWriter {
     /// # Errors
     /// Will return an error if the underlying syscall fails
-
     pub fn __write_newline(&self) -> core::fmt::Result {
         try_print(self.0, "\n")
     }

@@ -48,7 +48,7 @@ pub struct BorrowedFd<'fd> {
     _pd: PhantomData<&'fd OwnedFd>,
 }
 
-impl<'a> BorrowedFd<'a> {
+impl BorrowedFd<'_> {
     pub(crate) fn new(fd: RawFd) -> Self {
         Self {
             fd,
@@ -57,7 +57,7 @@ impl<'a> BorrowedFd<'a> {
     }
 }
 
-impl<'a> AsRawFd for BorrowedFd<'a> {
+impl AsRawFd for BorrowedFd<'_> {
     #[inline]
     fn as_raw_fd(&self) -> RawFd {
         self.fd

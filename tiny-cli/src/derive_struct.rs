@@ -156,7 +156,7 @@ enum ArgsParsedTreeParseState {
     WantsSubcommand,
     WantsMember(CliPreferences),
 }
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream {
     let mut stream = g.stream().into_iter();
     let mut state = ArgsParsedTreeParseState::Ready;
@@ -277,7 +277,7 @@ fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream 
         .expect("[ArgParse derive] Failed to convert generated struct to token stream")
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn parse_annotation_group(g: &Group) -> GroupParseResult {
     let mut group_stream = g.stream().into_iter();
     let first = group_stream
@@ -393,7 +393,7 @@ fn parse_annotation_group(g: &Group) -> GroupParseResult {
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn parse_member<I: Iterator<Item = TokenTree>>(ident: &Ident, it: &mut I) -> ParsedMember {
     let mut field_name = ident.to_string();
     if field_name == "pub" {
@@ -670,7 +670,7 @@ impl ParsedField {
         let _ = help_row.write_char('\n');
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new_check_consistency(
         doc_comments: Vec<String>,
         name: String,

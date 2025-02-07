@@ -27,7 +27,7 @@ mod tests {
         read: usize,
     }
 
-    impl<'a> Iterator for DirentIterator<'a> {
+    impl Iterator for DirentIterator<'_> {
         type Item = Dirent;
 
         fn next(&mut self) -> Option<Self::Item> {
@@ -35,9 +35,8 @@ mod tests {
                 return None;
             }
             unsafe {
-                Dirent::try_from_bytes(&self.buf[self.byte_offset..]).map(|d| {
+                Dirent::try_from_bytes(&self.buf[self.byte_offset..]).inspect(|d| {
                     self.byte_offset += d.d_reclen as usize;
-                    d
                 })
             }
         }

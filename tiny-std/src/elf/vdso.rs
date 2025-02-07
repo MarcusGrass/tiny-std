@@ -31,7 +31,7 @@ const CLOCK_GETTIME_NAME: &[u8] = b"__vdso_clock_gettime\0";
 /// 5. Align the offset, transmute to appropriate `extern fn`
 ///    See [Linux vdso docs](https://man7.org/linux/man-pages/man7/vdso.7.html)
 ///    See also [Linux elf docs](https://man7.org/linux/man-pages/man5/elf.5.html)
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 unsafe fn find_vdso_clock_get_time(
     vdso: *const u8,
 ) -> Option<extern "C" fn(i32, *mut TimeSpec) -> i32> {
@@ -83,7 +83,7 @@ unsafe fn find_vdso_clock_get_time(
 }
 
 #[inline]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 unsafe fn match_name(
     search_for: &[u8],
     candidate_section: &SectionHeader,
@@ -99,7 +99,7 @@ unsafe fn match_name(
 }
 
 #[inline]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 unsafe fn find_dynstr_st_name_offset_of(
     search_for: &[u8],
     dyn_str_section: &SectionHeader,
@@ -128,7 +128,7 @@ struct FnPtrInfo {
 }
 
 #[inline]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 unsafe fn find_dynsym_ptr_of_name_offset(
     st_name: u32,
     dynsym: &SectionHeader,
@@ -163,13 +163,13 @@ fn align(offset: usize, alignment: usize) -> usize {
 }
 
 #[inline]
-#[allow(dead_code)]
+#[expect(dead_code)]
 fn info_to_type(st_info: u8) -> u32 {
     u32::from(st_info) & 0xf
 }
 
 #[inline]
-#[allow(dead_code)]
+#[expect(dead_code)]
 fn info_to_bind(st_info: u8) -> u8 {
     st_info >> 4
 }

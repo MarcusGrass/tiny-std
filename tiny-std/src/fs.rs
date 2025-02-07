@@ -80,7 +80,7 @@ impl File {
     /// Returns a handle to the new file.
     /// # Errors
     /// Os errors relating to file access
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     pub fn copy(&self, dest: &UnixStr) -> Result<Self> {
         let this_metadata = self.metadata()?;
         let dest = OpenOptions::new()
@@ -197,8 +197,7 @@ impl Metadata {
 
     #[inline]
     #[must_use]
-    #[allow(clippy::len_without_is_empty)]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::len_without_is_empty, clippy::cast_sign_loss)]
     pub fn len(&self) -> u64 {
         self.0.st_size as u64
     }
@@ -486,17 +485,13 @@ impl<'a> Iterator for ReadDir<'a> {
             }
         }
         unsafe {
-            Dirent::try_from_bytes(&self.filled_buf[self.offset..])
-                .map(|d| {
-                    self.offset += d.d_reclen as usize;
-                    d
+            Dirent::try_from_bytes(&self.filled_buf[self.offset..]).map(|de| {
+                self.offset += de.d_reclen as usize;
+                Ok(DirEntry {
+                    inner: de,
+                    fd: self.fd,
                 })
-                .map(|de| {
-                    Ok(DirEntry {
-                        inner: de,
-                        fd: self.fd,
-                    })
-                })
+            })
         }
     }
 }
@@ -518,7 +513,7 @@ pub struct DirEntry<'a> {
     fd: BorrowedFd<'a>,
 }
 
-impl<'a> DirEntry<'a> {
+impl DirEntry<'_> {
     /// If the dir entry is `.` or `..`
     #[must_use]
     #[inline]
@@ -626,7 +621,7 @@ impl Write for File {
 }
 
 #[derive(Clone, Debug)]
-#[allow(clippy::struct_excessive_bools)]
+#[expect(clippy::struct_excessive_bools)]
 pub struct OpenOptions {
     read: bool,
     write: bool,

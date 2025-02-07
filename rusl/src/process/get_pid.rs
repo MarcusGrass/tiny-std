@@ -6,7 +6,7 @@ use sc::syscall;
 /// Always successful
 #[inline]
 #[must_use]
-#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub fn get_pid() -> PidT {
     let res = unsafe { syscall!(GETPID) };
     res as PidT

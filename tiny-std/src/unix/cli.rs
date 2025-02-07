@@ -18,6 +18,10 @@ pub fn parse_cli_args<T: ArgParse>() -> T {
 
 pub trait ArgParse: Sized {
     type HelpPrinter: Display + Sized;
+    /// Parse the provided args into `Self`-struct
+    /// # Errors
+    /// Args doesn't match struct
+    #[expect(clippy::result_large_err)]
     fn arg_parse(args: &mut impl Iterator<Item = &'static UnixStr>) -> Result<Self, ArgParseError>;
 
     fn help_printer() -> &'static Self::HelpPrinter;
@@ -29,6 +33,10 @@ pub trait SubcommandParse: Sized {
 
     fn help_printer() -> &'static Self::HelpPrinter;
 
+    /// Parse the provided args into `Self`-subcommand
+    /// # Errors
+    /// Args doesn't match subcommand
+    #[expect(clippy::result_large_err)]
     fn subcommand_parse(
         cmd: &'static UnixStr,
         args: &mut impl Iterator<Item = &'static UnixStr>,
@@ -48,6 +56,10 @@ impl ArgParseError {
         buf: Self::OVERFLOW_MSG,
         len: 68,
     };
+    /// create a new cause output string
+    /// # Errors
+    /// Failure to write cause into the output buffer
+    #[expect(clippy::result_large_err)]
     pub fn new_cause_str(
         relevant_help: &'static dyn Display,
         cause: &str,
@@ -63,6 +75,10 @@ impl ArgParseError {
         })
     }
 
+    /// Write the relevant error cause format string
+    /// # Errors
+    /// Not enough space to write the formatted output into the output buffer
+    #[expect(clippy::result_large_err)]
     pub fn new_cause_fmt(
         relevant_help: &'static dyn Display,
         cause: Arguments<'_>,
@@ -106,7 +122,7 @@ impl Write for ArgParseCauseBuffer {
         let buf_write = s.as_bytes();
         let rem = STACK_BUFFER_CAP - self.len;
         if buf_write.len() > rem {
-            return Err(core::fmt::Error::default());
+            return Err(core::fmt::Error);
         }
         self.buf
             .get_mut(self.len..self.len + buf_write.len())
@@ -132,6 +148,8 @@ impl ArgParseCauseBuffer {
     }
 
     #[inline]
+    #[must_use]
+    #[expect(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.len
     }
@@ -139,8 +157,7 @@ impl ArgParseCauseBuffer {
 
 impl Display for ArgParseCauseBuffer {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        let s = core::str::from_utf8(&self.buf[..self.len])
-            .map_err(|_e| core::fmt::Error::default())?;
+        let s = core::str::from_utf8(&self.buf[..self.len]).map_err(|_e| core::fmt::Error)?;
         f.write_str(s)
     }
 }

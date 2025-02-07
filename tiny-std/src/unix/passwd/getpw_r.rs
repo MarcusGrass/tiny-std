@@ -134,7 +134,7 @@ const NUM_OUT_OF_RANGE: Error = Error::no_code("Number out of range");
 
 // Just ascii numbers
 #[inline]
-#[allow(clippy::needless_range_loop)]
+#[expect(clippy::needless_range_loop)]
 fn try_parse_num(buf: &[u8]) -> Result<u32> {
     let len = buf.len();
     let mut pow = u32::try_from(buf.len()).map_err(|_e| {
@@ -210,7 +210,7 @@ nvidia-persis";
                     "\n{line} vs {}",
                     core::str::from_utf8(next).unwrap()
                 );
-                offset += line.as_bytes().len() + 1; // newline + 1
+                offset += line.len() + 1; // newline + 1
             } else {
                 assert_eq!("nvidia-persis", line);
             }

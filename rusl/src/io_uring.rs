@@ -25,7 +25,7 @@ mod test;
 /// See the [linux documentation for details](https://man7.org/linux/man-pages//man2/io_uring_setup.2.html)  
 /// # Errors
 /// See above
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 pub fn setup_io_uring(
     entries: u32,
     flags: IoUringParamFlags,
@@ -173,7 +173,7 @@ pub fn io_uring_setup(entries: u32, io_uring_params: &mut IoUringParams) -> Resu
         syscall!(
             IO_URING_SETUP,
             entries,
-            io_uring_params as *mut IoUringParams
+            core::ptr::from_mut::<IoUringParams>(io_uring_params)
         )
     };
     Fd::coerce_from_register(res, "`IO_URING_SETUP` syscall failed")

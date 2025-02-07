@@ -50,7 +50,7 @@ pub fn unlink_at(dir_fd: Fd, path: &UnixStr, flags: UnlinkFlags) -> crate::Resul
 }
 
 #[inline(always)]
-#[allow(clippy::inline_always)]
+#[expect(clippy::inline_always)]
 fn do_unlink(dir_fd: i32, path: &UnixStr, flags: UnlinkFlags) -> crate::Result<()> {
     let res = unsafe { syscall!(UNLINKAT, dir_fd, path.as_ptr(), flags.0) };
     bail_on_below_zero!(res, "`UNLINKAT` syscall failed");

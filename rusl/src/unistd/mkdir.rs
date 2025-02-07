@@ -22,7 +22,7 @@ pub fn mkdir_at(dir_fd: Fd, path: &UnixStr, mode: Mode) -> Result<()> {
 }
 
 #[inline(always)]
-#[allow(clippy::inline_always)]
+#[expect(clippy::inline_always)]
 fn do_mkdir(dir_fd: i32, path: &UnixStr, mode: Mode) -> Result<()> {
     let res = unsafe { syscall!(MKDIRAT, dir_fd, path.as_ptr(), mode.bits()) };
     bail_on_below_zero!(res, "`MKDIRAT` syscall failed");

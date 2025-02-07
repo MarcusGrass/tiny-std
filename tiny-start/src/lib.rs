@@ -7,7 +7,7 @@
 #![no_std]
 #![no_builtins]
 #![warn(clippy::pedantic)]
-#![allow(
+#![expect(
     clippy::inline_always,
     clippy::module_name_repetitions,
     clippy::similar_names

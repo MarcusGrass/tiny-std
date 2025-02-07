@@ -22,6 +22,5 @@ pub unsafe fn execve(
     let res = syscall!(EXECVE, bin.as_ptr(), arg_v, env_p);
     // EXECVE doesn't return on success, on err it returns an error code
     // [docs](https://man7.org/linux/man-pages/man2/execve.2.html#RETURN_VALUE)
-    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     Err(Error::with_code("`EXECVE` syscall failed", res as i32))
 }

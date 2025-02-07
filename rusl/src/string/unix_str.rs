@@ -221,7 +221,7 @@ impl UnixStr {
     /// Get the length of this `&UnixStr`, including the null byte
     #[inline]
     #[must_use]
-    #[allow(clippy::len_without_is_empty)]
+    #[expect(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.0.len()
     }
@@ -331,7 +331,6 @@ impl UnixStr {
     /// }
     /// ```
     #[must_use]
-    #[allow(clippy::borrow_as_ptr)]
     pub fn path_file_name(&self) -> Option<&UnixStr> {
         for (ind, byte) in self.0.iter().enumerate().rev() {
             if *byte == b'/' {
@@ -511,7 +510,7 @@ impl UnixStr {
 }
 
 #[inline]
-#[allow(clippy::needless_range_loop)]
+#[expect(clippy::needless_range_loop)]
 fn buf_find(this_buf: &[u8], other_buf: &[u8]) -> Option<usize> {
     for i in 0..this_buf.len() {
         if this_buf[i] == other_buf[0] {
@@ -534,7 +533,7 @@ fn buf_find(this_buf: &[u8], other_buf: &[u8]) -> Option<usize> {
     None
 }
 
-impl<'a> Debug for &'a UnixStr {
+impl Debug for &UnixStr {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         let slice = unsafe { core::slice::from_raw_parts(self.0.as_ptr(), self.0.len()) };
         match core::str::from_utf8(slice) {
@@ -544,7 +543,7 @@ impl<'a> Debug for &'a UnixStr {
     }
 }
 
-impl<'a> core::hash::Hash for &'a UnixStr {
+impl core::hash::Hash for &UnixStr {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.hash(state);
@@ -619,7 +618,7 @@ mod tests {
     fn can_create_unix_str_sad() {
         let unacceptable = UnixStr::try_from_str("a\0bc");
         assert!(unacceptable.is_err());
-        let unacceptable_vec = UnixStr::try_from_bytes(&[b'a', b'\0', b'b', b'c']);
+        let unacceptable_vec = UnixStr::try_from_bytes(b"a\0bc");
         assert!(unacceptable_vec.is_err());
         let unacceptable_not_null_term = UnixStr::try_from_str("abc");
         assert!(unacceptable_not_null_term.is_err());

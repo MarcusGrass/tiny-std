@@ -12,11 +12,7 @@ pub struct Env {
 #[must_use]
 #[inline(always)]
 #[cfg(not(feature = "aux"))]
-#[allow(
-    clippy::cast_ptr_alignment,
-    clippy::cast_possible_truncation,
-    clippy::used_underscore_binding
-)]
+#[expect(clippy::cast_ptr_alignment, clippy::cast_possible_truncation)]
 pub unsafe fn resolve(stack_ptr: *const u8, _dynv: *const usize) -> Env {
     // Fist 8 bytes is a u64 with the number of arguments
     let argc = *stack_ptr.cast::<u64>();
@@ -41,7 +37,7 @@ pub unsafe fn resolve(stack_ptr: *const u8, _dynv: *const usize) -> Env {
 #[must_use]
 #[inline(always)]
 #[cfg(feature = "aux")]
-#[allow(
+#[expect(
     clippy::cast_ptr_alignment,
     clippy::cast_possible_truncation,
     clippy::used_underscore_binding

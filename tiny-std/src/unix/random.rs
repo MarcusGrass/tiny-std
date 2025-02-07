@@ -49,7 +49,7 @@ impl Prng {
     /// you shouldn't need a secure seed anyway, because you should not use this for
     /// security-purposes at all.
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub fn new_time_seeded() -> Self {
         let time = crate::time::MonotonicInstant::now();
         let time_nanos_in_u64 = (time.0.seconds() as u64)

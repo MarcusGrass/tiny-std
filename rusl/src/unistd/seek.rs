@@ -17,7 +17,7 @@ transparent_bitflags! {
 /// See details in the [linux docs here](https://man7.org/linux/man-pages/man2/lseek.2.html)
 /// # Errors
 /// See above
-#[allow(clippy::cast_possible_wrap)]
+#[expect(clippy::cast_possible_wrap)]
 pub fn lseek(fd: Fd, off_t: OffT, whence: Whence) -> Result<OffT, Error> {
     unsafe {
         let res = syscall!(LSEEK, fd.0, off_t, whence.bits().0);

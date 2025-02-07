@@ -117,7 +117,7 @@ const WORD_COPY_THRESHOLD: usize = if 2 * WORD_SIZE > 16 {
 
 #[no_mangle]
 #[inline(always)]
-#[allow(clippy::missing_safety_doc)]
+#[expect(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     copy_forward(dest, src, n);
     dest
@@ -125,7 +125,7 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
 
 #[no_mangle]
 #[inline(always)]
-#[allow(clippy::missing_safety_doc)]
+#[expect(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     let delta = (dest as usize).wrapping_sub(src as usize);
     if delta >= n {
@@ -140,21 +140,21 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
 
 #[no_mangle]
 #[inline(always)]
-#[allow(clippy::missing_safety_doc)]
+#[expect(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     compare_bytes(s1, s2, n)
 }
 
 #[no_mangle]
 #[inline(always)]
-#[allow(clippy::missing_safety_doc)]
+#[expect(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     memcmp(s1, s2, n)
 }
 
 #[no_mangle]
 #[inline(always)]
-#[allow(
+#[expect(
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation,
     clippy::missing_safety_doc
@@ -191,7 +191,7 @@ unsafe fn copy_forward(mut dest: *mut u8, mut src: *const u8, mut n: usize) {
     }
 
     #[inline(always)]
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn copy_forward_aligned_words(dest: *mut u8, src: *const u8, n: usize) {
         let mut dest_usize = dest.cast::<usize>();
         let mut src_usize = src as *mut usize;
@@ -206,7 +206,7 @@ unsafe fn copy_forward(mut dest: *mut u8, mut src: *const u8, mut n: usize) {
 
     /// Both `x86_64` and aarch support mem-unaligned
     #[inline(always)]
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn copy_forward_misaligned_words(dest: *mut u8, src: *const u8, n: usize) {
         let mut dest_usize = dest.cast::<usize>();
         let mut src_usize = src as *mut usize;
@@ -264,7 +264,7 @@ unsafe fn copy_backward(dest: *mut u8, src: *const u8, mut n: usize) {
     }
 
     #[inline(always)]
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn copy_backward_aligned_words(dest: *mut u8, src: *const u8, n: usize) {
         let mut dest_usize = dest.cast::<usize>();
         let mut src_usize = src as *mut usize;
@@ -278,7 +278,7 @@ unsafe fn copy_backward(dest: *mut u8, src: *const u8, mut n: usize) {
     }
 
     #[inline(always)]
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn copy_backward_misaligned_words(dest: *mut u8, src: *const u8, n: usize) {
         let mut dest_usize = dest.cast::<usize>();
         let mut src_usize = src as *mut usize;
@@ -329,7 +329,7 @@ unsafe fn set_bytes(mut s: *mut u8, c: u8, mut n: usize) {
     }
 
     #[inline(always)]
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn set_bytes_words(s: *mut u8, c: u8, n: usize) {
         let mut broadcast = c as usize;
         let mut bits = 8;

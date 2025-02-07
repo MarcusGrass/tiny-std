@@ -18,7 +18,7 @@ pub fn futex_wait(
     let res = unsafe {
         syscall!(
             FUTEX,
-            uaddr as *const AtomicU32,
+            core::ptr::from_ref::<AtomicU32>(uaddr),
             FUTEX_WAIT & flags.bits().0,
             val,
             timeout
@@ -41,7 +41,7 @@ pub fn futex_wake(uaddr: &AtomicU32, num_waiters: i32) -> Result<usize, Error> {
     let res = unsafe {
         syscall!(
             FUTEX,
-            uaddr as *const AtomicU32,
+            core::ptr::from_ref::<AtomicU32>(uaddr),
             FUTEX_WAKE,
             num_waiters,
             0,

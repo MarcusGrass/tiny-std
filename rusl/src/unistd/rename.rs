@@ -7,7 +7,7 @@ use crate::string::unix_str::UnixStr;
 /// # Errors
 /// See the [linux docs for details](https://man7.org/linux/man-pages/man2/rename.2.html#ERRORS)
 #[inline(always)]
-#[allow(clippy::inline_always)]
+#[expect(clippy::inline_always)]
 pub fn rename(old_path: &UnixStr, new_path: &UnixStr) -> crate::Result<()> {
     do_rename_at(AT_FDCWD, old_path, AT_FDCWD, new_path, RenameFlags::empty())
 }
@@ -16,7 +16,7 @@ pub fn rename(old_path: &UnixStr, new_path: &UnixStr) -> crate::Result<()> {
 /// # Errors
 /// See the [linux docs for details](https://man7.org/linux/man-pages/man2/rename.2.html#ERRORS)
 #[inline(always)]
-#[allow(clippy::inline_always)]
+#[expect(clippy::inline_always)]
 pub fn rename_flags(
     old_path: &UnixStr,
     new_path: &UnixStr,
@@ -29,7 +29,7 @@ pub fn rename_flags(
 /// # Errors
 /// See the [linux docs for details](https://man7.org/linux/man-pages/man2/rename.2.html#ERRORS)
 #[inline(always)]
-#[allow(clippy::inline_always)]
+#[expect(clippy::inline_always)]
 pub fn rename_at(
     old_dir_fd: Fd,
     old_path: &UnixStr,
@@ -49,7 +49,7 @@ pub fn rename_at(
 /// # Errors
 /// See the [linux docs for details](https://man7.org/linux/man-pages/man2/rename.2.html#ERRORS)
 #[inline(always)]
-#[allow(clippy::inline_always)]
+#[expect(clippy::inline_always)]
 pub fn rename_at2(
     old_dir_fd: Fd,
     old_path: &UnixStr,

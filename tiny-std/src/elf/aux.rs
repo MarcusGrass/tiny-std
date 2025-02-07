@@ -8,7 +8,7 @@ pub(crate) static mut AUX_VALUES: AuxValues = AuxValues::zeroed();
 /// Get the main thread group id
 #[inline]
 #[must_use]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 pub fn get_gid() -> GidT {
     unsafe { AUX_VALUES.at_gid as GidT }
 }
@@ -16,7 +16,7 @@ pub fn get_gid() -> GidT {
 /// Get the main thread user id
 #[inline]
 #[must_use]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 pub fn get_uid() -> UidT {
     unsafe { AUX_VALUES.at_uid as UidT }
 }

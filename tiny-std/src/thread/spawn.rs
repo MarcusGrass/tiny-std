@@ -99,7 +99,7 @@ impl Tsm {
             core::mem::align_of::<usize>(),
         );
 
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn init<T>() -> Self {
         let layout = Self::layout_thread_shared_memory::<T>();
         let ptr = alloc::alloc::alloc(layout);
@@ -140,7 +140,7 @@ impl Tsm {
     }
 
     #[inline]
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn get_futex(self) -> &'static AtomicU32 {
         self.0
             .add(Self::FUTEX_OFFSET)
@@ -150,7 +150,7 @@ impl Tsm {
     }
 
     #[inline]
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn get_layout(self) -> Layout {
         let size = self.0.add(Self::SELF_SZ_OFFSET).cast::<usize>().read();
         let align = self.0.add(Self::SELF_ALIGN_OFFSET).cast::<usize>().read();
@@ -228,10 +228,10 @@ pub(crate) struct ThreadLocalStorage {
 
 impl ThreadLocalStorage {
     #[inline]
-    fn thread_stack_info(&self) -> &Option<ThreadDealloc> {
+    fn thread_stack_info(&self) -> Option<&ThreadDealloc> {
         #[cfg(target_arch = "x86_64")]
         {
-            &self.stack_info
+            self.stack_info.as_ref()
         }
         // On aarch64 we don't put anything onto the tls for the main thread,
         // we get the value out of the tls-register, if that register holds a zero double-word
@@ -239,9 +239,9 @@ impl ThreadLocalStorage {
         #[cfg(target_arch = "aarch64")]
         {
             if self.self_addr == 0 {
-                &None
+                None
             } else {
-                &self.stack_info
+                self.stack_info.as_ref()
             }
         }
     }
@@ -340,7 +340,7 @@ where
     unsafe {
         (*tls).self_addr = tls as usize;
     }
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     unsafe {
         __clone(
             start_fn,

@@ -7,6 +7,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Copy, Clone)]
 pub enum Error {
     Uncategorized(&'static str),
+    Timeout,
     Os { msg: &'static str, code: Errno },
 }
 
@@ -55,6 +56,7 @@ impl Display for Error {
             Error::Os { msg, code } => {
                 f.write_fmt(format_args!("OsError {{ msg: `{msg}`, code: {code} }}"))
             }
+            Error::Timeout => f.write_fmt(format_args!("Error: Timeout")),
         }
     }
 }

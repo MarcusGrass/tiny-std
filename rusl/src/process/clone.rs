@@ -15,7 +15,7 @@ pub unsafe fn fork() -> Result<PidT> {
     let res = syscall!(FORK);
     bail_on_below_zero!(res, "`FORK` syscall failed");
     // We're trusting the syscall [API here](https://man7.org/linux/man-pages/man2/fork.2.html#RETURN_VALUE)
-    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     Ok(res as PidT)
 }
 
@@ -30,7 +30,7 @@ pub unsafe fn fork() -> Result<PidT> {
     let cflgs = crate::platform::SignalKind::SIGCHLD;
     let res = syscall!(CLONE, cflgs.0 .0, 0, 0, 0, 0);
     bail_on_below_zero!(res, "`CLONE` syscall failed");
-    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     Ok(res as i32)
 }
 
@@ -69,7 +69,7 @@ pub unsafe fn clone(args: &CloneArgs) -> Result<PidT> {
     };
     bail_on_below_zero!(res, "`CLONE` syscall failed");
     // We're trusting the syscall [API here](https://man7.org/linux/man-pages/man2/clone.2.html#RETURN_VALUE)
-    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     Ok(res as PidT)
 }
 
@@ -83,7 +83,7 @@ pub unsafe fn clone(args: &CloneArgs) -> Result<PidT> {
 /// See above
 pub unsafe fn clone3(clone_args: &mut Clone3Args) -> Result<u64> {
     const SIZE: usize = core::mem::size_of::<Clone3Args>();
-    let res = syscall!(CLONE3, clone_args as *mut Clone3Args, SIZE);
+    let res = syscall!(CLONE3, core::ptr::from_mut::<Clone3Args>(clone_args), SIZE);
     bail_on_below_zero!(res, "`CLONE3` syscall failed");
     Ok(res as u64)
 }

@@ -1,4 +1,5 @@
 #![warn(clippy::pedantic)]
+#![cfg_attr(test, allow(clippy::struct_field_names))]
 mod derive_struct;
 mod subcommand;
 

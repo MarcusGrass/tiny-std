@@ -80,7 +80,7 @@ pub fn recvmsg(sock_fd: Fd, recv: &mut crate::platform::MsgHdrBorrow, flags: i32
         syscall!(
             RECVMSG,
             sock_fd.0,
-            recv as *mut crate::platform::MsgHdrBorrow,
+            core::ptr::from_mut::<crate::platform::MsgHdrBorrow>(recv),
             flags
         )
     };

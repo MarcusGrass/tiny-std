@@ -13,7 +13,7 @@ pub fn tcsetattr(fd: Fd, action: SetAction, termios: &Termios) -> crate::Result<
             IOCTL,
             fd.0,
             TCSETS + action.into_i32(),
-            termios as *const Termios
+            core::ptr::from_ref::<Termios>(termios)
         )
     };
     bail_on_below_zero!(res, "`IOCTL` `TCSETS` syscall failed");

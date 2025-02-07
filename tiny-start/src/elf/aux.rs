@@ -56,7 +56,7 @@ impl AuxValues {
 
     #[must_use]
     #[inline(always)]
-    #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
     pub(crate) unsafe fn from_auxv(auxv: *const usize) -> Self {
         let mut collected = Self::zeroed();
         let mut i = 0;

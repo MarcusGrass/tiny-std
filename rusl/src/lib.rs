@@ -1,13 +1,12 @@
-#![allow(unused_doc_comments)]
+#![expect(unused_doc_comments)]
 #![cfg_attr(not(test), no_std)]
 #![warn(clippy::pedantic)]
-#![allow(
+#![expect(
     clippy::module_name_repetitions,
     clippy::similar_names,
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap
 )]
-#![cfg_attr(test, allow(clippy::ignored_unit_patterns))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;

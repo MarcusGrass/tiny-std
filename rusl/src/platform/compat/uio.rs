@@ -4,12 +4,11 @@ pub use linux_rust_bindings::uio::iovec;
 
 #[repr(transparent)]
 pub struct IoSlice<'a> {
-    #[allow(dead_code)]
     pub vec: iovec,
     _p: PhantomData<&'a [u8]>,
 }
 
-impl<'a> IoSlice<'a> {
+impl IoSlice<'_> {
     #[must_use]
     pub const fn new(buf: &[u8]) -> Self {
         Self {
@@ -28,7 +27,7 @@ pub struct IoSliceMut<'a> {
     _p: PhantomData<&'a mut [u8]>,
 }
 
-impl<'a> IoSliceMut<'a> {
+impl IoSliceMut<'_> {
     #[must_use]
     pub fn new(buf: &mut [u8]) -> Self {
         Self {

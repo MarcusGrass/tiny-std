@@ -81,21 +81,25 @@ static mut ST_DL_MALLOC: Dlmalloc = Dlmalloc::new();
 #[cfg(all(feature = "global-allocator", not(feature = "threaded")))]
 unsafe impl core::alloc::GlobalAlloc for GlobalDlMalloc {
     #[inline]
+    #[expect(static_mut_refs)]
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         ST_DL_MALLOC.malloc(layout.size(), layout.align())
     }
 
     #[inline]
+    #[expect(static_mut_refs)]
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
         ST_DL_MALLOC.free(ptr)
     }
 
     #[inline]
+    #[expect(static_mut_refs)]
     unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
         ST_DL_MALLOC.calloc(layout.size(), layout.align())
     }
 
     #[inline]
+    #[expect(static_mut_refs)]
     unsafe fn realloc(
         &self,
         ptr: *mut u8,
@@ -182,7 +186,7 @@ const fn least_bit(x: u32) -> u32 {
     x & (!x + 1)
 }
 
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 const fn leftshift_for_tree_index(x: u32) -> u32 {
     let x = x as usize;
     if x == NTREEBINS - 1 {
@@ -192,7 +196,7 @@ const fn leftshift_for_tree_index(x: u32) -> u32 {
     }
 }
 
-#[allow(clippy::new_without_default)]
+#[expect(clippy::new_without_default)]
 impl Dlmalloc {
     #[must_use]
     pub const fn new() -> Dlmalloc {
@@ -226,7 +230,7 @@ impl Dlmalloc {
     /// Safety and contracts are largely governed by the `GlobalAlloc::alloc`
     /// method contracts.
     #[inline]
-    #[allow(clippy::missing_safety_doc)]
+    #[expect(clippy::missing_safety_doc)]
     pub unsafe fn malloc(&mut self, size: usize, align: usize) -> *mut u8 {
         if align <= Self::MALLOC_ALIGNMENT {
             self.inner_malloc(size)
@@ -238,7 +242,7 @@ impl Dlmalloc {
     /// Same as `malloc`, except if the allocation succeeds it's guaranteed to
     /// point to `size` bytes of zeros.
     #[inline]
-    #[allow(clippy::missing_safety_doc)]
+    #[expect(clippy::missing_safety_doc)]
     pub unsafe fn calloc(&mut self, size: usize, align: usize) -> *mut u8 {
         let ptr = self.malloc(size, align);
         if !ptr.is_null() && Self::calloc_must_clear(ptr) {
@@ -257,7 +261,7 @@ impl Dlmalloc {
     /// Safety and contracts are largely governed by the `GlobalAlloc::realloc`
     /// method contracts.
     #[inline]
-    #[allow(clippy::missing_safety_doc)]
+    #[expect(clippy::missing_safety_doc)]
     pub unsafe fn realloc(
         &mut self,
         ptr: *mut u8,
@@ -321,7 +325,7 @@ impl Dlmalloc {
     }
 
     #[inline]
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     const fn small_index(size: usize) -> u32 {
         (size >> SMALLBIN_SHIFT) as u32
     }
@@ -390,7 +394,7 @@ impl Dlmalloc {
         !Chunk::mmapped(Chunk::from_mem(ptr))
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     unsafe fn inner_malloc(&mut self, size: usize) -> *mut u8 {
         #[cfg(debug_assertions)]
         self.check_malloc_state();
@@ -693,7 +697,7 @@ impl Dlmalloc {
         }
     }
 
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn mmap_resize(&mut self, oldp: *mut Chunk, nb: usize, can_move: bool) -> *mut Chunk {
         let oldsize = Chunk::size(oldp);
         // Can't shrink mmap regions below a small size
@@ -739,7 +743,7 @@ impl Dlmalloc {
 
     // Only call this with power-of-two alignment and alignment >
     // `Self::MALLOC_ALIGNMENT`
-    #[allow(clippy::missing_safety_doc, clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn memalign(&mut self, mut alignment: usize, bytes: usize) -> *mut u8 {
         if alignment < Self::MIN_CHUNK_SIZE {
             alignment = Self::MIN_CHUNK_SIZE;
@@ -874,7 +878,7 @@ impl Dlmalloc {
         self.trim_check = DEFAULT_TRIM_THRESHOLD;
     }
 
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     unsafe fn init_bins(&mut self) {
         for i in 0..NSMALLBINS as u32 {
             let bin = self.smallbin_at(i);
@@ -930,7 +934,8 @@ impl Dlmalloc {
     }
 
     // add a segment to hold a new noncontiguous region
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
+    #[expect(clippy::similar_names)]
     unsafe fn add_segment(&mut self, tbase: *mut u8, tsize: usize, flags: u32) {
         // TODO: what in the world is this function doing
 
@@ -1130,7 +1135,7 @@ impl Dlmalloc {
         &mut *self.treebins.get_unchecked_mut(idx as usize)
     }
 
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     fn compute_tree_index(size: usize) -> u32 {
         let x = size >> TREEBIN_SHIFT;
         if x == 0 {
@@ -1341,7 +1346,7 @@ impl Dlmalloc {
         }
     }
 
-    #[allow(clippy::missing_safety_doc)]
+    #[expect(clippy::missing_safety_doc)]
     pub unsafe fn free(&mut self, mem: *mut u8) {
         #[cfg(debug_assertions)]
         self.check_malloc_state();
@@ -1424,6 +1429,7 @@ impl Dlmalloc {
         size > self.trim_check
     }
 
+    #[expect(clippy::manual_div_ceil)]
     unsafe fn sys_trim(&mut self, mut pad: usize) -> bool {
         let mut released = 0;
         if pad < Self::MAX_REQUEST && !self.top.is_null() {
@@ -1813,7 +1819,7 @@ impl Chunk {
         (*me).head & !FLAG_BITS
     }
 
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     #[cfg(debug_assertions)]
     unsafe fn next(me: *mut Chunk) -> *mut Chunk {
         (me.cast::<u8>())
@@ -1821,7 +1827,7 @@ impl Chunk {
             .cast::<Chunk>()
     }
 
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     #[cfg(debug_assertions)]
     unsafe fn prev(me: *mut Chunk) -> *mut Chunk {
         (me.cast::<u8>()).sub((*me).prev_foot).cast::<Chunk>()
@@ -1883,12 +1889,12 @@ impl Chunk {
         (*next).prev_foot = size;
     }
 
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn plus_offset(me: *mut Chunk, offset: usize) -> *mut Chunk {
         (me.cast::<u8>()).add(offset).cast::<Chunk>()
     }
 
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment)]
     unsafe fn minus_offset(me: *mut Chunk, offset: usize) -> *mut Chunk {
         (me.cast::<u8>()).sub(offset).cast::<Chunk>()
     }
@@ -1898,7 +1904,7 @@ impl Chunk {
         (me.cast::<u8>()).add(Chunk::MEM_OFFSET)
     }
 
-    #[allow(clippy::cast_possible_wrap, clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_possible_wrap, clippy::cast_ptr_alignment)]
     unsafe fn from_mem(mem: *mut u8) -> *mut Chunk {
         mem.offset(-2 * (mem::size_of::<usize>() as isize))
             .cast::<Chunk>()

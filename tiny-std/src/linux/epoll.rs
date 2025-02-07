@@ -71,7 +71,7 @@ impl EpollDriver {
     /// # Errors
     /// Os errors occurring during wait, or a timeout that is too long
     #[inline]
-    #[allow(clippy::cast_possible_wrap)]
+    #[expect(clippy::cast_possible_wrap)]
     pub fn wait(&self, event_buf: &mut [EpollEvent], timeout: EpollTimeout) -> Result<usize> {
         let num_ready = match timeout {
             EpollTimeout::WaitForever => rusl::select::epoll_wait(self.epoll_fd.0, event_buf, -1)?,

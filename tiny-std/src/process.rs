@@ -367,7 +367,7 @@ pub struct ProvidedEnvironment {
     envp: Envp,
 }
 
-#[allow(clippy::derivable_impls)]
+#[expect(clippy::derivable_impls)]
 impl Default for Environment {
     fn default() -> Self {
         #[cfg(feature = "start")]
@@ -396,7 +396,7 @@ impl PreExec for Box<dyn FnMut() -> Result<()> + Send + Sync> {
     }
 }
 
-impl<'a> PreExec for &'a mut (dyn FnMut() -> Result<()> + Send + Sync) {
+impl PreExec for &'_ mut (dyn FnMut() -> Result<()> + Send + Sync) {
     #[inline]
     fn run(&mut self) -> Result<()> {
         (self)()
@@ -415,7 +415,6 @@ impl PreExec for () {
 /// # Safety
 /// Pointers are valid.
 #[inline]
-#[allow(clippy::too_many_arguments)]
 pub unsafe fn do_exec<F: PreExec>(
     bin: &UnixStr,
     argv: *const *const u8,
@@ -435,7 +434,7 @@ pub unsafe fn do_exec<F: PreExec>(
 }
 
 #[inline]
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 unsafe fn do_spawn<F: PreExec>(
     bin: &UnixStr,
     argv: *const *const u8,
@@ -558,7 +557,7 @@ unsafe fn do_spawn<F: PreExec>(
 /// We have to do some gating here, since we're copying the pointer out of the closure it'd dangle
 /// after if we did an allocation before that closure.
 #[cfg(not(feature = "alloc"))]
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub fn spawn<const N: usize, CL: PreExec>(
     bin: &UnixStr,
     argv: [&UnixStr; N],

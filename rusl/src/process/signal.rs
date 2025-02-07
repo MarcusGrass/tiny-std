@@ -8,7 +8,7 @@ use crate::platform::{NonNegativeI32, SaMask, SigSetT, SIG_DFL, SIG_IGN};
 
 /// This struct can differ between architectures, it's the same on aarch64 and `x86_64` though.
 #[repr(C)]
-#[allow(clippy::struct_field_names)]
+#[expect(clippy::struct_field_names)]
 struct Sigaction {
     // Fn pointer to an extern C Fn(int) -> ()
     sa_sigaction: SaSigaction,
@@ -92,7 +92,7 @@ impl CatchSignal {
 /// Additionally, signal handlers have to by async-signal-safe. Essentially meaning that
 /// anything they touch have to be safely accessible concurrently. Some things `Rust` may guarantee
 /// but many it won't.
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 pub unsafe fn add_signal_action(
     signal: CatchSignal,
     sigaction: SaSignalaction,

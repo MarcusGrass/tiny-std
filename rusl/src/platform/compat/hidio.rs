@@ -7,7 +7,7 @@ pub const HIDIOCGDEV_INFO: u32 = crate::_ioc!(
     u32
 );
 
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 const fn comptime_hidio_size() -> u32 {
     let sz = core::mem::size_of::<linux_rust_bindings::hidio::hiddev_devinfo>();
     assert!(

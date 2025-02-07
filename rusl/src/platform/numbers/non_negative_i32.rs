@@ -59,7 +59,7 @@ impl NonNegativeI32 {
     }
 
     #[inline]
-    #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
     pub(crate) const fn coerce_from_register(
         val: usize,
         err_msg: &'static str,
@@ -74,28 +74,28 @@ impl NonNegativeI32 {
 
     #[inline]
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub const fn into_u32(self) -> u32 {
         self.0 as u32
     }
 
     #[inline]
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub const fn into_u64(self) -> u64 {
         self.0 as u64
     }
 
     #[inline]
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub const fn into_u128(self) -> u128 {
         self.0 as u128
     }
 
     #[inline]
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub const fn into_usize(self) -> usize {
         self.0 as usize
     }

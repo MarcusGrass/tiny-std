@@ -73,7 +73,7 @@ fn uring_register_buffer() {
     unsafe { io_uring_register_buffers(uring_fd, &[ioslice]).unwrap() };
 }
 
-#[cfg_attr(target_arch = "x86_64", allow(clippy::unnecessary_wraps))]
+#[cfg_attr(target_arch = "x86_64", expect(clippy::unnecessary_wraps))]
 fn setup_ignore_enosys(entries: u32, flags: IoUringParamFlags) -> Option<IoUring> {
     let uring = setup_io_uring(entries, flags, 0, 0);
     match uring {
@@ -98,7 +98,7 @@ fn uring_setup_instance() {
 }
 
 #[test]
-#[allow(clippy::cast_sign_loss)]
+#[expect(clippy::cast_sign_loss)]
 fn uring_single_read() {
     let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
@@ -130,7 +130,7 @@ fn uring_single_read() {
 }
 
 #[test]
-#[allow(clippy::cast_sign_loss)]
+#[expect(clippy::cast_sign_loss)]
 fn uring_single_write() {
     let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
         return;
@@ -364,7 +364,7 @@ fn uring_single_socket() {
 
 #[test]
 #[cfg(feature = "alloc")]
-#[allow(clippy::cast_sign_loss, clippy::too_many_lines)]
+#[expect(clippy::cast_sign_loss, clippy::too_many_lines)]
 fn uring_unix_accept_send_recv() {
     use crate::network::{bind_unix, connect_unix, listen, socket};
     let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
@@ -491,7 +491,6 @@ fn uring_unix_accept_send_recv() {
 
 #[test]
 #[cfg(feature = "alloc")]
-#[allow(clippy::cast_sign_loss, clippy::too_many_lines)]
 fn uring_tcp_accept() {
     use crate::network::{bind_inet, listen, socket};
     const FIFTEEN: crate::platform::NonNegativeI32 =
@@ -622,7 +621,7 @@ fn uring_single_timeout() {
 }
 
 #[test]
-#[allow(clippy::cast_sign_loss)]
+#[expect(clippy::cast_sign_loss)]
 fn uring_read_registered_buffers_and_fds() {
     let mut buf1 = [0u8; 64];
     let buf1_addr = core::ptr::addr_of_mut!(buf1);
@@ -716,7 +715,7 @@ fn uring_read_registered_buffers_and_fds() {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn uring_write_registered_buffers_and_fds() {
     let content1 = b"Uring fixed write 1!\n";
     let mut buf1 = [0u8; 21];

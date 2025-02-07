@@ -71,7 +71,7 @@ const SYSCALL_ERR_THRESHOLD: usize = usize::MAX - LINUX_ERROR_RESV;
 
 #[must_use]
 #[inline(always)]
-#[allow(clippy::inline_always)]
+#[expect(clippy::inline_always)]
 pub const fn is_syscall_error(res: usize) -> bool {
     res > SYSCALL_ERR_THRESHOLD
 }
@@ -127,7 +127,7 @@ macro_rules! _iow {
     };
 }
 
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+#[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub(crate) const fn comptime_i32_to_u8(input: i32) -> u8 {
     assert!(
         input >= 0 && input < u8::MAX as i32,
@@ -136,13 +136,13 @@ pub(crate) const fn comptime_i32_to_u8(input: i32) -> u8 {
     input as u8
 }
 
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+#[expect(clippy::cast_sign_loss)]
 pub(crate) const fn comptime_i32_to_u32(input: i32) -> u32 {
     assert!(input >= 0, "Provided i32 cannot be converted to a u32");
     input as u32
 }
 
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 pub(crate) const fn comptime_i32_to_i16(input: i32) -> i16 {
     assert!(
         input < i16::MAX as i32 && input > i16::MIN as i32,
@@ -151,7 +151,7 @@ pub(crate) const fn comptime_i32_to_i16(input: i32) -> i16 {
     input as i16
 }
 
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 pub(crate) const fn comptime_u32_to_u8(input: u32) -> u8 {
     assert!(
         input < u8::MAX as u32,

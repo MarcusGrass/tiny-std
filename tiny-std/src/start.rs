@@ -36,11 +36,7 @@ core::arch::global_asm!(
 /// Called with a pointer to the top of the stack
 #[no_mangle]
 #[cfg(feature = "symbols")]
-#[allow(
-    clippy::used_underscore_binding,
-    clippy::cast_ptr_alignment,
-    clippy::cast_possible_truncation
-)]
+#[expect(clippy::used_underscore_binding)]
 unsafe extern "C" fn __proxy_main(stack_ptr: *const u8, _dynv: *const usize) {
     #[cfg(feature = "aux")]
     {

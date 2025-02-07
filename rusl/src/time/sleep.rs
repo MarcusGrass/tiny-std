@@ -12,7 +12,7 @@ pub fn nanosleep(try_sleep: &TimeSpec, rem: Option<*mut TimeSpec>) -> crate::Res
     let res = unsafe {
         syscall!(
             NANOSLEEP,
-            try_sleep as *const TimeSpec,
+            core::ptr::from_ref::<TimeSpec>(try_sleep),
             rem.map_or(core::ptr::null_mut(), |ts| ts)
         )
     };
@@ -29,8 +29,8 @@ pub fn nanosleep_same_ptr(try_sleep: &mut TimeSpec) -> crate::Result<()> {
     let res = unsafe {
         syscall!(
             NANOSLEEP,
-            try_sleep as *mut TimeSpec,
-            try_sleep as *mut TimeSpec
+            core::ptr::from_mut::<TimeSpec>(try_sleep),
+            core::ptr::from_mut::<TimeSpec>(try_sleep)
         )
     };
     bail_on_below_zero!(res, "`NANOSLEEP` syscall failed");

@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     // We're using the truncation in the test
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     fn test_basic_alloc() {
         unsafe {
             let size = 4096;

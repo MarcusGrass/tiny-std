@@ -21,7 +21,7 @@ impl AddressFamily {
     pub const AF_X25: Self = Self(9); /* Reserved for X.25 project 	*/
     pub const AF_INET6: Self = Self(10); /* IP version 6			*/
     pub const AF_ROSE: Self = Self(11); /* Amateur Radio X.25 PLP	*/
-    #[allow(non_upper_case_globals)]
+    #[expect(non_upper_case_globals)]
     pub const AF_DECnet: Self = Self(12); /* Reserved for DECnet project	*/
     pub const AF_NETBEUI: Self = Self(13); /* Reserved for 802.2LLC project*/
     pub const AF_SECURITY: Self = Self(14); /* Security callback pseudo AF */
@@ -100,16 +100,16 @@ transparent_bitflags!(
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-pub struct SocketAddressInet(pub(crate) linux_rust_bindings::socket::sockaddr_in);
+pub struct SocketAddressInet(pub linux_rust_bindings::socket::sockaddr_in);
 
 impl SocketAddressInet {
     pub const LENGTH: usize = core::mem::size_of::<linux_rust_bindings::socket::sockaddr_in>();
 
     #[must_use]
     pub const fn new(ip_addr: [u8; 4], port: u16) -> Self {
-        let s_addr = u32::from_be_bytes(ip_addr);
-        let port_bytes = port.to_ne_bytes();
-        let sin_port = u16::from_be_bytes(port_bytes);
+        // General
+        let s_addr = u32::from_le_bytes(ip_addr);
+        let sin_port = port.to_be();
         let i = linux_rust_bindings::socket::sockaddr_in {
             sin_family: AddressFamily::AF_INET.0,
             sin_port,
@@ -117,6 +117,22 @@ impl SocketAddressInet {
             __pad: [0u8; 8],
         };
         Self(i)
+    }
+
+    #[must_use]
+    pub const fn ipv4_addr(&self) -> ([u8; 4], u16) {
+        #[cfg(target_endian = "big")]
+        {
+            (self.0.sin_addr.s_addr.to_le_bytes(), self.0.sin_port)
+        }
+        #[cfg(target_endian = "little")]
+        {
+            let bytes = self.0.sin_port.to_be_bytes();
+            (
+                self.0.sin_addr.s_addr.to_le_bytes(),
+                u16::from_le_bytes(bytes),
+            )
+        }
     }
 }
 
@@ -295,7 +311,7 @@ pub struct SendDropGuard<'a> {
     _dealloc_spc: alloc::vec::Vec<u8>,
 }
 #[cfg(feature = "alloc")]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 impl<'a> MsgHdrBorrow<'a> {
     #[must_use]
     pub fn create_send(
@@ -416,7 +432,7 @@ impl<'a> Iterator for ControlMessageIterator<'a> {
                 let len = len / core::mem::size_of::<crate::platform::Fd>();
                 self.cmsg_prev = Some(cmsg_nxthdr!(self.msghdr, cmsg).cast_mut());
                 // Here on x86_64 and aarch64 data is 8-byte aligned
-                #[allow(clippy::cast_ptr_alignment)]
+                #[expect(clippy::cast_ptr_alignment)]
                 return Some(ControlMessageSend::ScmRights(core::slice::from_raw_parts(
                     data as *const crate::platform::NonNegativeI32,
                     len,
@@ -577,7 +593,7 @@ pub struct CmsgHdr {
 
 #[cfg(test)]
 #[cfg(feature = "alloc")]
-#[allow(
+#[expect(
     clippy::cast_ptr_alignment,
     clippy::ptr_cast_constness,
     clippy::ptr_as_ptr,

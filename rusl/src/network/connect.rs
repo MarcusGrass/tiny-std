@@ -33,7 +33,7 @@ pub fn connect_inet(sock_fd: Fd, addr: &SocketAddressInet) -> Result<()> {
         syscall!(
             CONNECT,
             sock_fd.0,
-            addr as *const SocketAddressInet,
+            core::ptr::from_ref::<SocketAddressInet>(addr),
             SocketAddressInet::LENGTH
         )
     };

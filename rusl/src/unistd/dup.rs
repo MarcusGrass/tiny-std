@@ -30,8 +30,8 @@ pub fn dup3(old: Fd, new: Fd, cloexec: bool) -> crate::Result<()> {
                 }
             )
         };
-        // Trusting the systall [API](https://man7.org/linux/man-pages/man2/dup.2.html#RETURN_VALUE)
-        #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
+        // Trusting the syscall [API](https://man7.org/linux/man-pages/man2/dup.2.html#RETURN_VALUE)
+        #[expect(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
         if res as i32 == Errno::EBUSY.raw() {
             continue;
         }

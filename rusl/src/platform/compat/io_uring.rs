@@ -472,7 +472,7 @@ impl IoUringSubmissionQueueEntry {
     /// The references to `old_path` and `new_path` needs to live until this entry is submitted to the kernel.  
     #[inline]
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub unsafe fn new_rename_at(
         old_dir_fd: Option<Fd>,
         new_dir_fd: Option<Fd>,
@@ -745,7 +745,7 @@ impl IoUringSubmissionQueueEntry {
     #[inline]
     #[must_use]
     #[cfg(feature = "alloc")]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub unsafe fn new_sendmsg(
         socket: Fd,
         send_drop_guard: &crate::platform::SendDropGuard,
@@ -784,7 +784,7 @@ impl IoUringSubmissionQueueEntry {
     #[inline]
     #[must_use]
     #[cfg(feature = "alloc")]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub unsafe fn new_sendmsg_raw(
         socket: Fd,
         msghdr: *const crate::platform::MsgHdr,
@@ -824,7 +824,7 @@ impl IoUringSubmissionQueueEntry {
     #[inline]
     #[must_use]
     #[cfg(feature = "alloc")]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub unsafe fn new_recvmsg(
         socket: Fd,
         msghdr: *mut crate::platform::MsgHdr,
@@ -858,7 +858,7 @@ impl IoUringSubmissionQueueEntry {
     }
 
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_sign_loss)]
     pub fn new_poll_add(
         fd: Fd,
         poll_events: PollEvents,
@@ -946,7 +946,6 @@ impl IoUringParams {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct IoUring {
     pub fd: Fd,
@@ -955,7 +954,7 @@ pub struct IoUring {
     pub(crate) completion_queue: UringCompletionQueue,
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 impl IoUring {
     #[inline]
     pub(crate) fn get_dropped(&self) -> u32 {
@@ -1026,7 +1025,7 @@ impl IoUring {
 }
 
 impl Drop for IoUring {
-    #[allow(clippy::let_underscore_untyped)]
+    #[expect(clippy::let_underscore_untyped)]
     fn drop(&mut self) {
         let mut sqe_size = core::mem::size_of::<IoUringSubmissionQueueEntry>();
         if self.flags.bits() & IORING_SETUP_SQE128 as u32 != 0 {
@@ -1050,7 +1049,7 @@ impl Drop for IoUring {
     }
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 #[derive(Debug)]
 pub(crate) struct UringSubmissionQueue {
     pub(crate) ring_size: usize,
@@ -1097,7 +1096,7 @@ impl UringSubmissionQueue {
     }
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 #[derive(Debug)]
 pub(crate) struct UringCompletionQueue {
     pub(crate) ring_size: usize,
@@ -1111,7 +1110,7 @@ pub(crate) struct UringCompletionQueue {
     pub(crate) entries: NonNull<IoUringCompletionQueueEntry>,
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 impl UringCompletionQueue {
     #[inline]
     pub(crate) fn acquire_ktail(&self) -> u32 {
