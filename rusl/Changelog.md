@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+## [0.4.0] - 2025-02-08
+
+### Fixed
+
+### Added
+
+- Get the ipv4 address of a `SocketAddressInet`
+
+### Changed
+
+- SocketAddressInet is now created from le_bytes, which is generally
+how one would write a 4 byte ipv4 in an array i.e: `[127, 0, 0, 1]`
+
+
 ## [0.3.1] - 2024-08-24
 
 ### Fixed

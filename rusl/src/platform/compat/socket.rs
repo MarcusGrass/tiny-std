@@ -100,14 +100,13 @@ transparent_bitflags!(
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
-pub struct SocketAddressInet(pub linux_rust_bindings::socket::sockaddr_in);
+pub struct SocketAddressInet(pub(crate) linux_rust_bindings::socket::sockaddr_in);
 
 impl SocketAddressInet {
     pub const LENGTH: usize = core::mem::size_of::<linux_rust_bindings::socket::sockaddr_in>();
 
     #[must_use]
     pub const fn new(ip_addr: [u8; 4], port: u16) -> Self {
-        // General
         let s_addr = u32::from_le_bytes(ip_addr);
         let sin_port = port.to_be();
         let i = linux_rust_bindings::socket::sockaddr_in {
