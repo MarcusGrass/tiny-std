@@ -3,13 +3,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
-
 ## [Unreleased]
 ### Fixed
 
 ### Added
 
 ### Changed
+
+
+## [v0.3.0] - 2025-02-08
+
+### Fixed
+
+- Properly close FDs if socket setup fails partway through.
+
+### Added
+
+- `TcpStream` and `TcpListener`
+- Add some functionality to have timeouts on sockets
+- New error-kind `Timeout`
+
+
+### Changed
+
+- `UnixStream` and `UnixListener` are now `SOCK_NONBLOCK` by default
+- Updated `rusl` and `tiny-start`
 
 ## [v0.2.4] - 2024-05-05
 
