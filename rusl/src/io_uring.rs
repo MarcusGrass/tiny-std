@@ -19,9 +19,9 @@ use crate::{Error, Result};
 #[cfg(test)]
 mod test;
 
-/// Creates an `IoUring` instance with shared memory between user and kernel space.  
-/// `entries` are the number of available slots in the submission queue,  
-/// 'flags' are passed to `io_uring_setup`.  
+/// Creates an `IoUring` instance with shared memory between user and kernel space.\
+/// `entries` are the number of available slots in the submission queue,\
+/// 'flags' are passed to `io_uring_setup`.\
 /// See the [linux documentation for details](https://man7.org/linux/man-pages//man2/io_uring_setup.2.html)  
 /// # Errors
 /// See above
@@ -163,7 +163,7 @@ unsafe fn into_non_null(src_addr: usize, bit_offset: usize) -> Result<NonNull<At
 }
 
 /// Sets up a new `io_uring` instance fitting `entries` amount of entries
-/// returning its `fd`.  
+/// returning its `fd`.\
 /// See [Linux documentation for details](https://man7.org/linux/man-pages//man2/io_uring_setup.2.html)
 /// # Errors
 /// See above  
@@ -179,7 +179,7 @@ pub fn io_uring_setup(entries: u32, io_uring_params: &mut IoUringParams) -> Resu
     Fd::coerce_from_register(res, "`IO_URING_SETUP` syscall failed")
 }
 
-/// Register files on an `io_uring` instance.  
+/// Register files on an `io_uring` instance.\
 /// See [Linux documentation for details](https://man7.org/linux/man-pages//man2/io_uring_register.2.html)  
 /// # Errors
 /// See above  
@@ -221,7 +221,7 @@ pub fn io_uring_register_io_slices(uring_fd: Fd, buffers: &[IoSliceMut]) -> Resu
 }
 
 /// Register the contained io slices, the parent buffer does not need to live longer than until
-/// the completion of this syscall.  
+/// the completion of this syscall.
 /// See [Linux documentation for details](https://man7.org/linux/man-pages//man2/io_uring_register.2.html)
 /// # Errors
 /// See above
@@ -243,7 +243,7 @@ pub unsafe fn io_uring_register_buffers(uring_fd: Fd, buffer: &[IoSliceMut]) -> 
 }
 
 /// Initiate and complete io using the shared submission and completion queue of the
-/// already setup `io_uring` at `uring_fd`.  
+/// already setup `io_uring` at `uring_fd`.
 /// See [linux documentation for details](https://man7.org/linux/man-pages//man2/io_uring_enter.2.html)
 /// # Errors
 /// See above

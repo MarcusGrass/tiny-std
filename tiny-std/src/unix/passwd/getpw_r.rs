@@ -17,14 +17,14 @@ pub struct Passwd<'a> {
 /// # Errors
 /// `uid` isn't listed in `/etc/passwd`
 /// `/etc/passwd` isn't readable.
-pub fn getpwuid_r(uid: UidT, buf: &mut [u8]) -> Result<Option<Passwd>> {
+pub fn getpwuid_r(uid: UidT, buf: &mut [u8]) -> Result<Option<Passwd<'_>>> {
     let fd =
         unsafe { rusl::unistd::open_raw(c"/etc/passwd".as_ptr() as usize, OpenFlags::O_RDONLY)? };
     search_pwd_fd(fd, uid, buf)
 }
 
 #[inline]
-fn search_pwd_fd(fd: Fd, uid: UidT, buf: &mut [u8]) -> Result<Option<Passwd>> {
+fn search_pwd_fd(fd: Fd, uid: UidT, buf: &mut [u8]) -> Result<Option<Passwd<'_>>> {
     // Compiler gets confused here, or I am causing UB, one of the two.
     // --- Mut borrow start
     rusl::unistd::read(fd, buf)?;
@@ -57,7 +57,7 @@ enum SearchRes<'a> {
 }
 
 #[inline]
-fn search_from(uid: UidT, buf: &[u8]) -> Result<SearchRes> {
+fn search_from(uid: UidT, buf: &[u8]) -> Result<SearchRes<'_>> {
     if let Some(pwd) = find_by_uid(buf, uid)? {
         Ok(SearchRes::Pwd(pwd))
     } else if let Some(nl) = find_last_newline(buf) {
@@ -68,7 +68,7 @@ fn search_from(uid: UidT, buf: &[u8]) -> Result<SearchRes> {
 }
 
 #[inline]
-fn find_by_uid(pwd_buf: &[u8], uid: UidT) -> Result<Option<Passwd>> {
+fn find_by_uid(pwd_buf: &[u8], uid: UidT) -> Result<Option<Passwd<'_>>> {
     let mut offset = 0;
     loop {
         let Some(next) = next_line(&pwd_buf[offset..]) else {
@@ -95,7 +95,7 @@ fn next_line(buf: &[u8]) -> Option<&[u8]> {
 }
 
 #[inline]
-fn try_pwd(line: &[u8]) -> Result<Option<Passwd>> {
+fn try_pwd(line: &[u8]) -> Result<Option<Passwd<'_>>> {
     let mut slices = [0, 0, 0, 0, 0, 0];
     for (ind, byte) in line.iter().enumerate() {
         if *byte == b':' {

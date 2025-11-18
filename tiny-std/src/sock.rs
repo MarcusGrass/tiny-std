@@ -32,7 +32,7 @@ pub(crate) fn sock_nonblock_op_poll_if_not_ready<
                         }
                         return op(sock).map_err(crate::Error::from);
                     }
-                    Err(e) if e.code == Some(Errno::EINTR) => continue,
+                    Err(e) if e.code == Some(Errno::EINTR) => {}
                     Err(e) => {
                         return Err(e.into());
                     }
@@ -65,7 +65,7 @@ pub(crate) fn blocking_read_nonblock_sock(
                         }
                         return Ok(rusl::unistd::read(sock, buf)?);
                     }
-                    Err(e) if e.code == Some(Errno::EINTR) => continue,
+                    Err(e) if e.code == Some(Errno::EINTR) => {}
                     Err(e) => {
                         return Err(e.into());
                     }
@@ -98,7 +98,7 @@ pub(crate) fn blocking_write_nonblock_sock(
                         }
                         return Ok(rusl::unistd::write(sock, buf)?);
                     }
-                    Err(e) if e.code == Some(Errno::EINTR) => continue,
+                    Err(e) if e.code == Some(Errno::EINTR) => {}
                     Err(e) => {
                         return Err(e.into());
                     }

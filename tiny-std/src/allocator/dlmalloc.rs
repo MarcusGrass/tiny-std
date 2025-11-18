@@ -203,22 +203,22 @@ impl Dlmalloc {
         Dlmalloc {
             smallmap: 0,
             treemap: 0,
-            smallbins: [0 as *mut _; (NSMALLBINS + 1) * 2],
-            treebins: [0 as *mut _; NTREEBINS],
+            smallbins: [core::ptr::null_mut(); (NSMALLBINS + 1) * 2],
+            treebins: [core::ptr::null_mut(); NTREEBINS],
             dvsize: 0,
             topsize: 0,
-            dv: 0 as *mut _,
-            top: 0 as *mut _,
+            dv: core::ptr::null_mut(),
+            top: core::ptr::null_mut(),
             footprint: 0,
             max_footprint: 0,
             seg: Segment {
-                base: 0 as *mut _,
+                base: core::ptr::null_mut(),
                 size: 0,
-                next: 0 as *mut _,
+                next: core::ptr::null_mut(),
                 flags: 0,
             },
             trim_check: 0,
-            least_addr: 0 as *mut _,
+            least_addr: core::ptr::null_mut(),
             release_checks: 0,
         }
     }
@@ -673,7 +673,7 @@ impl Dlmalloc {
                 self.dvsize = 0;
                 self.dv = ptr::null_mut();
             }
-            return p;
+            p
         } else if !Chunk::cinuse(next) {
             // extend into the next free chunk
             let nextsize = Chunk::size(next);
@@ -1132,7 +1132,7 @@ impl Dlmalloc {
     #[inline]
     unsafe fn treebin_at(&mut self, idx: u32) -> *mut *mut TreeChunk {
         debug_assert!((idx as usize) < self.treebins.len());
-        &mut *self.treebins.get_unchecked_mut(idx as usize)
+        &raw mut *self.treebins.get_unchecked_mut(idx as usize)
     }
 
     #[expect(clippy::cast_possible_truncation)]
@@ -1922,7 +1922,7 @@ impl TreeChunk {
     }
 
     unsafe fn chunk(me: *mut TreeChunk) -> *mut Chunk {
-        &mut (*me).chunk
+        &raw mut (*me).chunk
     }
 
     unsafe fn next(me: *mut TreeChunk) -> *mut TreeChunk {

@@ -108,7 +108,7 @@ pub(crate) fn default_read_to_end<R: Read + ?Sized>(r: &mut R, buf: &mut Vec<u8>
                         buf.extend_from_slice(&probe[..n]);
                         break;
                     }
-                    Err(ref e) if e.matches_errno(Errno::EINTR) => continue,
+                    Err(ref e) if e.matches_errno(Errno::EINTR) => {}
                     Err(e) => return Err(e),
                 }
             }

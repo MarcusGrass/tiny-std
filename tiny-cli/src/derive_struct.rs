@@ -184,7 +184,6 @@ fn parse_group(name: &str, metadata: &StructMetadata, g: &Group) -> TokenStream 
                         }
                     }
                     state = ArgsParsedTreeParseState::Ready;
-                    continue;
                 }
                 ArgsParsedTreeParseState::WantsSubcommand
                 | ArgsParsedTreeParseState::WantsMember(_)
@@ -335,7 +334,7 @@ fn parse_annotation_group(g: &Group) -> GroupParseResult {
                         .trim_matches('\"')
                         .to_string();
                         assert_eq!(1, short_lit.chars().count(), "Expected short literal in #[cli(short = \"<lit>\"... to be a single character, got {short_lit}");
-                        preferred_short = Some(short_lit.to_string());
+                        preferred_short = Some(short_lit.clone());
                     }
                     "long" => {
                         assert!(

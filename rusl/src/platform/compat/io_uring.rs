@@ -324,9 +324,9 @@ impl IoUringSubmissionQueueEntry {
     /// Creates a new entry that will execute an `openat` syscall.  
     /// # Safety
     /// It is up to the caller to make sure that the `path` reference lives until this
-    /// entry is submitted or discarded.  
+    /// entry is submitted or discarded.
     /// [The docs](https://man7.org/linux/man-pages//man2/io_uring_enter2.2.html) doesn't
-    /// say what will happen if it's freed before it's passed to the kernel.  
+    /// say what will happen if it's freed before it's passed to the kernel.
     /// It's likely to be an EINVAL but could be a `use-after-free`
     #[inline]
     #[must_use]

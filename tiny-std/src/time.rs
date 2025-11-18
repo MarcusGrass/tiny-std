@@ -160,7 +160,7 @@ fn checked_add_dur(timespec: TimeSpec, duration: Duration) -> Option<TimeSpec> {
     if total_nanos >= NANOS_A_SECOND {
         total_nanos -= NANOS_A_SECOND;
         seconds = seconds.checked_add(1)?;
-    };
+    }
     Some(TimeSpec::new(
         timespec.seconds().checked_add(seconds.try_into().ok()?)?,
         total_nanos,

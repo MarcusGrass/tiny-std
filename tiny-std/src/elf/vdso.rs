@@ -44,6 +44,8 @@ unsafe fn find_vdso_clock_get_time(
     let header = elf_ptr.assume_init();
     let mut dyn_syms = None;
     // Pointer to the start of the section header
+    // trusting the vdso to give proper alignment on the address
+    #[allow(clippy::cast_ptr_alignment)]
     let section_start = vdso
         .add(header.0.e_shoff as usize)
         .cast::<rusl::platform::SectionHeader>();

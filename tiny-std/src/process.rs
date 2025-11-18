@@ -616,7 +616,7 @@ pub struct AnonPipe(OwnedFd);
 impl AnonPipe {
     #[inline]
     #[must_use]
-    pub fn borrow_fd(&self) -> BorrowedFd {
+    pub fn borrow_fd(&self) -> BorrowedFd<'_> {
         BorrowedFd::new(self.0 .0)
     }
 }

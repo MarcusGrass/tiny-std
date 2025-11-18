@@ -3,10 +3,11 @@
 #![warn(clippy::pedantic)]
 #![expect(
     clippy::module_name_repetitions,
-    clippy::similar_names,
+    clippy::struct_field_names,
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap
 )]
+#![allow(clippy::similar_names)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
