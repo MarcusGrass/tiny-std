@@ -10,7 +10,7 @@ checksum = "109280d660e557dfa6474e3b1bbe04272ba3fa5c5e5ce73b394c7b224f082caa"
 
 [[package]]
 name = "rusl"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "linux-rust-bindings",
  "sc",
