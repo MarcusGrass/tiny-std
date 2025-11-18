@@ -16,4 +16,4 @@ keywords = ["cli", "parse", "arg", "parser", "linux"]
 proc-macro = true
 
 [dev-dependencies]
-tiny-std = { version = "0.3.1", features = ["alloc", "cli"]}
+tiny-std = { path = "../tiny-std", features = ["alloc", "cli"]}
