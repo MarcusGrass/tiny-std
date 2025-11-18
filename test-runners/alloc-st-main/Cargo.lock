@@ -51,15 +51,17 @@ dependencies = [
 [[package]]
 name = "tiny-start"
 version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04796e57eaf0c693abd1f47dd8386f4fc5c123df8c2caf801750793d52b38fc7"
 dependencies = [
  "rusl 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "tiny-std"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
- "rusl 0.4.1",
+ "rusl 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "sc",
  "tiny-start",
 ]
