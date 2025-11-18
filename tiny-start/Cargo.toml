@@ -18,6 +18,7 @@ default = []
 aux = ["start"]
 start = []
 mem-symbols = []
+strlen = []
 
 [dependencies]
 rusl = { path = "../rusl", default-features = false }

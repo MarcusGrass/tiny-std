@@ -116,7 +116,6 @@ const WORD_COPY_THRESHOLD: usize = if 2 * WORD_SIZE > 16 {
 };
 
 #[no_mangle]
-#[inline(always)]
 #[expect(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     copy_forward(dest, src, n);
@@ -124,7 +123,6 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
 }
 
 #[no_mangle]
-#[inline(always)]
 #[expect(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     let delta = (dest as usize).wrapping_sub(src as usize);
@@ -139,21 +137,18 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
 }
 
 #[no_mangle]
-#[inline(always)]
 #[expect(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     compare_bytes(s1, s2, n)
 }
 
 #[no_mangle]
-#[inline(always)]
 #[expect(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     memcmp(s1, s2, n)
 }
 
 #[no_mangle]
-#[inline(always)]
 #[expect(
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation,
@@ -246,7 +241,7 @@ unsafe fn read_usize_unaligned(x: *const usize) -> usize {
     // Do not use `core::ptr::read_unaligned` here, since it calls `copy_nonoverlapping` which
     // is translated to memcpy in LLVM.
     let x_read = x.cast::<[u8; 8]>().read();
-    core::mem::transmute(x_read)
+    usize::from_ne_bytes(x_read)
 }
 
 #[inline(always)]

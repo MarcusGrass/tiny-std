@@ -19,5 +19,5 @@ pub mod elf;
 #[cfg(feature = "start")]
 pub mod start;
 
-#[cfg(feature = "mem-symbols")]
+#[cfg(any(feature = "mem-symbols", feature = "strlen"))]
 pub mod symbols;
