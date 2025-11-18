@@ -1,6 +1,6 @@
 [package]
 name = "tiny-start"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 license = "MPL-2.0"
 readme = "../Readme.md"
@@ -21,4 +21,4 @@ mem-symbols = []
 strlen = []
 
 [dependencies]
-rusl = { path = "../rusl", default-features = false }
+rusl = { version = "0.4.1", default-features = false }
