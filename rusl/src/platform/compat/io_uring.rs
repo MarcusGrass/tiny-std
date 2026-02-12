@@ -954,6 +954,25 @@ pub struct IoUring {
     pub(crate) completion_queue: UringCompletionQueue,
 }
 
+pub struct IoUringBorrowedSqe<'a> {
+    tail: &'a mut u32,
+    queue_ptr: *mut IoUringSubmissionQueueEntry,
+}
+
+impl IoUringBorrowedSqe<'_> {
+    pub fn write(self, entry: IoUringSubmissionQueueEntry) {
+        // Safety:
+        // The pointer is valid for as long as the uring is valid
+        // which lifetimes enforce.
+        // Exclusive access is guaranteed by the mutable borrow of
+        // a field from the uring.
+        unsafe {
+            *self.queue_ptr = entry;
+        }
+        *self.tail = self.tail.wrapping_add(1);
+    }
+}
+
 #[expect(dead_code)]
 impl IoUring {
     #[inline]
@@ -979,22 +998,23 @@ impl IoUring {
         }
     }
 
-    pub fn get_next_sqe_slot(&mut self) -> Option<*mut IoUringSubmissionQueueEntry> {
-        let next = self.submission_queue.tail + 1;
-        let shift = u32::from(self.flags.contains(IoUringParamFlags::IORING_SETUP_SQE128));
+    #[must_use]
+    pub fn get_next_sqe_slot(&mut self) -> Option<IoUringBorrowedSqe<'_>> {
         let head = if self.flags.contains(IoUringParamFlags::IORING_SETUP_SQPOLL) {
             self.submission_queue.acquire_khead()
         } else {
             self.submission_queue.get_khead_relaxed()
         };
-        if next - head <= self.submission_queue.ring_entries {
-            let index = (self.submission_queue.tail & self.submission_queue.ring_mask) << shift;
-            let sqe = unsafe { self.submission_queue.entries.as_ptr().add(index as usize) };
-            self.submission_queue.tail = next;
-            Some(sqe)
-        } else {
-            None
+        if self.submission_queue.tail - head >= self.submission_queue.ring_entries {
+            return None;
         }
+        let shift = u32::from(self.flags.contains(IoUringParamFlags::IORING_SETUP_SQE128));
+        let index = (self.submission_queue.tail & self.submission_queue.ring_mask) << shift;
+        let sqe = unsafe { self.submission_queue.entries.as_ptr().add(index as usize) };
+        Some(IoUringBorrowedSqe {
+            tail: &mut self.submission_queue.tail,
+            queue_ptr: sqe,
+        })
     }
 
     pub fn flush_submission_queue(&mut self) -> u32 {

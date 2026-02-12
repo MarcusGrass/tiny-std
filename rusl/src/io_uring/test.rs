@@ -406,7 +406,7 @@ fn uring_unix_accept_send_recv() {
     // We actually have to handle this async since we're on a single thread and accept will block
     // for a connect
     let next_slot = uring.get_next_sqe_slot().unwrap();
-    unsafe { next_slot.write(entry) }
+    next_slot.write(entry);
     uring.flush_submission_queue();
     io_uring_enter(uring.fd, 1, 0, IoUringEnterFlags::empty()).unwrap();
     let conn_sock = socket(
@@ -438,13 +438,13 @@ fn uring_unix_accept_send_recv() {
             &io,
             Some(crate::platform::ControlMessageSend::ScmRights(&msg_fds)),
         );
-        *next_slot = IoUringSubmissionQueueEntry::new_sendmsg(
+        next_slot.write(IoUringSubmissionQueueEntry::new_sendmsg(
             conn_sock,
             &msg,
             0,
             99,
             IoUringSQEFlags::empty(),
-        );
+        ));
         uring.flush_submission_queue();
         io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
         let cqe = uring.get_next_cqe().unwrap();
@@ -456,13 +456,13 @@ fn uring_unix_accept_send_recv() {
         let mut iov = [IoSliceMut::new(&mut buf)];
         let mut recv_hdr =
             crate::platform::MsgHdrBorrow::create_recv(&mut iov, Some(&mut ctrl_buf));
-        *next_slot = IoUringSubmissionQueueEntry::new_recvmsg(
+        next_slot.write(IoUringSubmissionQueueEntry::new_recvmsg(
             client_to_server_socket,
             core::ptr::addr_of_mut!(recv_hdr).cast(),
             0,
             999,
             IoUringSQEFlags::empty(),
-        );
+        ));
         uring.flush_submission_queue();
         io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
         let cqe = uring.get_next_cqe().unwrap();
@@ -526,7 +526,7 @@ fn uring_tcp_accept() {
     // We actually have to handle this async since we're on a single thread and accept will block
     // for a connect
     let next_slot = uring.get_next_sqe_slot().unwrap();
-    unsafe { next_slot.write(entry) }
+    next_slot.write(entry);
     uring.flush_submission_queue();
     io_uring_enter(uring.fd, 1, 0, IoUringEnterFlags::empty()).unwrap();
     let conn_sock = socket(
@@ -558,9 +558,7 @@ fn write_await_single_entry(
     user_data: u64,
 ) -> &IoUringCompletionQueueEntry {
     let next_slot = uring.get_next_sqe_slot().unwrap();
-    unsafe {
-        next_slot.write(entry);
-    }
+    next_slot.write(entry);
     uring.flush_submission_queue();
     io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
     let cqe = uring.get_next_cqe().unwrap();
@@ -589,9 +587,7 @@ fn uring_single_timeout() {
         )
     };
     let next_slot = uring.get_next_sqe_slot().unwrap();
-    unsafe {
-        next_slot.write(entry);
-    }
+    next_slot.write(entry);
     uring.flush_submission_queue();
     let start = clock_get_monotonic_time();
     io_uring_enter(uring.fd, 1, 1, IoUringEnterFlags::IORING_ENTER_GETEVENTS).unwrap();
@@ -931,16 +927,14 @@ fn poll_add() {
         Mode::S_IRUSR | Mode::S_IWUSR | Mode::S_IRGRP | Mode::S_IROTH,
     )
     .unwrap();
-    unsafe {
-        let sqe = uring.get_next_sqe_slot().unwrap();
-        *sqe = IoUringSubmissionQueueEntry::new_poll_add(
-            poll_fd,
-            PollEvents::POLLIN | PollEvents::POLLOUT,
-            PollAddMultiFlags::empty(),
-            0,
-            IoUringSQEFlags::empty(),
-        );
-    }
+    let sqe = uring.get_next_sqe_slot().unwrap();
+    sqe.write(IoUringSubmissionQueueEntry::new_poll_add(
+        poll_fd,
+        PollEvents::POLLIN | PollEvents::POLLOUT,
+        PollAddMultiFlags::empty(),
+        0,
+        IoUringSQEFlags::empty(),
+    ));
     uring.flush_submission_queue();
     assert_eq!(
         1,
