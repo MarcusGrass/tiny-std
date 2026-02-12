@@ -363,7 +363,7 @@ where
 unsafe fn onwed_split_fn_once<F: FnOnce()>(f: F) -> (usize, usize) {
     let t = start_fn::<F>;
     let d = Box::into_raw(Box::new(f));
-    (t as usize, d as usize)
+    (t as *const () as usize, d as usize)
 }
 
 #[repr(C)]
