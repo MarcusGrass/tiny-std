@@ -18,7 +18,7 @@ dependencies = [
 
 [[package]]
 name = "rusl"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "linux-rust-bindings",
  "sc",
@@ -40,14 +40,14 @@ dependencies = [
 
 [[package]]
 name = "tiny-start"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "rusl",
 ]
 
 [[package]]
 name = "tiny-std"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "rusl",
  "sc",
