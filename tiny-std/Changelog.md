@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+## [v0.3.1] - 2026-02-12
+
+### Changed
+- Updated `rusl` and `tiny-start`
+
 
 ## [v0.3.0] - 2025-02-08
 
