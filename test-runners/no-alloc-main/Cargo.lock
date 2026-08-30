@@ -40,14 +40,14 @@ dependencies = [
 
 [[package]]
 name = "tiny-start"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "rusl",
 ]
 
 [[package]]
 name = "tiny-std"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "rusl",
  "sc",
