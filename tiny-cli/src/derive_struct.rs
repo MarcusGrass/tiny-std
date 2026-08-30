@@ -127,12 +127,8 @@ fn extract_struct_level_cli_properties(
     if let Some(mut next_token_tree) = g_it.next() {
         if let TokenTree::Punct(p) = next_token_tree {
             if p.as_char() == ',' {
-                if let Some(next) = g_it.next() {
-                    next_token_tree = next;
-                } else {
-                    // Trailing comma
-                    return None;
-                }
+                let next = g_it.next()?;
+                next_token_tree = next;
             } else {
                 panic!("[ArgParse derive] only punctuation expected within #[cli(... is '=' between keys and values, found {}", p.as_char());
             }
@@ -645,7 +641,7 @@ impl ParsedField {
     pub(crate) fn write_into_help(&self, help_row: &mut String) {
         match (self.short_match_lit(), self.long_match_lit()) {
             (Some(short), Some(long)) => {
-                let _ = help_row.write_fmt(format_args!("  -{short}, --{long}\n",));
+                let _ = help_row.write_fmt(format_args!("  -{short}, --{long}\n"));
             }
             (Some(short), None) => {
                 let _ = help_row.write_fmt(format_args!("  -{short}\n"));

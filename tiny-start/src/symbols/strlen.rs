@@ -1,5 +1,6 @@
 #[no_mangle]
 #[expect(clippy::missing_safety_doc)]
+#[allow(suspicious_runtime_symbol_definitions)]
 // 64-bit linux which is the only target supported
 // has a 64-bit long int, this needs to be updated
 // if 32-bit support is needed

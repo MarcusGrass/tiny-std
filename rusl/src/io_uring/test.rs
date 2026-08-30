@@ -32,7 +32,7 @@ fn setup_io_poll_uring() -> Option<Fd> {
         #[allow(unused_variables)]
         Err(e) => {
             #[cfg(target_arch = "aarch64")]
-            assert!(e.code.unwrap() == crate::error::Errno::ENOSYS);
+            assert_eq!(e.code.unwrap(), crate::error::Errno::ENOSYS);
             return None;
         }
     };
@@ -968,7 +968,7 @@ fn uring_args_timeout() {
         uring.flush_submission_queue();
         let start = std::time::Instant::now();
         // Put a short timeout on the long running task
-        let res = io_uring_enter_timeout(
+        let _res = io_uring_enter_timeout(
             uring.fd,
             1,
             1,
@@ -985,8 +985,7 @@ fn uring_args_timeout() {
         // Should not have taken the full duration (much less is expected)
         assert!(
             el <= std::time::Duration::from_millis(500),
-            "expected timeout to be less than 500ms, got {:?}",
-            el
-        )
+            "expected timeout to be less than 500ms, got {el:?}",
+        );
     }
 }

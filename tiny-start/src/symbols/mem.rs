@@ -116,14 +116,14 @@ const WORD_COPY_THRESHOLD: usize = if 2 * WORD_SIZE > 16 {
 };
 
 #[no_mangle]
-#[expect(clippy::missing_safety_doc)]
+#[expect(suspicious_runtime_symbol_definitions, clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     copy_forward(dest, src, n);
     dest
 }
 
 #[no_mangle]
-#[expect(clippy::missing_safety_doc)]
+#[expect(suspicious_runtime_symbol_definitions, clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     let delta = (dest as usize).wrapping_sub(src as usize);
     if delta >= n {
@@ -137,19 +137,20 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
 }
 
 #[no_mangle]
-#[expect(clippy::missing_safety_doc)]
+#[expect(suspicious_runtime_symbol_definitions, clippy::missing_safety_doc)]
 pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     compare_bytes(s1, s2, n)
 }
 
 #[no_mangle]
-#[expect(clippy::missing_safety_doc)]
+#[expect(suspicious_runtime_symbol_definitions, clippy::missing_safety_doc)]
 pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     memcmp(s1, s2, n)
 }
 
 #[no_mangle]
 #[expect(
+    suspicious_runtime_symbol_definitions,
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation,
     clippy::missing_safety_doc

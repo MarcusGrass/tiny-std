@@ -15,6 +15,7 @@ pub fn spawn_no_args() {
         None,
         None,
         None,
+        false,
     )
     .unwrap();
     let exit = proc.wait().unwrap();
@@ -45,6 +46,7 @@ pub fn spawn_with_args() {
         None,
         None,
         None,
+        false,
     )
     .unwrap();
     let exit = proc_with_arg.wait().unwrap();

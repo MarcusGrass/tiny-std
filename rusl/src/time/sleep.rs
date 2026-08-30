@@ -13,7 +13,7 @@ pub fn nanosleep(try_sleep: &TimeSpec, rem: Option<*mut TimeSpec>) -> crate::Res
         syscall!(
             NANOSLEEP,
             core::ptr::from_ref::<TimeSpec>(try_sleep),
-            rem.map_or(core::ptr::null_mut(), |ts| ts)
+            rem.unwrap_or(core::ptr::null_mut())
         )
     };
     bail_on_below_zero!(res, "`NANOSLEEP` syscall failed");

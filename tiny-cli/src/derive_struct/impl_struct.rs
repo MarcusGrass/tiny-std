@@ -100,7 +100,7 @@ impl CodeWriter {
         if matches!(field.ty, FieldTy::Bool) {
             let _ = self
                 .var_decl_head
-                .write_fmt(format_args!("\t\tlet mut {}: bool = false;\n", field.name,));
+                .write_fmt(format_args!("\t\tlet mut {}: bool = false;\n", field.name));
             return;
         }
         match field.package {
@@ -256,10 +256,7 @@ impl CodeWriter {
         } else {
             let mut matched_last = String::new();
             let mut first = true;
-            loop {
-                let Some(positional) = parsed_fields.pop_front() else {
-                    break;
-                };
+            while let Some(positional) = parsed_fields.pop_front() {
                 let as_conv = member_try_assign(&positional);
                 let Some(pos) = positional.positional else {
                     continue;
@@ -291,7 +288,7 @@ impl CodeWriter {
         let _ = output.write_str("\t\t\t}\n\t\t}\n");
         let _ = output.write_fmt(format_args!(
             "\t\tOk(Self {{\n\t\t\t{}\t\t}})\n\t}}\n}}\n",
-            &self.struct_out
+            self.struct_out
         ));
         output
     }
@@ -341,7 +338,7 @@ fn member_as_convert(m: &ParsedField) -> String {
     if let Some(lm) = m.as_lit_match() {
         let mut out = String::from("{\n");
         let _ = out.write_str("\t\t\t\t\t\tlet Some(next_arg) = args.next() else {\n");
-        let _ = out.write_fmt(format_args!("\t\t\t\t\t\t\treturn Err(tiny_std::unix::cli::ArgParseError::new_cause_str(Self::help_printer(), \"Expected argument following '{lm}'.\")?);\n", ));
+        let _ = out.write_fmt(format_args!("\t\t\t\t\t\t\treturn Err(tiny_std::unix::cli::ArgParseError::new_cause_str(Self::help_printer(), \"Expected argument following '{lm}'.\")?);\n"));
         let _ = out.write_str("\t\t\t\t\t\t};\n");
         match &m.ty {
             FieldTy::UnixStr => {

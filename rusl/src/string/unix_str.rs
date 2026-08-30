@@ -516,13 +516,10 @@ fn buf_find(this_buf: &[u8], other_buf: &[u8]) -> Option<usize> {
         if this_buf[i] == other_buf[0] {
             let mut no_match = false;
             for j in 1..other_buf.len() {
-                if let Some(this) = this_buf.get(i + j) {
-                    if *this != other_buf[j] {
-                        no_match = true;
-                        break;
-                    }
-                } else {
-                    return None;
+                let this = this_buf.get(i + j)?;
+                if *this != other_buf[j] {
+                    no_match = true;
+                    break;
                 }
             }
             if !no_match {
