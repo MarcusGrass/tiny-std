@@ -18,7 +18,7 @@ dependencies = [
 
 [[package]]
 name = "rusl"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "linux-rust-bindings",
  "sc",
