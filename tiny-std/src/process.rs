@@ -40,6 +40,7 @@ pub struct Command<'a> {
     stdout: Option<Stdio>,
     stderr: Option<Stdio>,
     pgroup: Option<PidT>,
+    setsid: bool,
 }
 
 // Create a new type for argv, so that we can make it `Send` and `Sync`
@@ -86,6 +87,7 @@ impl<'a> Command<'a> {
             stdout: None,
             stderr: None,
             pgroup: None,
+            setsid: false,
         })
     }
 
@@ -192,6 +194,11 @@ impl<'a> Command<'a> {
         self
     }
 
+    pub fn setsid(&mut self, setsid: bool) -> &mut Self {
+        self.setsid = setsid;
+        self
+    }
+
     /// Spawns a new child process from this command.
     /// # Errors
     /// See `spawn`
@@ -218,6 +225,7 @@ impl<'a> Command<'a> {
                 self.uid,
                 self.gid,
                 self.pgroup,
+                self.setsid,
             )
         }
     }
@@ -449,6 +457,7 @@ unsafe fn do_spawn<F: PreExec>(
     uid: Option<UidT>,
     gid: Option<GidT>,
     pgroup: Option<PidT>,
+    setsid: bool,
 ) -> Result<Child> {
     const CLOEXEC_MSG_FOOTER: [u8; 4] = *b"NOEX";
     let (ours, theirs) = setup_io(default_stdio, needs_stdin, stdin, stdout, stderr)?;
@@ -459,6 +468,9 @@ unsafe fn do_spawn<F: PreExec>(
     if child_pid == 0 {
         // Executing as child process
         let _ = rusl::unistd::close(read_pipe);
+        if setsid {
+            rusl::unistd::setsid()?;
+        }
         if let Some(fd) = theirs.stdin.fd() {
             rusl::unistd::dup2(fd, STDIN)?;
         }
@@ -570,6 +582,7 @@ pub fn spawn<const N: usize, CL: PreExec>(
     uid: Option<UidT>,
     gid: Option<GidT>,
     pgroup: Option<PidT>,
+    setsid: bool,
 ) -> Result<Child> {
     const NO_ENV: [*const u8; 1] = [core::ptr::null()];
     let mut no_args: [*const u8; 2] = [core::ptr::null_mut(), core::ptr::null_mut()];
@@ -607,6 +620,7 @@ pub fn spawn<const N: usize, CL: PreExec>(
             uid,
             gid,
             pgroup,
+            setsid,
         )
     }
 }
