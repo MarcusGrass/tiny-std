@@ -1,10 +1,10 @@
 use core::mem::MaybeUninit;
-
+use core::time::Duration;
 use linux_rust_bindings::errno::ETIME;
 
 use crate::error::Errno;
 use crate::io_uring::{
-    io_uring_enter, io_uring_register_buffers, io_uring_register_files,
+    io_uring_enter, io_uring_enter_timeout, io_uring_register_buffers, io_uring_register_files,
     io_uring_register_io_slices, io_uring_setup, setup_io_uring,
 };
 use crate::platform::{
@@ -945,4 +945,48 @@ fn poll_add() {
         next.0.res,
         i32::from((PollEvents::POLLIN | PollEvents::POLLOUT).0)
     );
+}
+
+#[test]
+fn uring_args_timeout() {
+    let Some(mut uring) = setup_ignore_enosys(8, IoUringParamFlags::empty()) else {
+        return;
+    };
+    let user_data = 10001;
+    let ts = TimeSpec::new(60, 0);
+    unsafe {
+        // Create a long-running task
+        let entry = IoUringSubmissionQueueEntry::new_timeout(
+            &ts,
+            true,
+            None,
+            user_data,
+            IoUringSQEFlags::empty(),
+        );
+        let next_slot = uring.get_next_sqe_slot().unwrap();
+        next_slot.write(entry);
+        uring.flush_submission_queue();
+        let start = std::time::Instant::now();
+        // Put a short timeout on the long running task
+        let res = io_uring_enter_timeout(
+            uring.fd,
+            1,
+            1,
+            IoUringEnterFlags::IORING_ENTER_GETEVENTS,
+            Duration::from_millis(100),
+        )
+        .unwrap();
+        // Should not have yielded
+        assert!(
+            uring.get_next_cqe().is_none(),
+            "expected not having yieded the timeout entry"
+        );
+        let el = start.elapsed();
+        // Should not have taken the full duration (much less is expected)
+        assert!(
+            el <= std::time::Duration::from_millis(500),
+            "expected timeout to be less than 500ms, got {:?}",
+            el
+        )
+    }
 }

@@ -1,7 +1,7 @@
 use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU32, Ordering};
-
+use core::time::Duration;
 use linux_rust_bindings::io_uring::{
     IORING_OFF_CQ_RING, IORING_OFF_SQES, IORING_OFF_SQ_RING, IORING_REGISTER_BUFFERS,
     IORING_REGISTER_FILES,
@@ -11,7 +11,7 @@ use sc::syscall;
 use crate::platform::{
     Fd, IoSliceMut, IoUring, IoUringCompletionQueueEntry, IoUringEnterFlags, IoUringFeatFlags,
     IoUringParamFlags, IoUringParams, IoUringSubmissionQueueEntry, MapAdditionalFlags,
-    MapRequiredFlag, MemoryProtection, UringCompletionQueue, UringSubmissionQueue,
+    MapRequiredFlag, MemoryProtection, TimeSpec, UringCompletionQueue, UringSubmissionQueue,
 };
 use crate::unistd::mmap;
 use crate::{Error, Result};
@@ -265,5 +265,55 @@ pub fn io_uring_enter(
         )
     };
     bail_on_below_zero!(res, "`IO_URING_ENTER` syscall failed");
+    Ok(res)
+}
+
+/// Like [`io_uring_enter`] but with a timeout.
+/// See [linux documentation for details](https://man7.org/linux/man-pages//man2/io_uring_enter.2.html)
+/// # Errors
+/// See above
+pub fn io_uring_enter_timeout(
+    uring_fd: Fd,
+    to_submit: u32,
+    min_complete: u32,
+    flags: IoUringEnterFlags,
+    timeout: Duration,
+) -> Result<usize> {
+    #[repr(C)]
+    struct IoUringGeteventsArg {
+        sigmask: u64,
+        sigmask_sz: u32,
+        pad: u32,
+        ts: u64,
+    }
+    const ARG_SZ: usize = core::mem::size_of::<IoUringGeteventsArg>();
+    let mut timespec = TimeSpec::new(
+        timeout
+            .as_secs()
+            .try_into()
+            .map_err(|_| Error::no_code("Timeout(seconds) too large"))?,
+        timeout.subsec_nanos().into(),
+    );
+
+    let ts_ptr = core::ptr::addr_of_mut!(timespec).cast::<u8>() as u64;
+    let mut args = IoUringGeteventsArg {
+        sigmask: 0,
+        sigmask_sz: 0,
+        pad: 0,
+        ts: ts_ptr,
+    };
+    let arg_ptr = core::ptr::addr_of_mut!(args).cast::<u8>();
+    let res = unsafe {
+        syscall!(
+            IO_URING_ENTER,
+            uring_fd.0,
+            to_submit,
+            min_complete,
+            (flags | IoUringEnterFlags::IORING_ENTER_EXT_ARG).bits(),
+            arg_ptr,
+            ARG_SZ
+        )
+    };
+    bail_on_below_zero!(res, "`IO_URING_ENTER` with timeout syscall failed");
     Ok(res)
 }
